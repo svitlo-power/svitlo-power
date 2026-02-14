@@ -9,14 +9,14 @@ from .ext_data import ExtData
 from .message import Message
 from .station import Station
 from .station_data import StationData
-from .user import User
+from .user import User, ReportMode
 from .visit_counter import VisitCounter, DailyVisitCounter
 from .beanie_filter import BeanieFilter
 
 
 __all__ = [
     BeanieFilter, Bot, AllowedChat, ChatRequest,
-    User, Message, Station, Building,
+    User, ReportMode, Message, Station, Building,
     StationData, ExtData, DashboardConfig,
     VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue,
