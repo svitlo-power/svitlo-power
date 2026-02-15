@@ -8,10 +8,11 @@ from .bots import IBotsRepository
 from .lookups import ILookupsRepository, LookupDefinition
 from .chats import IChatsRepository
 from .ext_data import IExtDataRepository
+from .ext_device import IExtDeviceRepository
 from .dashboard import IDashboardRepository
 
 
 __all__ = [DataQuery, IBotsRepository, IUsersRepository, IMessagesRepository,
            ILookupsRepository, LookupDefinition, IStationsRepository, 
            IStationsDataRepository, IVisitsCounterRepository, IChatsRepository,
-           IExtDataRepository, IDashboardRepository]
+           IExtDataRepository, IExtDeviceRepository, IDashboardRepository]

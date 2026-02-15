@@ -1,14 +1,14 @@
-import { FC, useCallback, useEffect, useRef, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { connect } from "react-redux";
 import { RootState, useAppDispatch } from "../../stores/store";
 import { cancelPasswordReset, cancelUsersEditing, createUser, CreateUserResponse, deleteUser, deleteUserToken, fetchUsers, generateUserToken, requestPasswordReset, saveUsers } from "../../stores/thunks";
 import { cancelCreatingUser, startCreatingUser, updateUser } from "../../stores/slices";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { createSelector } from "@reduxjs/toolkit";
-import { UserItem } from "../../stores/types";
+import { UserItem, UserReportMode } from "../../stores/types";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType } from "../../types";
-import { Badge, Button, Code, CopyButton, Group, Modal, Stack, Switch, Tabs, Text, Textarea, TextInput } from "@mantine/core";
+import { Badge, Button, Code, ComboboxItem, CopyButton, Group, Modal, Select, Stack, Switch, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { modals } from "@mantine/modals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -49,7 +49,7 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [viewingToken, setViewingToken] = useState<string | null>(null);
   const [viewingTokenUser, setViewingTokenUser] = useState<UserItem | null>(null);
-  const [formData, setFormData] = useState({ name: '', isReporter: false, isActive: true });
+  const [formData, setFormData] = useState<UserItem>({ id: '', name: '', isReporter: false, isActive: true, changed: true, });
 
   const fetchData = useCallback(() => dispatch(fetchUsers()), [dispatch]);
 
@@ -59,14 +59,14 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
   
   const openCreateDialog = useCallback(() => {
     setEditingUser(null);
-    setFormData({ name: '', isReporter: false, isActive: true });
+    setFormData({ id: '', name: '', isReporter: false, isActive: true, changed: true, });
     dispatch(startCreatingUser());
     open();
   }, [dispatch, open]);
 
   const openEditDialog = useCallback((user: UserItem) => {
     setEditingUser(user);
-    setFormData({ name: user.name, isReporter: user.isReporter, isActive: user.isActive });
+    setFormData({ id: user.id, name: user.name, isReporter: user.isReporter, isActive: user.isActive, reportMode: user.reportMode, changed: user.changed, });
     open();
   }, [open]);
 
@@ -77,6 +77,7 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
         name: formData.name,
         isReporter: formData.isReporter,
         isActive: formData.isActive,
+        reportMode: formData.reportMode,
       }));
       close();
     } else {
@@ -91,56 +92,56 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
           if (result.resetToken && !formData.isReporter) {
             const baseUrl = getApiBaseUrl();
             const link = baseUrl + generatePasswordResetLink(formData.name, result.resetToken);
-                  modals.open({
-                    title: t('modal.userCreatedTitle'),
-                    size: "lg",
-                    children: <>
-                      <Text size="sm" mb="md">
-                        {t('modal.userCreatedMessage', { name: formData.name })}
-                      </Text>
-                      <Text size="sm" fw={500} mb="xs">
-                        <FontAwesomeIcon icon="share" /> {t('modal.userCreatedShare')}
-                      </Text>
-                      <Textarea 
-                        value={link} 
-                        autosize 
-                        minRows={3}
-                        styles={{
-                          input: {
-                            fontFamily: 'monospace',
-                            fontSize: '12px',
-                          }
-                        }}
-                        readOnly
-                        onClick={(e) => e.currentTarget.select()}
-                      />
-                      <Text c='red.8' mt="md" size="sm">
-                        <FontAwesomeIcon icon="exclamation-triangle" />
-                        &nbsp;{t('modal.userCreatedExpiration')}
-                      </Text>
-                      <Group justify="space-between" mt="xl">
-                        <CopyButton value={link}>
-                          {({ copied, copy }) => (
-                            <Button                    
-                              leftSection={<FontAwesomeIcon icon={copied ? 'check' : 'copy'} />}
-                              color={copied ? 'teal' : 'blue'}
-                              onClick={copy}
-                              variant={copied ? 'light' : 'filled'}
-                            >
-                              {copied ? t('button.linkCopied') : t('button.copyLink')}
-                            </Button>
-                          )}
-                        </CopyButton>
-                        <Button variant="default" onClick={() => modals.closeAll()}>
-                          {t('button.close')}
-                        </Button>
-                      </Group>
-                    </>
-                  });
+            modals.open({
+              title: t('modal.userCreatedTitle'),
+              size: "lg",
+              children: <>
+                <Text size="sm" mb="md">
+                  {t('modal.userCreatedMessage', { name: formData.name })}
+                </Text>
+                <Text size="sm" fw={500} mb="xs">
+                  <FontAwesomeIcon icon="share" /> {t('modal.userCreatedShare')}
+                </Text>
+                <Textarea 
+                  value={link} 
+                  autosize 
+                  minRows={3}
+                  styles={{
+                    input: {
+                      fontFamily: 'monospace',
+                      fontSize: '12px',
+                    }
+                  }}
+                  readOnly
+                  onClick={(e) => e.currentTarget.select()}
+                />
+                <Text c='red.8' mt="md" size="sm">
+                  <FontAwesomeIcon icon="exclamation-triangle" />
+                  &nbsp;{t('modal.userCreatedExpiration')}
+                </Text>
+                <Group justify="space-between" mt="xl">
+                  <CopyButton value={link}>
+                    {({ copied, copy }) => (
+                      <Button                    
+                        leftSection={<FontAwesomeIcon icon={copied ? 'check' : 'copy'} />}
+                        color={copied ? 'teal' : 'blue'}
+                        onClick={copy}
+                        variant={copied ? 'light' : 'filled'}
+                      >
+                        {copied ? t('button.linkCopied') : t('button.copyLink')}
+                      </Button>
+                    )}
+                  </CopyButton>
+                  <Button variant="default" onClick={() => modals.closeAll()}>
+                    {t('button.close')}
+                  </Button>
+                </Group>
+              </>
+            });
           }
         });
     }
-  }, [editingUser, dispatch, formData.name, formData.isReporter, formData.isActive, close, t]);
+  }, [editingUser, dispatch, formData.name, formData.isReporter, formData.isActive, formData.reportMode, close, t]);
 
   const handleCancel = useCallback(() => {
     if (!editingUser) {
@@ -220,6 +221,12 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
     updateButtonAttributesRef.current(1, { disabled: !changed });
     updateButtonAttributesRef.current(2, { disabled: !changed });
   }, [changed]);
+
+  const reportModeOptions: ComboboxItem[] = useMemo(() =>
+    Object.values(UserReportMode).map(m => ({
+      label: t(`reportMode.${m}`),
+      value: m,
+    })), [t]);
 
   if (error) {
     return <ErrorMessage content={error}/>;
@@ -451,14 +458,20 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
           checked={formData.isReporter}
           onChange={(e) => setFormData({ ...formData, isReporter: e.currentTarget.checked })}
         />
+        { formData.isReporter && <Select
+            label={t('form.reportMode')}
+            data={reportModeOptions}
+            value={formData.reportMode}
+            allowDeselect={false}
+            onChange={(e) => setFormData({ ...formData, reportMode: e as UserReportMode })}
+          /> }
         <Group justify="space-between" mt="md">
           {editingUser && <Button
-            
-            disabled={formData.isReporter}
-            onClick={handleChangePassword}
-          >
-            {t('form.changePassword')}
-          </Button>}
+              disabled={formData.isReporter}
+              onClick={handleChangePassword}
+            >
+              {t('form.changePassword')}
+            </Button>}
           <Group justify="flex-end" ml="auto">
             <Button variant="default" onClick={handleCancel}>{t('button.close')}</Button>
             <Button onClick={handleSave} disabled={!formData.name}>

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from beanie import PydanticObjectId
-from shared.models.user import User
+from shared.models.user import User, ReportMode
 from ..interfaces.users import IUsersRepository
 
 
@@ -67,6 +67,7 @@ class UsersRepository(IUsersRepository):
         is_reporter: bool,
         password_reset_token: str,
         reset_token_expiration: str,
+        report_mode: ReportMode,
     ) -> PydanticObjectId:
         existing_user = await self.get_user(user_name)
         if not existing_user:
@@ -76,7 +77,8 @@ class UsersRepository(IUsersRepository):
                 is_active              = is_active,
                 is_reporter            = is_reporter,
                 password_reset_token   = password_reset_token,
-                reset_token_expiration = reset_token_expiration
+                reset_token_expiration = reset_token_expiration,
+                report_mode            = report_mode,
             )
             await user.insert()
             return user.id
@@ -105,6 +107,7 @@ class UsersRepository(IUsersRepository):
         user_name: str,
         is_active: bool,
         is_reporter: bool,
+        report_mode: ReportMode,
     ) -> str:
         existing_user = await self.get_user_by_id(id)
         if not existing_user:
@@ -120,6 +123,7 @@ class UsersRepository(IUsersRepository):
         existing_user.name = user_name
         existing_user.is_active = is_active
         existing_user.is_reporter = is_reporter
+        existing_user.report_mode = report_mode
         await existing_user.save()
 
     async def delete_user(self, user_id: str) -> bool:

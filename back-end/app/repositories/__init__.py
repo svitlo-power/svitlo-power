@@ -9,6 +9,7 @@ from .interfaces import (
     IChatsRepository,
     DataQuery,
     IExtDataRepository,
+    IExtDeviceRepository,
     IDashboardRepository,
 )
 from .container import RepositoryContainer
@@ -17,4 +18,4 @@ from .container import RepositoryContainer
 __all__ = [IMessagesRepository, IBotsRepository, IStationsRepository, 
            IStationsDataRepository, ILookupsRepository, IChatsRepository,
            IUsersRepository, IVisitsCounterRepository, RepositoryContainer,
-           DataQuery, IExtDataRepository, IDashboardRepository]
+           DataQuery, IExtDataRepository, IExtDeviceRepository, IDashboardRepository]

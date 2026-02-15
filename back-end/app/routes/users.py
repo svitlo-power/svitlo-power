@@ -1,7 +1,9 @@
+from typing import List
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi_injector import Injected
 from app.services import UsersService
 from app.utils.jwt_dependencies import jwt_required
+from app.models.api import UserListResponseModel
 
 
 def register(app: FastAPI):
@@ -10,21 +12,11 @@ def register(app: FastAPI):
     async def get_users(
         current_user=Depends(jwt_required),
         users=Injected(UsersService)
-    ):
+    ) -> List[UserListResponseModel]:
         users = await users.get_users(all=True)
         current_name = current_user["sub"] if isinstance(current_user, dict) else current_user
 
-        result = [
-            {
-                "id": str(u.id),
-                "name": u.name,
-                "isActive": u.is_active,
-                "isReporter": u.is_reporter,
-                "apiKey": u.api_key,
-            }
-            for u in users 
-            if u.name != current_name
-        ]
+        result = [u for u in users if u.name != current_name]
 
         return result
 
@@ -40,9 +32,10 @@ def register(app: FastAPI):
         name = body.get("name")
         is_active = body.get("isActive", True)
         is_reporter = body.get("isReporter", False)
+        report_mode = body.get("reportMode", 'event')
 
         user_id, reset_token = await users.save_user(
-            id, name, is_active, is_reporter
+            id, name, is_active, is_reporter, report_mode
         )
 
         return {

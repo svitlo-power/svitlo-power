@@ -6,23 +6,24 @@ from .bot import Bot
 from .building import Building
 from .dashboard_config import DashboardConfig
 from .ext_data import ExtData
+from .ext_device import ExtDevice
 from .message import Message
 from .station import Station
 from .station_data import StationData
-from .user import User
+from .user import User, ReportMode
 from .visit_counter import VisitCounter, DailyVisitCounter
 from .beanie_filter import BeanieFilter
 
 
 __all__ = [
     BeanieFilter, Bot, AllowedChat, ChatRequest,
-    User, Message, Station, Building,
-    StationData, ExtData, DashboardConfig,
+    User, ReportMode, Message, Station, Building,
+    StationData, ExtData, ExtDevice, DashboardConfig,
     VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
-    StationData, ExtData, DashboardConfig,
+    StationData, ExtData, ExtDevice, DashboardConfig,
     VisitCounter, DailyVisitCounter]

@@ -15,11 +15,12 @@ from .stations import StationsService
 from .messages import MessagesService
 from .lookups import LookupsService
 from .ext_data import ExtDataService
+from .ext_device import ExtDeviceService
 from .dashboard import DashboardService
 from .maintenance import MaintenanceService
 from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
-from .interfaces import IMessageGeneratorService
+from .interfaces import IMessageGeneratorService, IExtDeviceService
 
 
 class ServicesContainer(Module):
@@ -63,6 +64,7 @@ class ServicesContainer(Module):
         binder.bind(LookupsService, scope=noscope)
 
         binder.bind(ExtDataService, scope=noscope)
+        binder.bind(IExtDeviceService, to=ExtDeviceService)
 
         binder.bind(DashboardService, scope=noscope)
 

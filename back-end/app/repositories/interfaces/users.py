@@ -4,7 +4,7 @@ from typing import List
 
 from beanie import PydanticObjectId
 
-from shared.models.user import User
+from shared.models.user import User, ReportMode
 
 
 class IUsersRepository(ABC):
@@ -57,6 +57,7 @@ class IUsersRepository(ABC):
         is_reporter: bool,
         password_reset_token: str,
         reset_token_expiration: str,
+        report_mode: ReportMode
     ) -> str:
         ...
 
@@ -75,6 +76,7 @@ class IUsersRepository(ABC):
         user_name: str,
         is_active: bool,
         is_reporter: bool,
+        report_mode: ReportMode,
     ) -> str:
         ...
 

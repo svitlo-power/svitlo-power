@@ -10,6 +10,7 @@ from .interfaces import (
     IBotsRepository,
     IChatsRepository,
     IExtDataRepository,
+    IExtDeviceRepository,
     IDashboardRepository,
 )
 from .implementations import (
@@ -22,6 +23,7 @@ from .implementations import (
     BotsRepository,
     ChatsRepository,
     ExtDataRepository,
+    ExtDeviceRepository,
     DashboardRepository,
 )
 
@@ -38,4 +40,5 @@ class RepositoryContainer(Module):
         binder.bind(IBotsRepository, to=BotsRepository, scope=noscope)
         binder.bind(IChatsRepository, to=ChatsRepository, scope=noscope)
         binder.bind(IExtDataRepository, to=ExtDataRepository, scope=noscope)
+        binder.bind(IExtDeviceRepository, to=ExtDeviceRepository, scope=noscope)
         binder.bind(IDashboardRepository, to=DashboardRepository, scope=noscope)

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { UsersState, ServerUserItem } from "../types";
+import { UsersState, ServerUserItem, UserReportMode } from "../types";
 import { fetchUsers, saveUsers, generateUserToken, deleteUserToken, createUser } from "../thunks";
 import { ObjectId } from "../../schemas";
 
@@ -16,6 +16,7 @@ export type UpdateUserActionPayload = {
   password?: string;
   isActive?: boolean;
   isReporter?: boolean;
+  reportMode?: UserReportMode;
 };
 
 export type CreateUserPayload = {
@@ -34,6 +35,7 @@ export const usersSlice = createSlice({
         user.password = payload.password ?? user.password;
         user.isActive = payload.isActive ?? user.isActive;
         user.isReporter = payload.isReporter ?? user.isReporter;
+        user.reportMode = payload.reportMode ?? user.reportMode;
         user.changed = true;
       }
     },
