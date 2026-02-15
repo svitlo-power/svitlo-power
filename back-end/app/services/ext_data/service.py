@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import List
 from beanie import PydanticObjectId
 from injector import inject
 

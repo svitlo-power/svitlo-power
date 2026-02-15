@@ -4,6 +4,7 @@ export enum EventType {
   StationDataUpdated = "station_data_updated",
   BuildingsUpdated = "buildings_updated",
   ExtDataUpdated = "ext_data_updated",
+  ExtDeviceUpdated = "ext_device_updated",
   OutagesUpdated = "outages_updated",
   MessagesUpdated = "messages_updated",
   ChatsUpdated = "chats_updated",
