@@ -18,7 +18,6 @@ def register(app: FastAPI):
         claims = Depends(jwt_reporter_only),
         ext_device_service = Injected(IExtDeviceService),
     ):
-        print(body)
         user_name = claims["sub"]
 
         try:

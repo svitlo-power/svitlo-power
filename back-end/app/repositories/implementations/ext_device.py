@@ -14,3 +14,6 @@ class ExtDeviceRepository(IExtDeviceRepository):
     async def update_device(self, device: ExtDevice) -> PydanticObjectId:
         await device.save()
         return device.id
+
+    async def get_all_devices(self) -> list[ExtDevice]:
+        return await ExtDevice.find_all(fetch_links=True).to_list()

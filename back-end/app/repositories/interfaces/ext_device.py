@@ -16,3 +16,7 @@ class IExtDeviceRepository(ABC):
     @abstractmethod
     async def update_device(self, device: ExtDevice) -> PydanticObjectId:
         ...
+
+    @abstractmethod
+    async def get_all_devices(self) -> list[ExtDevice]:
+        ...

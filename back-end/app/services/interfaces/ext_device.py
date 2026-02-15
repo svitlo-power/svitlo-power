@@ -12,3 +12,7 @@ class IExtDeviceService(ABC):
         user_name: str,
     ):
         ...
+
+    @abstractmethod
+    async def check_pings(self):
+        ...
