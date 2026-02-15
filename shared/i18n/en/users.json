@@ -48,7 +48,8 @@
     "changePassword": "Change password",
     "cancelReset": "Cancel Reset",
     "update": "Update",
-    "create": "Create"
+    "create": "Create",
+    "reportMode": "Report mode"
   },
   "button": {
     "copyLink": "Copy Link to Share",
@@ -73,5 +74,9 @@
       "description": "Add this automation to your Home Assistant configuration.yaml or automations.yaml:",
       "note": "Replace sensor.inverter_work_state with your actual inverter/grid sensor entity ID. Adjust the state logic based on your sensor values (offgrid/bypass/etc)."
     }
+  },
+  "reportMode": {
+    "ping": "Ping",
+    "event": "Event"
   }
 }

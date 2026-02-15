@@ -150,15 +150,17 @@ export const DataTable = <T,>({
 
   const renderCell = <T,>(cell: Cell<T, unknown>, row: T): React.ReactNode => {
     const columnDef = cell.column.columnDef;
-    const hasCustomCell = columnDef.cell != null;
     if (columnDef.meta?.dataType === 'actions') {
       const meta = columnDef.meta as ActionsColumnMeta<T, unknown>;
       return <ActionsCell<T>
         actions={meta.actions ?? []}
         row={row}
       />;
-    } else if (columnDef.meta?.dataType === ColumnDataType.Boolean && !hasCustomCell) {
+    } else if (columnDef.meta?.dataType === ColumnDataType.Boolean) {
       const meta = columnDef.meta as BooleanColumnMeta<T, unknown>;
+      if (meta.customRender) {
+        return flexRender(columnDef.cell, cell.getContext());
+      }
       return <Group p={0} justify="center">
         <BooleanCell
           value={cell.getValue() as boolean}

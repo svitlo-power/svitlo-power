@@ -1,6 +1,11 @@
 import { ObjectId } from "../../schemas";
 import { BaseEditableState } from "./base";
 
+export enum UserReportMode {
+  PING = 'ping',
+  EVENT = 'event',
+}
+
 export type BaseServerUserItem = {
   id?: ObjectId;
   name: string;
@@ -8,6 +13,7 @@ export type BaseServerUserItem = {
   isActive: boolean;
   isReporter: boolean;
   apiKey?: string | null;
+  reportMode?: UserReportMode;
 };
 
 export type ServerUserItem = BaseServerUserItem & {

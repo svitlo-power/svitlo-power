@@ -2,14 +2,14 @@ import logging
 from typing import List
 from injector import inject
 
-from shared.models.user import User
+from shared.models.user import User, ReportMode
 from shared.services.events.service import EventsService
 from app.repositories import IUsersRepository
 from app.settings import Settings
 from shared.utils.key_generation import generate_api_token, generate_password_reset_token
 from shared.utils.jwt_utils import create_access_token
 from ..base import BaseService
-
+from app.models.api import UserListResponseModel
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,31 @@ class UsersService(BaseService):
         self._settings = settings
         self._users_repository = users_repository
 
-    async def get_user(self, user_name: str) -> User:
-        return await self._users_repository.get_user(user_name)
+    def _process_user(self, user: User) -> UserListResponseModel:
+        return UserListResponseModel(
+            id         = user.id,
+            name       = user.name,
+            isActive   = user.is_active,
+            isReporter = user.is_reporter,
+            apiKey     = user.api_key,
+            reportMode = user.report_mode
+        )
 
-    async def get_users(self, all: bool) -> List[User]:
-        return await self._users_repository.get_users(all)
+    async def get_user(self, user_name: str) -> UserListResponseModel:
+        return self._process_user(await self._users_repository.get_user(user_name))
 
-    async def save_user(self, id: str, name: str, is_active: bool, is_reporter: bool):
+    async def get_users(self, all: bool) -> List[UserListResponseModel]:
+        users = await self._users_repository.get_users(all)
+        return [self._process_user(u) for u in users]
+
+    async def save_user(
+        self,
+        id: str,
+        name: str,
+        is_active: bool,
+        is_reporter: bool,
+        report_mode: ReportMode,
+    ):
         try:
             user = await self._users_repository.get_user_by_id(id)
 
@@ -45,7 +63,12 @@ class UsersService(BaseService):
                     password_reset_token, reset_token_expiration = generate_password_reset_token(3)
 
                 user_id = await self._users_repository.create_user(
-                    name, is_active, is_reporter, password_reset_token, reset_token_expiration
+                    name,
+                    is_active,
+                    is_reporter,
+                    password_reset_token,
+                    reset_token_expiration,
+                    report_mode,
                 )
 
                 return str(user_id), password_reset_token
@@ -56,6 +79,7 @@ class UsersService(BaseService):
                 user_name   = name,
                 is_active   = is_active,
                 is_reporter = is_reporter,
+                report_mode = report_mode,
             )
             return str(user.id), None
         except Exception as e:

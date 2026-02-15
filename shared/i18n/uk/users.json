@@ -48,7 +48,8 @@
     "changePassword": "Змінити пароль",
     "cancelReset": "Скасувати",
     "update": "Оновити",
-    "create": "Створити"
+    "create": "Створити",
+    "reportMode": "Режим звітування"
   },
   "button": {
     "copyLink": "Копіювати посилання",
@@ -73,5 +74,9 @@
       "description": "Додайте цю автоматизацію до вашого configuration.yaml або automations.yaml Home Assistant:",
       "note": "Замініть sensor.inverter_work_state на ваш фактичний entity ID інвертора/сенсора мережі. Налаштуйте логіку стану згідно значень вашого сенсора (offgrid/bypass/тощо)."
     }
+  },
+  "reportMode": {
+    "ping": "Пінг",
+    "event": "Подія"
   }
 }
