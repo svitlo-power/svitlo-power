@@ -8,7 +8,7 @@ from ..base import BaseService
 from app.repositories import IExtDeviceRepository, IUsersRepository, IExtDataRepository
 from shared.services.events.service import EventsService
 from ..interfaces import IExtDeviceService
-from app.models.api import DevicePingRequest
+from app.models.api import DevicePingRequest, ExtDeviceResponse
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,26 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         await self._events.broadcast_private("ext_device_updated")
 
         await self._update_grid_state(user.id, active=True, now=datetime.now(timezone.utc))
+
+
+    async def get_all_devices(self) -> list[ExtDeviceResponse]:
+        devices = await self._ext_device.get_all_devices()
+        
+        result = []
+        for device in devices:
+            last_data = await self._ext_data.get_last_ext_data_by_user_id(device.user.id) if device.user else None
+            
+            result.append(ExtDeviceResponse(
+                mac_address = device.mac_address,
+                fw_version  = device.fw_version,
+                fs_version  = device.fs_version,
+                uptime      = device.uptime,
+                updated_at  = device.updated_at,
+                user_id     = device.user.id if device.user else None,
+                grid_state  = last_data.grid_state if last_data else None,
+            ))
+        
+        return result
 
 
     async def check_pings(self):

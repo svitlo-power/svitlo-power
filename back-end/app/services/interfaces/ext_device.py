@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.models.api import DevicePingRequest
+from app.models.api import DevicePingRequest, ExtDeviceResponse
 
 
 class IExtDeviceService(ABC):
@@ -11,6 +11,10 @@ class IExtDeviceService(ABC):
         ping_request: DevicePingRequest,
         user_name: str,
     ):
+        ...
+
+    @abstractmethod
+    async def get_all_devices(self) -> list[ExtDeviceResponse]:
         ...
 
     @abstractmethod

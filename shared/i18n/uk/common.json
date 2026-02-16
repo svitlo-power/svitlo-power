@@ -66,6 +66,7 @@
     "externalLogs": "Зовнішні події",
     "users": "Користувачі",
     "buildings": "Будівлі",
+    "devices": "Пристрої",
     "notFound": "Не знайдено",
     "create": "Створити",
     "logIn": "Увійдіть до свого облікового запису",
@@ -94,7 +95,7 @@
     "editTitle": "Редагувати профіль",
     "loginLabel": "Логін",
     "changePassword": "Змінити пароль"
-  }  ,
+  },
   "changePassword": {
     "newPassword": "Новий пароль",
     "repeatNewPassword": "Повторіть новий пароль",

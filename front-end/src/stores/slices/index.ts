@@ -14,3 +14,4 @@ export * from './stationsData';
 export * from './users';
 export * from './visitCounter';
 export * from './lookupValues';
+export * from './extDevices';
