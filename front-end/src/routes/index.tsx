@@ -1,9 +1,11 @@
 import { Navigate, RouteObject, RouterProvider, createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "./protectedRoute";
-import { LoginPage, HomePage, StationsPage, StationDetailsPage, BotsPage,
-  ChatsPage, MessagesPage, MessageEditPage, UsersPage, 
-  BuildingsPage, ExtDataPage, NotFoundPage, 
-  ChangePasswordPage, AppLandingPage} from "../pages";
+import {
+  LoginPage, HomePage, StationsPage, StationDetailsPage, BotsPage,
+  ChatsPage, MessagesPage, MessageEditPage, UsersPage,
+  BuildingsPage, ExtDataPage, NotFoundPage,
+  ChangePasswordPage, AppLandingPage, ExtDevicesPage
+} from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
 import { IconName } from "@fortawesome/fontawesome-svg-core";
@@ -87,6 +89,12 @@ export const RootRoutes: MenuItem[] = [
     Component: BuildingsPage,
   },
   {
+    path: '/ext-devices',
+    name: "routes.devices",
+    icon: "microchip",
+    Component: ExtDevicesPage,
+  },
+  {
     path: "*",
     name: "routes.notFound",
     Component: NotFoundPage,
@@ -96,7 +104,7 @@ export const RootRoutes: MenuItem[] = [
 
 const Routes: FC = () => {
   const authData = useAppSelector(authDataSelector);
-  
+
   const changePasswordRoute = {
     path: "/changePassword",
     element: (<AnonymousLayout caption="routes.changePassword">
@@ -107,7 +115,7 @@ const Routes: FC = () => {
   const loginRoute = {
     path: "/login",
     element: (<AnonymousLayout caption="routes.logIn">
-      <LoginPage/>
+      <LoginPage />
     </AnonymousLayout>),
   } as RouteObject;
 
@@ -120,7 +128,7 @@ const Routes: FC = () => {
     },
     {
       path: "/",
-      element: (<ProtectedRoute/>),
+      element: (<ProtectedRoute />),
       children: RootRoutes,
     },
   ];
@@ -135,8 +143,8 @@ const Routes: FC = () => {
     {
       path: "/",
       element: <PublicLayout>
-          <BuildingsPage />
-        </PublicLayout>,
+        <BuildingsPage />
+      </PublicLayout>,
     },
     {
       path: '*',

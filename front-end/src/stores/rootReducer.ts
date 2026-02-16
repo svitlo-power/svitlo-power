@@ -1,5 +1,21 @@
 import { Action, combineReducers } from "redux";
-import { authReducer, botsReducer, chatsReducer, messagesReducer, stationsReducer, stationsDataReducer, buildingsReducer, usersReducer, extDataReducer, dashboardConfigReducer, visitCounterReducer, outagesScheduleReducer, powerLogsReducer, buildingsSummaryReducer } from "./slices";
+import {
+  authReducer,
+  botsReducer,
+  chatsReducer,
+  messagesReducer,
+  stationsReducer,
+  stationsDataReducer,
+  buildingsReducer,
+  usersReducer,
+  extDataReducer,
+  dashboardConfigReducer,
+  visitCounterReducer,
+  outagesScheduleReducer,
+  powerLogsReducer,
+  buildingsSummaryReducer,
+  extDevicesReducer,
+} from "./slices";
 import { logout } from "./slices";
 import { lookupValuesReducer } from "./slices/lookupValues";
 
@@ -19,6 +35,7 @@ const appReducer = combineReducers({
   ['powerLogs']: powerLogsReducer,
   ['users']: usersReducer,
   ['visitCounter']: visitCounterReducer,
+  ['extDevices']: extDevicesReducer,
 });
 
 type RootState = ReturnType<typeof appReducer>;

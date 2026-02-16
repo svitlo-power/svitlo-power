@@ -1,0 +1,20 @@
+{
+    "title": "Devices",
+    "table": {
+        "macAddress": "MAC Address",
+        "fwVersion": "FW Version",
+        "fsVersion": "FS Version",
+        "uptime": "Uptime",
+        "updatedAt": "Last Ping",
+        "user": "User",
+        "status": "Status"
+    },
+    "status": {
+        "online": "Online",
+        "offline": "Offline"
+    },
+    "gridState": {
+        "optionOn": "💡 ON",
+        "optionOff": "🌑 OFF"
+    }
+}
