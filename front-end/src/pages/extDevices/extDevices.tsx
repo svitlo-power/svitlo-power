@@ -129,8 +129,8 @@ const Component: FC<ComponentProps> = ({ extDevices, loading, error }) => {
             enableSorting: true,
             cell: ({ row }) => {
               const gridState = row.original.gridState;
-              const isOnline = (new Date().getTime() - new Date(row.original.updatedAt).getTime()) < 120000;
-
+              const isOnline = Date.now()
+                - new Date(`${row.original.updatedAt}Z`).getTime() < 120000;
               return (
                 <Group gap="xs">
                   <Tooltip label={isOnline ? t('status.online') : t('status.offline')}>

@@ -28,16 +28,16 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         self._ext_data = ext_data
 
 
-    async def _update_grid_state(self, user_id, active: bool, date: datetime):
+    async def _update_grid_state(self, user_id, active: bool, now: datetime):
         last_data = await self._ext_data.get_last_ext_data_by_user_id(user_id)
 
         if active:
             if not last_data or last_data.grid_state == False:
-                await self._ext_data.add_ext_data(user_id, grid_state=True, date=date)
+                await self._ext_data.add_ext_data(user_id, grid_state=True, date=now)
                 await self._events.broadcast_public("ext_data_updated")
         else:
             if last_data and last_data.grid_state == True:
-                await self._ext_data.add_ext_data(user_id, grid_state=False, date=date)
+                await self._ext_data.add_ext_data(user_id, grid_state=False, date=now)
                 await self._events.broadcast_public("ext_data_updated")
 
 
