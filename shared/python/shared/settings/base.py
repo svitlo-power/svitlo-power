@@ -53,6 +53,6 @@ class BaseMongoSettings(BaseModel):
         description="Mongo DSN (mongo://)."
     )
     MONGO_DB: str = Field(
-        default="deye_mon_bot",
+        default="svitlo-power",
         description="Mongo database name"
     )
