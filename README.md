@@ -28,28 +28,28 @@ docker compose down
 
 # View logs (all / specific service)
 docker compose logs -f
-docker compose logs -f deye-mon-bot-back-end
+docker compose logs -f svitlo-power-back-end
 
 # Restart a service
-docker compose restart deye-mon-bot-back-end
+docker compose restart svitlo-power-back-end
 
 # Rebuild and restart a service
-docker compose up -d --build deye-mon-bot-back-end
+docker compose up -d --build svitlo-power-back-end
 
 # Run a single service standalone (with dependencies)
-docker compose up -d deye-mon-bot-back-end
+docker compose up -d svitlo-power-back-end
 
 # Run a single service without dependencies
-docker compose up -d --no-deps deye-mon-bot-grid-reporter
+docker compose up -d --no-deps svitlo-power-grid-reporter
 
 # Shell into a running container
-docker compose exec deye-mon-bot-back-end bash
+docker compose exec svitlo-power-back-end bash
 
 # Check service status
 docker compose ps
 ```
 
-**Services:** `deye-mon-bot-back-end`, `deye-mon-bot-sse-back-end`, `deye-mon-bot-front-end`, `deye-mon-bot-grid-reporter`, `deye-mon-bot-mongo`, `deye-mon-bot-rds`
+**Services:** `svitlo-power-back-end`, `svitlo-power-sse-back-end`, `svitlo-power-front-end`, `svitlo-power-grid-reporter`, `svitlo-power-mongo`, `svitlo-power-rds`
 
 ### Development
 

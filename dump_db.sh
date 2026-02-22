@@ -6,11 +6,11 @@ DUMP_DIR="./mongo_dump"
 mkdir -p "$DUMP_DIR"
 
 TIMESTAMP=$(date +%F_%H-%M-%S)
-ARCHIVE_NAME="deye-mon-bot-$TIMESTAMP.gz"
+ARCHIVE_NAME="svitlo-power-$TIMESTAMP.gz"
 
-docker compose exec deye-mon-bot-mongo mkdir -p /dump
+docker compose exec svitlo-power-mongo mkdir -p /dump
 
-docker compose exec deye-mon-bot-mongo \
+docker compose exec svitlo-power-mongo \
   mongodump \
   --username "$MONGO_INITDB_ROOT_USERNAME" \
   --password "$MONGO_INITDB_ROOT_PASSWORD" \
@@ -19,8 +19,8 @@ docker compose exec deye-mon-bot-mongo \
   --archive="/dump/$ARCHIVE_NAME" \
   --gzip
 
-docker cp deye-mon-bot-mongo:/dump/$ARCHIVE_NAME $DUMP_DIR/
+docker cp svitlo-power-mongo:/dump/$ARCHIVE_NAME $DUMP_DIR/
 
-docker compose exec deye-mon-bot-mongo rm /dump/$ARCHIVE_NAME
+docker compose exec svitlo-power-mongo rm /dump/$ARCHIVE_NAME
 
 echo "MongoDB dump completed: $DUMP_DIR/$ARCHIVE_NAME"

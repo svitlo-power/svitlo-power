@@ -1,11 +1,11 @@
 services:
-  deye-mon-bot-rds:
+  svitlo-power-rds:
     image: redis:7
-    container_name: deye-mon-bot-rds
+    container_name: svitlo-power-rds
     ports:
       - "6379:6379"
     volumes:
-      - rds_data:/data
+      - svitlo_power_rds_data:/data
     command: ["redis-server", "--appendonly", "yes"]
     networks:
       - web_network
@@ -17,14 +17,14 @@ services:
       timeout: 3s
       retries: 5
 
-  deye-mon-bot-mongo:
+  svitlo-power-mongo:
     image: mongo:7
-    container_name: deye-mon-bot-mongo
+    container_name: svitlo-power-mongo
     restart: always
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - svitlo_power_mongo_data:/data/db
     networks:
       - web_network
     env_file: .env
@@ -38,17 +38,17 @@ services:
       retries: 5
       start_period: 40s
 
-  deye-mon-bot-back-end:
+  svitlo-power-back-end:
     build:
       context: .
       dockerfile: back-end/Dockerfile
-    image: deye-mon-bot-api
+    image: svitlo-power-api
     restart: always
     env_file: .env
     environment:
       - DEBUG=False
     volumes:
-      - ./back-end/db.sqlite3:/deye-mon-bot-api/db.sqlite3
+      - ./back-end/db.sqlite3:/svitlo-power-api/db.sqlite3
     expose:
       - "5005"
     networks:
@@ -62,18 +62,18 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      deye-mon-bot-mongo:
+      svitlo-power-mongo:
         condition: service_healthy
-      deye-mon-bot-migrate:
+      svitlo-power-migrate:
         condition: service_completed_successfully
-      deye-mon-bot-rds:
+      svitlo-power-rds:
         condition: service_healthy
     stop_signal: SIGINT
     stop_grace_period: 15s
 
-  deye-mon-bot-migrate:
-    image: deye-mon-bot-api
-    container_name: deye-mon-bot-migrate
+  svitlo-power-migrate:
+    image: svitlo-power-api
+    container_name: svitlo-power-migrate
     env_file: .env
     command:
       [
@@ -85,17 +85,17 @@ services:
         "--no-use-transaction"
       ]
     depends_on:
-      deye-mon-bot-mongo:
+      svitlo-power-mongo:
         condition: service_healthy
     networks:
       - web_network
     restart: "no"
 
-  deye-mon-bot-sse-back-end:
+  svitlo-power-sse-back-end:
     build:
       context: .
       dockerfile: sse-back-end/Dockerfile
-    image: deye-mon-bot-sse-api
+    image: svitlo-power-sse-api
     restart: always
     env_file: .env
     environment:
@@ -113,17 +113,17 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      deye-mon-bot-rds:
+      svitlo-power-rds:
         condition: service_healthy
     stop_signal: SIGINT
     stop_grace_period: 15s
 
-  deye-mon-bot-grid-reporter:
+  svitlo-power-grid-reporter:
     build:
       context: grid-reporter
       additional_contexts:
         shared: ./shared
-    image: deye-mon-bot-grid-reporter
+    image: svitlo-power-grid-reporter
     restart: always
     env_file: .env
     environment:
@@ -136,12 +136,12 @@ services:
     networks:
       - web_network
 
-  deye-mon-bot-front-end:
+  svitlo-power-front-end:
     build:
       context: front-end
       additional_contexts:
         shared: ./shared
-    image: deye-mon-bot-ui
+    image: svitlo-power-ui
     restart: always
     ports:
       - "5005:80"
@@ -151,12 +151,12 @@ services:
       io.hass.type: "addon"
     stop_signal: SIGQUIT
     depends_on:
-      deye-mon-bot-back-end:
+      svitlo-power-back-end:
         condition: service_healthy
 
 volumes:
-  rds_data:
-  mongo_data:
+  svitlo_power_rds_data:
+  svitlo_power_mongo_data:
 
 networks:
   web_network:

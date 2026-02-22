@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deployment script for deye-mon-bot
+# Deployment script for svitlo-power
 # This script orchestrates the deployment process by stopping, building, and starting containers
 
 set -e  # Exit on error
@@ -17,7 +17,7 @@ docker compose build --no-cache
 
 # Step 3: Start containers in detached mode
 echo "Step 3: Starting containers..."
-docker compose up -d --scale deye-mon-bot-sse-back-end=3
+docker compose up -d --scale svitlo-power-sse-back-end=3
 
 # Step 4: Remove orphan images
 echo "Cleaning up unused Docker resources..."
