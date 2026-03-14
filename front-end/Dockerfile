@@ -2,8 +2,8 @@ FROM node:latest AS build
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . ./
 COPY --from=shared i18n /shared/i18n

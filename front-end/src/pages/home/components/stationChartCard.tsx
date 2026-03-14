@@ -78,7 +78,8 @@ export const StationChartCard: FC<StationChartCardProps> = ({ data, loading, t }
   const labelFormatter = (
     _: ReactNode,
     p: ReadonlyArray<Payload<keyof StationDataChartRecord, keyof StationChartCardProps>>
-  ): ReactNode => p.length > 0 ? p[0].payload['tooltipTime'] : null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): ReactNode => p.length > 0 ? (p[0].payload as any)['tooltipTime'] : null;
 
   return (
     <Card withBorder radius="md" p="sm" mt="sm" style={{ width: '100%' }}>
