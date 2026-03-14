@@ -101,7 +101,7 @@ export const PlannedOutages: FC<PlannedOutagesProps> = ({ t, outageQueue, data, 
   return (
     <Stack gap="lg">
       <Group justify="center" align="center" gap="md">
-        <Title order={2}>
+        <Title order={2} ta='center'>
           {t('outages.title', { outageQueue })}
         </Title>
       </Group>

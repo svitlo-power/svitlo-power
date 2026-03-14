@@ -25,8 +25,8 @@ export const DayOutageSchedule: FC<DayOutageScheduleProps> = ({ t, isDark, dayDa
     [slots],
   );
   const isAvailable = useMemo(
-    () => dayData?.status === DayDataStatus.ScheduleApplies,
-    [dayData?.status],
+    () => dayData?.status === DayDataStatus.ScheduleApplies && slots.length > 0,
+    [dayData?.status, slots],
   );
   const isEmergency = useMemo(
     () => dayData?.status === DayDataStatus.EmergencyShutdowns,
