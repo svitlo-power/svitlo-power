@@ -17,27 +17,6 @@ services:
       timeout: 3s
       retries: 5
 
-  svitlo-power-mongo:
-    image: mongo:7
-    container_name: svitlo-power-mongo
-    restart: always
-    ports:
-      - "27017:27017"
-    volumes:
-      - svitlo_power_mongo_data:/data/db
-    networks:
-      - web_network
-    env_file: .env
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
   svitlo-power-back-end:
     build:
       context: .
@@ -62,8 +41,6 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      svitlo-power-mongo:
-        condition: service_healthy
       svitlo-power-migrate:
         condition: service_completed_successfully
       svitlo-power-rds:
@@ -84,9 +61,6 @@ services:
         "-p", "migrations/",
         "--no-use-transaction"
       ]
-    depends_on:
-      svitlo-power-mongo:
-        condition: service_healthy
     networks:
       - web_network
     restart: "no"

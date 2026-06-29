@@ -1,0 +1,31 @@
+services:
+  svitlo-power-mongo:
+    image: mongo:7
+    container_name: svitlo-power-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - svitlo_power_mongo_data:/data/db
+    networks:
+      - web_network
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  svitlo-power-migrate:
+    depends_on:
+      svitlo-power-mongo:
+        condition: service_healthy
+
+  svitlo-power-back-end:
+    depends_on:
+      svitlo-power-mongo:
+        condition: service_healthy
