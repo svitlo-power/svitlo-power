@@ -1,8 +1,16 @@
 from datetime import timedelta
-from pydantic import BaseModel, Field, MongoDsn, computed_field
-from pydantic.networks import RedisDsn
+from typing import Annotated
+from pydantic import BaseModel, Field, computed_field
+from pydantic.networks import RedisDsn, UrlConstraints
+from pydantic_core import MultiHostUrl
 
 from shared.utils import generate_secret_key
+
+
+MongoDsn = Annotated[
+    MultiHostUrl,
+    UrlConstraints(allowed_schemes=["mongodb", "mongodb+srv"])
+]
 
 
 class BaseAppSettings(BaseModel):
@@ -50,7 +58,7 @@ class BaseRedisSettings(BaseModel):
 class BaseMongoSettings(BaseModel):
     MONGO_URI: MongoDsn = Field(
         default=None,
-        description="Mongo DSN (mongo://)."
+        description="Mongo URI (mongodb:// or mongodb+srv://)."
     )
     MONGO_DB: str = Field(
         default="svitlo-power",
