@@ -118,7 +118,7 @@ services:
     image: svitlo-power-ui
     restart: always
     ports:
-      - "5005:80"
+      - "${OUTPUT_PORT:-5005}:80"
     networks:
       - web_network
     labels:
