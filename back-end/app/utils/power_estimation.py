@@ -14,8 +14,6 @@ def get_estimate_discharge_time(batt_capacity_kwh: float, batt_soc: int, average
     return f"{hours:02d}:{minutes:02d}"
 
 def get_estimate_charge_time(batt_capacity_kwh: float, current_batt_soc: int, charge_power_kw: float, target_batt_soc: int = 100):
-    logger.info(f"get_estimate_charge_time: batt_capacity_kwh={batt_capacity_kwh}, current_batt_soc={current_batt_soc}, charge_power_kw={charge_power_kw}, target_batt_soc={target_batt_soc}")
-
     remaining_energy_kwh = batt_capacity_kwh * (target_batt_soc - current_batt_soc) / 100
     time_left = remaining_energy_kwh / charge_power_kw
 
