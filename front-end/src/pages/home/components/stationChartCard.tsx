@@ -4,7 +4,6 @@ import { Card, Text, Box, LoadingOverlay } from "@mantine/core";
 import { AreaChart } from "@mantine/charts";
 import { TFunction } from "i18next";
 import i18n from "../../../i18n";
-import { Payload } from "recharts/types/component/DefaultTooltipContent";
 
 type StationChartCardProps = {
   data: StationDataItem;
@@ -77,7 +76,8 @@ export const StationChartCard: FC<StationChartCardProps> = ({ data, loading, t }
 
   const labelFormatter = (
     _: ReactNode,
-    p: ReadonlyArray<Payload<keyof StationDataChartRecord, keyof StationChartCardProps>>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    p: ReadonlyArray<any>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): ReactNode => p.length > 0 ? (p[0].payload as any)['tooltipTime'] : null;
 
