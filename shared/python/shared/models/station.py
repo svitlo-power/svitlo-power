@@ -77,7 +77,7 @@ class Station(Document, LookupModel):
 
     @classmethod
     async def get_lookup_values(self, filter: BeanieFilter) -> List[LookupValue]:
-        stations = await self.find(filter).to_list()
+        stations = await self.find(filter).sort(Station.order).to_list()
         return [LookupValue(
             text  = s.station_name,
             value = s.id
