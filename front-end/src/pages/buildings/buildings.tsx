@@ -168,6 +168,7 @@ const Component: FC<ComponentProps> = ({
 
   const visibility = useDocumentVisibility();
   const prevVisibility = useRef(visibility);
+  // eslint-disable-next-line react-hooks/purity
   const lastUpdateRef = useRef(Date.now());
 
   useEffect(() => {

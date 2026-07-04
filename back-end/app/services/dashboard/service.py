@@ -77,6 +77,7 @@ class DashboardService(BaseService):
             color             = building.color,
             name              = building.name,
             has_bound_station = building.station is not None,
+            order             = building.order,
         )
 
 
@@ -108,6 +109,7 @@ class DashboardService(BaseService):
             building.station = station
             building.report_users = users
             building.enabled = request.enabled
+            building.order = request.order
 
             await self._dashboard.edit_building(building)
             await self.broadcast_public("buildings_updated")
@@ -128,6 +130,7 @@ class DashboardService(BaseService):
             station      = station,
             report_users = users,
             enabled      = request.enabled,
+            order        = request.order,
         )
 
         building_id = await self._dashboard.create_building(building)
@@ -139,6 +142,8 @@ class DashboardService(BaseService):
         building = await self._dashboard.get_building(building_id)
         if building:
             await self._dashboard.delete_building(building)
+            remaining_buildings = await self._dashboard.get_buildings(all=True)
+            await self._dashboard.reorder_buildings(remaining_buildings)
             await self.broadcast_public("buildings_updated")
             return True
         return False

@@ -21,6 +21,7 @@ export const buildingEditSchema = v.object({
     v.array(objectIdSchema),
     v.nonEmpty('validation.reportUsersRequired'),
   ),
+  order: v.number(),
   enabled: v.boolean(),
 });
 

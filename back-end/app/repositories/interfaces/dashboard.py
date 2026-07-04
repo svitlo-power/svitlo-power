@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 
@@ -24,9 +24,17 @@ class IDashboardRepository(ABC):
     @abstractmethod
     async def delete_building(self, building: Building):
         ...
+
+    @abstractmethod
+    async def reorder_buildings(self, buildings: List[Building]):
+        ...
     
     @abstractmethod
-    async def get_buildings(self, ids: List[PydanticObjectId] = None, all: bool = False) -> List[Building]:
+    async def get_buildings(
+        self,
+        ids: Optional[List[PydanticObjectId]] = None,
+        all: bool = False
+    ) -> List[Building]:
         ...
 
     @abstractmethod

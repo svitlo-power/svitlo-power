@@ -46,6 +46,7 @@ export const BuildingsView: FC<BuildingsViewProps> = ({
             building={building as BuildingListItem}
             loadingSummary={loadingSummary}
             buildingSummary={buildingSummary}
+            maxOrder={buildings.length}
           />
         : <BuildingCard
             t={t}
