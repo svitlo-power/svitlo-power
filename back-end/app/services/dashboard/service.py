@@ -142,6 +142,8 @@ class DashboardService(BaseService):
         building = await self._dashboard.get_building(building_id)
         if building:
             await self._dashboard.delete_building(building)
+            remaining_buildings = await self._dashboard.get_buildings(all=True)
+            await self._dashboard.reorder_buildings(remaining_buildings)
             await self.broadcast_public("buildings_updated")
             return True
         return False

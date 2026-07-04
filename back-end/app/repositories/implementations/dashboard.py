@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Optional
 from beanie import PydanticObjectId
 
@@ -19,6 +20,11 @@ class DashboardRepository(IDashboardRepository):
 
     async def delete_building(self, building: Building):
         await building.delete()
+
+    async def reorder_buildings(self, buildings: List[Building]):
+        for index, building in enumerate(buildings, start=1):
+            building.order = index
+        await asyncio.gather(*(building.save() for building in buildings))
 
     async def get_buildings(
         self,

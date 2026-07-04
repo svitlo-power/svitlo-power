@@ -7,8 +7,10 @@ import { openBuildingEditDialog } from "./buildingEditDialog";
 import { useAppDispatch } from "../../../stores/store";
 import { modals } from "@mantine/modals";
 import { BuildingListItem } from "../../../stores/types";
-import { deleteBuilding, editBuildingOrder } from "../../../stores/thunks";
+import { editBuildingOrder } from "../../../stores/thunks";
+import { markBuildingForDeletion } from "../../../stores/slices/buildings";
 import i18n from "../../../i18n";
+import { localizableValueToString } from "../../../utils";
 
 type EditableBuildingCardProps = BuildingCardProps & {
   maxOrder: number;
@@ -23,12 +25,13 @@ export const EditableBuildingCard: FC<EditableBuildingCardProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const onDeleteBuilding = useCallback((building: BuildingListItem) => {
+    const name = localizableValueToString(building.name);
     modals.openConfirmModal({
       title: t('buildings.delete'),
-      children: t('buildings.deletePrompt', { name: building.name }),
+      children: t('buildings.deletePrompt', { name }),
       labels: { confirm: t('button.confirm'), cancel: t('button.cancel') },
       confirmProps: { color: 'red' },
-      onConfirm: () => dispatch(deleteBuilding(building.id!)),
+      onConfirm: () => dispatch(markBuildingForDeletion(building.id!)),
     });
   }, [dispatch, t]);
 

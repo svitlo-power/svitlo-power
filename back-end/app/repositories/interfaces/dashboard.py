@@ -24,6 +24,10 @@ class IDashboardRepository(ABC):
     @abstractmethod
     async def delete_building(self, building: Building):
         ...
+
+    @abstractmethod
+    async def reorder_buildings(self, buildings: List[Building]):
+        ...
     
     @abstractmethod
     async def get_buildings(

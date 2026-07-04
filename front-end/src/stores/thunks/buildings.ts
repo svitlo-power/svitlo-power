@@ -10,16 +10,28 @@ export type ChangeBuildingOrderPayload = {
   delta: number;
 };
 
-export const fetchBuildings = createAsyncThunk('buildings/fetchBuildings', async (_, thunkAPI) => {
-  try {
-    const response = await apiClient.get<Array<BuildingListItem>>('/dashboard/buildings');
-    return response.data;
-  } catch (error: unknown) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error) || 'Failed to fetch buildings');
-  }
-});
+type BuildingOrderUpdatePayload = {
+  building: BuildingEditType;
+  previousOrder: number;
+  updatedOrder: number;
+};
 
-const getBuildingEditData = async (state: BuildingsState, buildingId: ObjectId): Promise<BuildingEditType> => {
+export const fetchBuildings = createAsyncThunk(
+  'buildings/fetchBuildings',
+  async (_, thunkAPI) => {
+    try {
+      const response = await apiClient.get<Array<BuildingListItem>>('/dashboard/buildings');
+      return response.data;
+    } catch (error: unknown) {
+      return thunkAPI.rejectWithValue(getErrorMessage(error) || 'Failed to fetch buildings');
+    }
+  },
+);
+
+const getBuildingEditData = async (
+  state: BuildingsState,
+  buildingId: ObjectId,
+): Promise<BuildingEditType> => {
   const building = state.edittedItems.find(b => b.id === buildingId);
   if (building) {
     return building;
@@ -28,12 +40,24 @@ const getBuildingEditData = async (state: BuildingsState, buildingId: ObjectId):
   return response.data;
 };
 
-const findBuildingIdByOrder = (state: BuildingsState, order: number): string | undefined => {
-  const building = state.edittedItems.find(b => b.order === order);
-  if (building) {
-    return building.id!;
-  }
-  return state.items.find(b => b.order === order)?.id;
+const getVisibleBuildings = (state: BuildingsState) => {
+  const mergedBuildings = state.items
+    .filter(item => item.id && !state.deletedItems.includes(item.id))
+    .map(item => {
+      const editedBuilding = state.edittedItems.find(eb => eb.id === item.id);
+      return editedBuilding ? { ...item, ...editedBuilding } : item;
+    });
+
+  const newBuildings = state.edittedItems.filter(item =>
+    item.id && !state.items.some(existing => existing.id === item.id) && !state.deletedItems.includes(item.id),
+  );
+
+  return [...mergedBuildings, ...newBuildings].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+};
+
+const findBuildingIdByOrder = (state: BuildingsState, order: number): ObjectId | undefined => {
+  const buildingId = getVisibleBuildings(state).find(building => building.order === order)?.id;
+  return buildingId ?? undefined;
 };
 
 export const editBuildingOrder = createAsyncThunk(
@@ -43,7 +67,8 @@ export const editBuildingOrder = createAsyncThunk(
       const state = (thunkAPI.getState() as RootState).buildings;
       const { currentOrder, delta } = payload;
       const newOrder = currentOrder + delta;
-      const maxOrder = Math.max(state.items.length, state.edittedItems.length);
+      const visibleBuildings = getVisibleBuildings(state);
+      const maxOrder = visibleBuildings.length;
       if (newOrder < 1 || newOrder > maxOrder) {
         return [];
       }
@@ -58,15 +83,23 @@ export const editBuildingOrder = createAsyncThunk(
 
       const fetchedBuildings = await Promise.all(buildingPromises);
 
-      const editedBuildings = [
+      const editedBuildings: BuildingOrderUpdatePayload[] = [
         {
-          ...fetchedBuildings.find(b => b.id === buildingAId)!,
-          order: newOrder,
-        } as BuildingEditType,
+          building: {
+            ...fetchedBuildings.find(b => b.id === buildingAId)!,
+            order: newOrder,
+          } as BuildingEditType,
+          previousOrder: currentOrder,
+          updatedOrder: newOrder,
+        },
         {
-          ...fetchedBuildings.find(b => b.id === buildingBId)!,
-          order: currentOrder,
-        } as BuildingEditType,
+          building: {
+            ...fetchedBuildings.find(b => b.id === buildingBId)!,
+            order: currentOrder,
+          } as BuildingEditType,
+          previousOrder: newOrder,
+          updatedOrder: currentOrder,
+        },
       ];
 
       return thunkAPI.fulfillWithValue(editedBuildings);
@@ -76,52 +109,60 @@ export const editBuildingOrder = createAsyncThunk(
   },
 );
 
-export const startEditingBuilding = createAsyncThunk('buildings/startEditingBuilding', async (buildingId: ObjectId, thunkAPI) => {
-  try {
-    const state = (thunkAPI.getState() as RootState).buildings;
-    return await getBuildingEditData(state, buildingId);
-  } catch (error: unknown) {
-    return thunkAPI.rejectWithValue(getErrorMessage(error) || 'Failed to fetch building edit data');
-  }
-});
-
-export const saveBuildings = createAsyncThunk('buildings/saveBuildings', async (_, { getState, dispatch }) => {
-  try {
-    const state = getState() as RootState;
-    const buildingsState = state.buildings;
-    const promises = buildingsState.edittedItems.map(async building => {
-      const serverDto = {
-        name: building.name,
-        color: building.color,
-        stationId: building.stationId,
-        reportUserIds: building.reportUserIds,
-        enabled: building.enabled,
-        order: building.order,
-      } as BuildingEditType;
-      if (building.isNew) {
-        await apiClient.post('/dashboard/buildings', serverDto);
-      } else {
-        await apiClient.put(`/dashboard/buildings/${building.id}`, serverDto);
-      }
-    });
-    await Promise.all(promises);
-    dispatch(fetchBuildings());
-  } catch (error: unknown) {
-    console.error(error);
-  }  
-});
-
-export const deleteBuilding = createAsyncThunk('buildings/deleteBuilding', async (buildingId: ObjectId, { getState }) => {
-  try {
-    const state = getState() as RootState;
-    const building = state.buildings.edittedItems.find(f => f.id === buildingId);
-    if (building?.isNew) {
-      return buildingId;
+export const startEditingBuilding = createAsyncThunk(
+  'buildings/startEditingBuilding',
+  async (buildingId: ObjectId, thunkAPI) => {
+    try {
+      const state = (thunkAPI.getState() as RootState).buildings;
+      return await getBuildingEditData(state, buildingId);
+    } catch (error: unknown) {
+      return thunkAPI.rejectWithValue(getErrorMessage(error) || 'Failed to fetch building edit data');
     }
-    await apiClient.delete(`/dashboard/buildings/${buildingId}`);
-    return buildingId;
-  } catch (error: unknown) {
-    console.error(error);
-    throw error;
-  }
-});
+  },
+);
+
+export const saveBuildings = createAsyncThunk(
+  'buildings/saveBuildings',
+  async (_, { getState, dispatch }) => {
+    try {
+      const state = getState() as RootState;
+      const buildingsState = state.buildings;
+      const deletedBuildingIds = new Set(buildingsState.deletedItems.map(id => String(id)));
+
+      const deletePromises = buildingsState.deletedItems
+        .filter(buildingId => {
+          const relatedBuilding = buildingsState.edittedItems.find(item => String(item.id) === String(buildingId));
+          return !relatedBuilding?.isNew;
+        })
+        .map(async buildingId => {
+          if (!buildingId) {
+            return;
+          }
+          await apiClient.delete(`/dashboard/buildings/${buildingId}`);
+        });
+
+      const savePromises = buildingsState.edittedItems
+        .filter((building: BuildingEditType & { isNew?: boolean }) => !deletedBuildingIds.has(String(building.id)))
+        .map(async (building: BuildingEditType & { isNew?: boolean }) => {
+          const serverDto = {
+            name: building.name,
+            color: building.color,
+            stationId: building.stationId,
+            reportUserIds: building.reportUserIds,
+            enabled: building.enabled,
+            order: building.order,
+          } as BuildingEditType;
+          if (building.isNew) {
+            await apiClient.post('/dashboard/buildings', serverDto);
+          } else {
+            await apiClient.put(`/dashboard/buildings/${building.id}`, serverDto);
+          }
+        });
+
+      await Promise.all([...deletePromises, ...savePromises]);
+      dispatch(fetchBuildings());
+    } catch (error: unknown) {
+      console.error(error);
+    }
+  },
+);

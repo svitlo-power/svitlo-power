@@ -15,6 +15,7 @@ export type BuildingsState = BaseState & {
   items: Array<BuildingListItem>;
   edittedItems: Array<BuildingEditType & { isNew?: boolean }>;
   editingItem?: BuildingEditType;
+  deletedItems: ObjectId[];
   changed: boolean;
   globalId: number;
 };
