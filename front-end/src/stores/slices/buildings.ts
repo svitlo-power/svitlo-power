@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BuildingListItem, BuildingsState } from "../types";
-import { startEditingBuilding, fetchBuildings, deleteBuilding } from "../thunks";
+import { startEditingBuilding, fetchBuildings, deleteBuilding, editBuildingOrder } from "../thunks";
 import { BuildingEditType, ObjectId } from "../../schemas";
 
 const initialState: BuildingsState = {
@@ -24,6 +24,7 @@ export const buildingsSlice = createSlice({
         stationId: null,
         reportUserIds: [],
         enabled: false,
+        order: Math.max(state.items.length, state.edittedItems.length) + 1,
       };
     },
     finishCreatingBuilding(state, { payload }: PayloadAction<BuildingEditType>) {
@@ -112,6 +113,39 @@ export const buildingsSlice = createSlice({
       .addCase(deleteBuilding.rejected, (state, action: PayloadAction<unknown>) => {
         state.loading = false;
         state.error = action.payload as string;
+      });
+    builder
+      .addCase(editBuildingOrder.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(editBuildingOrder.rejected, (state, action: PayloadAction<unknown>) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(editBuildingOrder.fulfilled, (state, { payload }: PayloadAction<BuildingEditType[]>) => {
+        payload.forEach(editedBuilding => {
+          const editedIndex = state.edittedItems.findIndex(
+            b => b.id === editedBuilding.id,
+          );
+
+          if (editedIndex >= 0) {
+            state.edittedItems[editedIndex] = editedBuilding;
+          } else {
+            state.edittedItems.push(editedBuilding);
+          }
+
+          const itemIndex = state.items.findIndex(
+            item => item.id === editedBuilding.id,
+          );
+
+          if (itemIndex >= 0) {
+            state.items[itemIndex].order = editedBuilding.order;
+          }
+        });
+        state.items.sort((a, b) => a.order - b.order);
+        state.changed = true;
+        state.loading = false;
       });
   },
 });

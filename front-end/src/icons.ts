@@ -59,6 +59,7 @@ import {
   faChevronLeft,
   faChevronRight,
   faMicrochip,
+  faRightLong,
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add([
@@ -123,6 +124,7 @@ library.add([
   faPause,
   faPlug,
   faMicrochip,
+  faRightLong,
 ]);
 
 export default library;

@@ -6,9 +6,9 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { cancelStationsEditing, fetchStations, saveStations } from "../../stores/thunks";
 import { createSelector } from "@reduxjs/toolkit";
 import { updateStationBatteryCapacity, updateStationOrder, updateStationState } from "../../stores/slices";
-import { DataTable, ErrorMessage, Page } from "../../components";
+import { DataTable, ErrorMessage, OrderControl, Page } from "../../components";
 import { ColumnDataType, EventType } from "../../types";
-import { ActionIcon, Anchor, Button, Group, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Anchor, Group, Text, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { openBatteryCapacityEditDialog } from "./components";
 import { usePageTranslation } from "../../utils";
@@ -73,8 +73,8 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
   const onStationEnableChange = (id: ObjectId, enabled: boolean) => {
     dispatch(updateStationState({ id, enabled }));
   };
-  const onStationOrderChange = (id: ObjectId, currentOrder: number, delta: number) => {
-    dispatch(updateStationOrder({ id, currentOrder, delta }));
+  const onStationOrderChange = (currentOrder: number, delta: number) => {
+    dispatch(updateStationOrder({ currentOrder, delta }));
   };
   const onSetBatteryCapacity = (id: ObjectId, batteryCapacity: number) => {
     dispatch(updateStationBatteryCapacity({ id, batteryCapacity }));
@@ -185,29 +185,13 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
             textAlign: 'center',
           },
           cell: ({ row }) => {
-            return <Group p={0} justify="center">
-              <Button.Group>
-                <Button 
-                  disabled={row.original.order === 1}
-                  onClick={onStationOrderChange.bind(this, row.original.id, row.original.order, -1)}
-                >
-                  <FontAwesomeIcon icon='up-long'/>
-                </Button>
-                <Button
-                  variant="default"
-                  disabled
-                  style={{ cursor: 'default' }}
-                >
-                  {row.original.order}
-                </Button>
-                <Button 
-                  disabled={row.original.order === maxOrder}
-                  onClick={onStationOrderChange.bind(this, row.original.id, row.original.order, 1)}
-                >
-                  <FontAwesomeIcon icon='down-long'/>
-                </Button>
-              </Button.Group>
-            </Group>
+            return <OrderControl
+              order={row.original.order}
+              maxOrder={maxOrder}
+              onOrderChange={(currentOrder, change) => {
+                onStationOrderChange(currentOrder, change);
+              }}
+            />;
           },
         }
       ]}

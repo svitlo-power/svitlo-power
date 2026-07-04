@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from beanie import PydanticObjectId
 
 from shared.models.building import Building
@@ -20,12 +20,23 @@ class DashboardRepository(IDashboardRepository):
     async def delete_building(self, building: Building):
         await building.delete()
 
-    async def get_buildings(self, ids: List[PydanticObjectId] = None, all: bool = False) -> List[Building]:
+    async def get_buildings(
+        self,
+        ids: Optional[List[PydanticObjectId]] = None,
+        all: bool = False,
+    ) -> List[Building]:
+        query = {}
+
         if ids is not None:
-            return await Building.find({"_id": {"$in": ids}}, fetch_links=True).to_list()
-        if all:
-            return await Building.find(fetch_links=True).to_list()
-        return await Building.find({"enabled": True}, fetch_links=True).to_list()
+            query["_id"] = {"$in": ids}
+        elif not all:
+            query["enabled"] = True
+
+        return (
+            await Building.find(query, fetch_links=True)
+            .sort(Building.order)
+            .to_list()
+        )
 
     async def get_config(self) -> DashboardConfig:
         return await DashboardConfig.find_one()

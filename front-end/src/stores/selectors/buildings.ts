@@ -9,5 +9,5 @@ export const createSelectEdittedBuildings = createSelector(
   (existingBuildings, edittedBuildings) => [
     ...existingBuildings,
     ...edittedBuildings.filter(eb => !existingBuildings.some(edb => edb.id === eb.id)),
-  ],
+  ].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 );

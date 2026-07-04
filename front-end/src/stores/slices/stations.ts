@@ -20,7 +20,6 @@ export type UpdateStationBatteryCapacityActionPayload = {
 };
 
 export type ChangeStationOrderPayload = {
-  id: ObjectId;
   currentOrder: number;
   delta: number;
 };

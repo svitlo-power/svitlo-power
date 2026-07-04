@@ -26,6 +26,7 @@ class BuildingResponse(BaseModel):
     name: LocalizableValue
     color: str
     has_bound_station: bool = Field(False, alias="hasBoundStation")
+    order: int
 
     model_config = ConfigDict(
         populate_by_name = True,
@@ -39,6 +40,7 @@ class SaveBuildingRequest(BuildingResponse):
     station_id: Optional[PydanticObjectId] = Field(None, alias="stationId")
     report_user_ids: List[PydanticObjectId] = Field(None, alias="reportUserIds")
     enabled: bool
+    order: int
 
     model_config = ConfigDict(
         populate_by_name = True,
