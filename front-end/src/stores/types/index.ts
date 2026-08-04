@@ -4,7 +4,7 @@ export * from './bots';
 export * from './buildings';
 export * from './buildingsSummary';
 export * from './chats';
-export * from './deyeConnections';
+export * from './stationConnections';
 export * from './extData';
 export * from './dashboardConfig';
 export * from './messages';

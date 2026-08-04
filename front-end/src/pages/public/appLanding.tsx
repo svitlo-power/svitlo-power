@@ -121,7 +121,7 @@ export const AppLandingPage = () => {
         </Group>
 
         {/* Hero Section */}
-        <Grid gap="xl">
+        <Grid gutter="xl">
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap="lg">
               <Image 

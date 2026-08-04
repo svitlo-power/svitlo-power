@@ -3,13 +3,13 @@ import { TFunction } from "i18next";
 import { modals } from "@mantine/modals";
 import { Button, Checkbox, Group, PasswordInput, Stack, TextInput } from "@mantine/core";
 import { useAppDispatch } from "../../../stores/store";
-import { DeyeConnectionEditItem, ServerDeyeConnectionItem } from "../../../stores/types";
-import { createDeyeConnection, saveDeyeConnection } from "../../../stores/thunks";
+import { StationConnectionEditItem, ServerStationConnectionItem } from "../../../stores/types";
+import { createStationConnection, saveStationConnection } from "../../../stores/thunks";
 import apiClient from "../../../utils/apiClient";
 
 type OpenConnectionEditOptions = {
   create?: boolean;
-  connection?: ServerDeyeConnectionItem;
+  connection?: ServerStationConnectionItem;
   t: TFunction;
 };
 
@@ -21,7 +21,7 @@ export function openConnectionEditDialog({ create = false, connection, t }: Open
   const Inner: FC = () => {
     const dispatch = useAppDispatch();
     // Secrets are never prefilled - empty values mean "keep the stored ones" on edit
-    const [form, setForm] = useState<DeyeConnectionEditItem>({
+    const [form, setForm] = useState<StationConnectionEditItem>({
       name: connection?.name ?? '',
       baseUrl: connection?.baseUrl ?? '',
       appId: connection?.appId ?? '',
@@ -35,7 +35,7 @@ export function openConnectionEditDialog({ create = false, connection, t }: Open
       if (!create) {
         return;
       }
-      apiClient.get<ConnectionDefaults>('/deye-connections/defaults')
+      apiClient.get<ConnectionDefaults>('/station-connections/defaults')
         .then(({ data }) => {
           if (data.baseUrl) {
             setForm(f => f.baseUrl ? f : { ...f, baseUrl: data.baseUrl! });
@@ -44,7 +44,7 @@ export function openConnectionEditDialog({ create = false, connection, t }: Open
         .catch(() => {});
     }, []);
 
-    const setField = <K extends keyof DeyeConnectionEditItem>(field: K, value: DeyeConnectionEditItem[K]) => {
+    const setField = <K extends keyof StationConnectionEditItem>(field: K, value: StationConnectionEditItem[K]) => {
       setForm(f => ({ ...f, [field]: value }));
     };
 
@@ -57,9 +57,9 @@ export function openConnectionEditDialog({ create = false, connection, t }: Open
 
     const handleSave = () => {
       if (create) {
-        dispatch(createDeyeConnection(form));
+        dispatch(createStationConnection(form));
       } else {
-        dispatch(saveDeyeConnection({ id: connection!.id, connection: form }));
+        dispatch(saveStationConnection({ id: connection!.id, connection: form }));
       }
       if (id) {
         modals.close(id);

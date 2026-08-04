@@ -2,7 +2,7 @@ from .interfaces import (
     IMessagesRepository,
     IStationsRepository,
     IStationsDataRepository,
-    IDeyeConnectionsRepository,
+    IStationConnectionsRepository,
     IUsersRepository,
     IVisitsCounterRepository,
     IBotsRepository,
@@ -17,7 +17,7 @@ from .container import RepositoryContainer
 
 
 __all__ = [IMessagesRepository, IBotsRepository, IStationsRepository,
-           IStationsDataRepository, IDeyeConnectionsRepository, ILookupsRepository,
+           IStationsDataRepository, IStationConnectionsRepository, ILookupsRepository,
            IChatsRepository, IUsersRepository, IVisitsCounterRepository,
            RepositoryContainer, DataQuery, IExtDataRepository, IExtDeviceRepository,
            IDashboardRepository]

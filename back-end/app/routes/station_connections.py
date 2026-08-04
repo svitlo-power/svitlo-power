@@ -4,40 +4,40 @@ from fastapi_injector import Injected
 from typing import List
 
 from app.models.api import (
-    CreateDeyeConnectionRequest,
-    UpdateDeyeConnectionRequest,
-    DeyeConnectionResponse,
-    DeyeConnectionDefaultsResponse,
+    CreateStationConnectionRequest,
+    UpdateStationConnectionRequest,
+    StationConnectionResponse,
+    StationConnectionDefaultsResponse,
 )
 from app.repositories import IStationsRepository
-from app.services import DeyeConnectionsService
+from app.services import StationConnectionsService
 from app.settings import Settings
 from app.utils.jwt_dependencies import jwt_required
 
 
 def register(app: FastAPI):
 
-    @app.get("/api/deye-connections", response_model=List[DeyeConnectionResponse])
+    @app.get("/api/station-connections", response_model=List[StationConnectionResponse])
     async def get_connections(
         _ = Depends(jwt_required),
-        connections = Injected(DeyeConnectionsService),
+        connections = Injected(StationConnectionsService),
     ):
         return connections.get_connections()
 
 
-    @app.get("/api/deye-connections/defaults", response_model=DeyeConnectionDefaultsResponse)
+    @app.get("/api/station-connections/defaults", response_model=StationConnectionDefaultsResponse)
     async def get_connection_defaults(
         _ = Depends(jwt_required),
         settings = Injected(Settings),
     ):
-        return DeyeConnectionDefaultsResponse(base_url=settings.DEYE_BASE_URL)
+        return StationConnectionDefaultsResponse(base_url=settings.DEYE_BASE_URL)
 
 
-    @app.post("/api/deye-connections")
+    @app.post("/api/station-connections")
     async def create_connection(
-        body: CreateDeyeConnectionRequest,
+        body: CreateStationConnectionRequest,
         _ = Depends(jwt_required),
-        connections = Injected(DeyeConnectionsService),
+        connections = Injected(StationConnectionsService),
     ):
         connection = await connections.create_connection(
             name                  = body.name,
@@ -51,12 +51,12 @@ def register(app: FastAPI):
         return { "success": True, "id": str(connection.id) }
 
 
-    @app.put("/api/deye-connections/{connection_id}")
+    @app.put("/api/station-connections/{connection_id}")
     async def update_connection(
         connection_id: PydanticObjectId,
-        body: UpdateDeyeConnectionRequest,
+        body: UpdateStationConnectionRequest,
         _ = Depends(jwt_required),
-        connections = Injected(DeyeConnectionsService),
+        connections = Injected(StationConnectionsService),
     ):
         try:
             await connections.update_connection(
@@ -74,11 +74,11 @@ def register(app: FastAPI):
         return { "success": True, "id": str(connection_id) }
 
 
-    @app.delete("/api/deye-connections/{connection_id}")
+    @app.delete("/api/station-connections/{connection_id}")
     async def delete_connection(
         connection_id: PydanticObjectId,
         _ = Depends(jwt_required),
-        connections = Injected(DeyeConnectionsService),
+        connections = Injected(StationConnectionsService),
         stations = Injected(IStationsRepository),
     ):
         stations_count = await stations.count_by_connection(connection_id)

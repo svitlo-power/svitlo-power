@@ -4,7 +4,7 @@ from .visits_counter import IVisitsCounterRepository
 from .messages import IMessagesRepository
 from .stations import IStationsRepository
 from .stations_data import IStationsDataRepository
-from .deye_connections import IDeyeConnectionsRepository
+from .station_connections import IStationConnectionsRepository
 from .bots import IBotsRepository
 from .lookups import ILookupsRepository, LookupDefinition
 from .chats import IChatsRepository
@@ -17,4 +17,4 @@ __all__ = [DataQuery, IBotsRepository, IUsersRepository, IMessagesRepository,
            ILookupsRepository, LookupDefinition, IStationsRepository,
            IStationsDataRepository, IVisitsCounterRepository, IChatsRepository,
            IExtDataRepository, IExtDeviceRepository, IDashboardRepository,
-           IDeyeConnectionsRepository]
+           IStationConnectionsRepository]

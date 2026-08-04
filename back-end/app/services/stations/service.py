@@ -8,7 +8,7 @@ from app.repositories import IStationsRepository, IStationsDataRepository
 from shared.models import Station, StationData
 from shared.services.events.service import EventsService
 from ..base import BaseService
-from ..deye_connections import DeyeConnectionsService
+from ..station_connections import StationConnectionsService
 
 
 @inject
@@ -16,12 +16,12 @@ class StationsService(BaseService):
     def __init__(
         self,
         events: EventsService,
-        deye_connections: DeyeConnectionsService,
+        station_connections: StationConnectionsService,
         stations: IStationsRepository,
         stations_data: IStationsDataRepository,
     ):
         super().__init__(events)
-        self._deye_connections = deye_connections
+        self._station_connections = station_connections
         self._stations = stations
         self._stations_data = stations_data
 
@@ -76,11 +76,11 @@ class StationsService(BaseService):
         )
 
     async def sync_stations(self, connection_ids: List[PydanticObjectId] | None = None):
-        for connection in self._deye_connections.get_connections():
+        for connection in self._station_connections.get_connections():
             if connection_ids is not None and connection.id not in connection_ids:
                 continue
 
-            client = await self._deye_connections.get_client(connection.id)
+            client = await self._station_connections.get_client(connection.id)
             if client is None:
                 continue
 
@@ -94,7 +94,7 @@ class StationsService(BaseService):
         stations = await self._stations.get_stations()
 
         for station in stations:
-            client = await self._deye_connections.get_client(station.connection_id)
+            client = await self._station_connections.get_client(station.connection_id)
             if client is None:
                 continue
 

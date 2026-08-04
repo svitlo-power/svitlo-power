@@ -1,42 +1,42 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { DeyeConnectionsState, ServerDeyeConnectionItem } from "../types";
+import { StationConnectionsState, ServerStationConnectionItem } from "../types";
 import {
-  createDeyeConnection,
-  deleteDeyeConnection,
-  fetchDeyeConnections,
-  saveDeyeConnection,
+  createStationConnection,
+  deleteStationConnection,
+  fetchStationConnections,
+  saveStationConnection,
 } from "../thunks";
 
-const initialState: DeyeConnectionsState = {
+const initialState: StationConnectionsState = {
   connections: [],
   error: null,
   loading: false,
 };
 
-export const deyeConnectionsSlice = createSlice({
-  name: 'deyeConnections',
+export const stationConnectionsSlice = createSlice({
+  name: 'stationConnections',
   initialState: initialState,
   reducers: {
-    clearDeyeConnectionsError(state) {
+    clearStationConnectionsError(state) {
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDeyeConnections.pending, (state) => {
+      .addCase(fetchStationConnections.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDeyeConnections.fulfilled, (state, action: PayloadAction<Array<ServerDeyeConnectionItem>>) => {
+      .addCase(fetchStationConnections.fulfilled, (state, action: PayloadAction<Array<ServerStationConnectionItem>>) => {
         state.connections = action.payload;
         state.loading = false;
       })
-      .addCase(fetchDeyeConnections.rejected, (state, action: PayloadAction<unknown>) => {
+      .addCase(fetchStationConnections.rejected, (state, action: PayloadAction<unknown>) => {
         state.loading = false;
         state.error = action.payload as string;
       });
 
-    [createDeyeConnection, saveDeyeConnection, deleteDeyeConnection].forEach(thunk => {
+    [createStationConnection, saveStationConnection, deleteStationConnection].forEach(thunk => {
       builder
         .addCase(thunk.pending, (state) => {
           state.loading = true;
@@ -53,5 +53,5 @@ export const deyeConnectionsSlice = createSlice({
   },
 });
 
-export const { clearDeyeConnectionsError } = deyeConnectionsSlice.actions;
-export const deyeConnectionsReducer = deyeConnectionsSlice.reducer;
+export const { clearStationConnectionsError } = stationConnectionsSlice.actions;
+export const stationConnectionsReducer = stationConnectionsSlice.reducer;

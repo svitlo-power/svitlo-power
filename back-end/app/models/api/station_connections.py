@@ -3,7 +3,7 @@ from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
 
-class UpdateDeyeConnectionRequest(BaseModel):
+class UpdateStationConnectionRequest(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     base_url: str = Field(alias="baseUrl", min_length=1, max_length=256)
     app_id: str = Field(alias="appId", min_length=1, max_length=128)
@@ -19,12 +19,12 @@ class UpdateDeyeConnectionRequest(BaseModel):
     }
 
 
-class CreateDeyeConnectionRequest(UpdateDeyeConnectionRequest):
+class CreateStationConnectionRequest(UpdateStationConnectionRequest):
     app_secret: str = Field(alias="appSecret", min_length=1)
     password: str = Field(min_length=1)
 
 
-class DeyeConnectionResponse(BaseModel):
+class StationConnectionResponse(BaseModel):
     id: PydanticObjectId
     name: str
     base_url: str = Field(alias="baseUrl")
@@ -38,7 +38,7 @@ class DeyeConnectionResponse(BaseModel):
     }
 
 
-class DeyeConnectionDefaultsResponse(BaseModel):
+class StationConnectionDefaultsResponse(BaseModel):
     base_url: Optional[str] = Field(None, alias="baseUrl")
 
     model_config = {
@@ -47,8 +47,8 @@ class DeyeConnectionDefaultsResponse(BaseModel):
 
 
 __all__ = [
-    "CreateDeyeConnectionRequest",
-    "UpdateDeyeConnectionRequest",
-    "DeyeConnectionResponse",
-    "DeyeConnectionDefaultsResponse",
+    "CreateStationConnectionRequest",
+    "UpdateStationConnectionRequest",
+    "StationConnectionResponse",
+    "StationConnectionDefaultsResponse",
 ]

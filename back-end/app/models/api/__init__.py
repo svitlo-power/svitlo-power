@@ -1,7 +1,7 @@
 from .bots import *
 from .dashboard import *
 from .chats import *
-from .deye_connections import *
+from .station_connections import *
 from .ext_data import *
 from .ext_device import *
 from .messages import *
@@ -12,7 +12,7 @@ from .users import *
 from .bots import __all__ as _bots_all
 from .dashboard import __all__ as _dashboard_all
 from .chats import __all__ as _chats_all
-from .deye_connections import __all__ as _deye_connections_all
+from .station_connections import __all__ as _station_connections_all
 from .ext_data import __all__ as _ext_data_all
 from .ext_device import __all__ as _ext_device_all
 from .messages import __all__ as _messages_all
@@ -24,7 +24,7 @@ __all__ = []
 __all__.extend(_bots_all)
 __all__.extend(_dashboard_all)
 __all__.extend(_chats_all)
-__all__.extend(_deye_connections_all)
+__all__.extend(_station_connections_all)
 __all__.extend(_ext_data_all)
 __all__.extend(_ext_device_all)
 __all__.extend(_messages_all)

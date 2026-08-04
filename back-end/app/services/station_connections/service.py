@@ -5,10 +5,10 @@ from aiohttp import ClientSession
 from beanie import PydanticObjectId
 from injector import inject
 
-from app.repositories import IDeyeConnectionsRepository, IStationsRepository
+from app.repositories import IStationConnectionsRepository, IStationsRepository
 from app.settings import Settings
 from app.utils.crypto import SecretCipher, InvalidToken
-from shared.models import DeyeConnection
+from shared.models import StationConnection
 from ..deye_api import DeyeApiService, DeyeConfig
 
 
@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 @inject
-class DeyeConnectionsService:
+class StationConnectionsService:
     """Singleton store of Deye connections and their API clients."""
 
     def __init__(
         self,
         settings: Settings,
-        connections: IDeyeConnectionsRepository,
+        connections: IStationConnectionsRepository,
         stations: IStationsRepository,
         session: ClientSession,
     ):
@@ -31,7 +31,7 @@ class DeyeConnectionsService:
         self._stations_repo = stations
         self._session = session
         self._cipher = SecretCipher(settings.SECRET_KEY)
-        self._connections: dict[PydanticObjectId, DeyeConnection] = {}
+        self._connections: dict[PydanticObjectId, StationConnection] = {}
         self._clients: dict[PydanticObjectId, DeyeApiService] = {}
 
     async def init(self):
@@ -55,7 +55,7 @@ class DeyeConnectionsService:
             )
             if not all(required):
                 return
-            connection = DeyeConnection(
+            connection = StationConnection(
                 name                  = "Default",
                 base_url              = settings.DEYE_BASE_URL,
                 app_id                = settings.DEYE_APP_ID,
@@ -71,10 +71,10 @@ class DeyeConnectionsService:
         if connections:
             await self._stations_repo.assign_connection_to_unassigned(connections[0].id)
 
-    def get_connections(self) -> List[DeyeConnection]:
+    def get_connections(self) -> List[StationConnection]:
         return sorted(self._connections.values(), key=lambda c: c.name.lower())
 
-    def get_connection(self, connection_id: PydanticObjectId) -> DeyeConnection | None:
+    def get_connection(self, connection_id: PydanticObjectId) -> StationConnection | None:
         return self._connections.get(connection_id)
 
     async def get_client(self, connection_id: PydanticObjectId) -> DeyeApiService | None:
@@ -113,8 +113,8 @@ class DeyeConnectionsService:
         email: str,
         password: str,
         sync_stations_on_poll: bool,
-    ) -> DeyeConnection:
-        connection = DeyeConnection(
+    ) -> StationConnection:
+        connection = StationConnection(
             name                  = name,
             base_url              = base_url,
             app_id                = app_id,
@@ -137,7 +137,7 @@ class DeyeConnectionsService:
         sync_stations_on_poll: bool,
         app_secret: str | None = None,
         password: str | None = None,
-    ) -> DeyeConnection:
+    ) -> StationConnection:
         connection = await self._connections_repo.get_connection(connection_id)
         if connection is None:
             raise ValueError(f"Cannot find Deye connection by id {connection_id}")

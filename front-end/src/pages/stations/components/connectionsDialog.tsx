@@ -5,8 +5,8 @@ import { modals } from "@mantine/modals";
 import { ActionIcon, Button, Center, Group, Loader, Stack, Table, Text, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { RootState, useAppDispatch } from "../../../stores/store";
-import { ServerDeyeConnectionItem } from "../../../stores/types";
-import { deleteDeyeConnection, fetchDeyeConnections } from "../../../stores/thunks";
+import { ServerStationConnectionItem } from "../../../stores/types";
+import { deleteStationConnection, fetchStationConnections } from "../../../stores/thunks";
 import { ErrorMessage } from "../../../components";
 import { openConnectionEditDialog } from "./connectionEditDialog";
 
@@ -16,25 +16,25 @@ type OpenConnectionsDialogOptions = {
 
 export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
   type InnerProps = {
-    connections: Array<ServerDeyeConnectionItem>;
+    connections: Array<ServerStationConnectionItem>;
     loading: boolean;
     error: string | null;
   };
 
   const mapStateToProps = (state: RootState): InnerProps => ({
-    connections: state.deyeConnections.connections,
-    loading: state.deyeConnections.loading,
-    error: state.deyeConnections.error,
+    connections: state.stationConnections.connections,
+    loading: state.stationConnections.loading,
+    error: state.stationConnections.error,
   });
 
   const Inner: FC<InnerProps> = ({ connections, loading, error }) => {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
-      dispatch(fetchDeyeConnections());
+      dispatch(fetchStationConnections());
     }, [dispatch]);
 
-    const handleDelete = (connection: ServerDeyeConnectionItem) => {
+    const handleDelete = (connection: ServerStationConnectionItem) => {
       modals.openConfirmModal({
         title: t('connections.deleteTitle'),
         centered: true,
@@ -45,7 +45,7 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
         ),
         labels: { confirm: t('button.delete'), cancel: t('button.cancel') },
         confirmProps: { color: 'red' },
-        onConfirm: () => dispatch(deleteDeyeConnection(connection.id)),
+        onConfirm: () => dispatch(deleteStationConnection(connection.id)),
       });
     };
 

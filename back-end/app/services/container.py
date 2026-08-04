@@ -8,7 +8,7 @@ from .authorization import AuthorizationService
 from .bots import BotConfig, BotsService
 from .outages_schedule import OutagesScheduleService
 from .telegram import TelegramConfig, TelegramService
-from .deye_connections import DeyeConnectionsService
+from .station_connections import StationConnectionsService
 from .visit_counter import VisitCounterService
 from .users import UsersService
 from .stations import StationsService
@@ -36,7 +36,7 @@ class ServicesContainer(Module):
 
         binder.bind(AuthorizationService, scope=singleton)
 
-        binder.bind(DeyeConnectionsService, scope=singleton)
+        binder.bind(StationConnectionsService, scope=singleton)
 
         binder.bind(StationsService, scope=noscope)
 

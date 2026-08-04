@@ -1,7 +1,7 @@
 import { ObjectId } from "../../schemas";
 import { BaseState } from "./base";
 
-export type ServerDeyeConnectionItem = {
+export type ServerStationConnectionItem = {
   id: ObjectId;
   name: string;
   baseUrl: string;
@@ -10,7 +10,7 @@ export type ServerDeyeConnectionItem = {
   syncStationsOnPoll: boolean;
 };
 
-export type DeyeConnectionEditItem = {
+export type StationConnectionEditItem = {
   name: string;
   baseUrl: string;
   appId: string;
@@ -20,6 +20,6 @@ export type DeyeConnectionEditItem = {
   syncStationsOnPoll: boolean;
 };
 
-export type DeyeConnectionsState = BaseState & {
-  connections: Array<ServerDeyeConnectionItem>;
+export type StationConnectionsState = BaseState & {
+  connections: Array<ServerStationConnectionItem>;
 };

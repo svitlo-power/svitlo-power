@@ -5,7 +5,7 @@ from .chat_request import ChatRequest
 from .bot import Bot
 from .building import Building
 from .dashboard_config import DashboardConfig
-from .deye_connection import DeyeConnection
+from .station_connection import StationConnection
 from .ext_data import ExtData
 from .ext_device import ExtDevice
 from .message import Message
@@ -20,11 +20,11 @@ __all__ = [
     BeanieFilter, Bot, AllowedChat, ChatRequest,
     User, ReportMode, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
-    DeyeConnection, VisitCounter, DailyVisitCounter, LookupValue,
+    StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
-    DeyeConnection, VisitCounter, DailyVisitCounter]
+    StationConnection, VisitCounter, DailyVisitCounter]

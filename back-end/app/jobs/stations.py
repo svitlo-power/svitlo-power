@@ -3,7 +3,7 @@ from injector import Injector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
-from app.services import DeyeConnectionsService, StationsService
+from app.services import StationConnectionsService, StationsService
 
 
 def register(settings: Settings, injector: Injector):
@@ -18,7 +18,7 @@ def register(settings: Settings, injector: Injector):
         await stations.sync_stations_data()
 
     async def check_deye_status():
-        connections: DeyeConnectionsService = injector.get(DeyeConnectionsService)
+        connections: StationConnectionsService = injector.get(StationConnectionsService)
         sync_on_poll_ids = [
             c.id for c in connections.get_connections() if c.sync_stations_on_poll
         ]
@@ -38,7 +38,7 @@ def register(settings: Settings, injector: Injector):
         await sync_stations_data()
 
     async def sync_stations_scheduled():
-        connections: DeyeConnectionsService = injector.get(DeyeConnectionsService)
+        connections: StationConnectionsService = injector.get(StationConnectionsService)
         connection_ids = [
             c.id for c in connections.get_connections() if not c.sync_stations_on_poll
         ]

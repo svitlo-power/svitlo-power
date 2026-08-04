@@ -2,7 +2,7 @@ from beanie import Document
 from pydantic import Field
 
 
-class DeyeConnection(Document):
+class StationConnection(Document):
     name: str = Field(max_length=128)
     base_url: str = Field(max_length=256)
     app_id: str = Field(max_length=128)
@@ -13,11 +13,11 @@ class DeyeConnection(Document):
     sync_stations_on_poll: bool = False
 
     class Settings:
-        name = "deye_connections"
+        name = "station_connections"
 
     def __str__(self):
         return (
-            f"DeyeConnection(id={self.id}, name='{self.name}', base_url='{self.base_url}', "
+            f"StationConnection(id={self.id}, name='{self.name}', base_url='{self.base_url}', "
             f"app_id='{self.app_id}', app_secret='***', email='{self.email}', password='***', "
             f"sync_stations_on_poll={self.sync_stations_on_poll})"
         )

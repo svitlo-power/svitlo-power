@@ -9,7 +9,7 @@ from app.app_container import bind_client_session, init_container
 from app.settings import Settings
 from app.jobs import register_jobs
 from app.routes import register_routes
-from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, DeyeConnectionsService
+from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from shared.services.events.service import EventsService
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     beanie_initializer = injector.get(BeanieInitializer)
     await beanie_initializer.init()
 
-    deye_connections = injector.get(DeyeConnectionsService)
+    deye_connections = injector.get(StationConnectionsService)
     await deye_connections.init()
 
     telegram_service = injector.get(TelegramService)
