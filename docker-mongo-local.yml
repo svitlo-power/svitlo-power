@@ -1,0 +1,23 @@
+services:
+  svitlo-power-mongo:
+    image: mongo:7
+    container_name: svitlo-power-mongo-local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-supersecretpassword}
+    command: ["mongod", "--bind_ip_all"]
+    volumes:
+      - mongo_local_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_local_data:
