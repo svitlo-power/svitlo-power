@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Body
 from fastapi_injector import Injected
 
-from app.services import StationsService
+from app.services import StationConnectionsService, StationsService
 from app.utils.jwt_dependencies import jwt_required
 
 
@@ -11,8 +11,10 @@ def register(app: FastAPI):
     async def get_stations(
         _=Depends(jwt_required),
         stations=Injected(StationsService),
+        connections=Injected(StationConnectionsService),
     ):
         stations = await stations.get_stations()
+        connection_names = {c.id: c.name for c in connections.get_connections()}
 
         stations_dict = [
             {
@@ -24,6 +26,7 @@ def register(app: FastAPI):
                 "batteryCapacity": station.battery_capacity or 0.0,
                 "enabled": station.enabled,
                 "order": station.order,
+                "connectionName": connection_names.get(station.connection_id),
             }
             for station in stations
         ]

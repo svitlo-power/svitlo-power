@@ -4,6 +4,7 @@ from .interfaces import (
     IMessagesRepository,
     IStationsRepository,
     IStationsDataRepository,
+    IStationConnectionsRepository,
     IUsersRepository,
     IVisitsCounterRepository,
     ILookupsRepository,
@@ -17,6 +18,7 @@ from .implementations import (
     MessagesRepository,
     StationsRepository,
     StationsDataRepository,
+    StationConnectionsRepository,
     UsersRepository,
     VisitsCounterRepository,
     LookupsRepository,
@@ -34,6 +36,7 @@ class RepositoryContainer(Module):
         binder.bind(IMessagesRepository, to=MessagesRepository, scope=noscope)
         binder.bind(IStationsRepository, to=StationsRepository, scope=noscope)
         binder.bind(IStationsDataRepository, to=StationsDataRepository, scope=noscope)
+        binder.bind(IStationConnectionsRepository, to=StationConnectionsRepository, scope=noscope)
         binder.bind(IUsersRepository, to=UsersRepository, scope=noscope)
         binder.bind(IVisitsCounterRepository, to=VisitsCounterRepository, scope=noscope)
         binder.bind(ILookupsRepository, to=LookupsRepository, scope=noscope)

@@ -4,6 +4,7 @@ export * from './bots';
 export * from './buildings';
 export * from './buildingsSummary';
 export * from './dashboardConfig';
+export * from './stationConnections';
 export * from './extData';
 export * from './messages';
 export * from './outagesSchedule';

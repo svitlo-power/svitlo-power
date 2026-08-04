@@ -10,7 +10,7 @@ import { DataTable, ErrorMessage, OrderControl, Page } from "../../components";
 import { ColumnDataType, EventType } from "../../types";
 import { ActionIcon, Anchor, Group, Text, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { openBatteryCapacityEditDialog } from "./components";
+import { openBatteryCapacityEditDialog, openConnectionsDialog } from "./components";
 import { usePageTranslation } from "../../utils";
 import { useNavigate } from "react-router-dom";
 import { ObjectId } from "../../schemas";
@@ -51,6 +51,7 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
   const [initiallyChanged, setInitiallyChanged] = useState(false);
 
   const getHeaderButtons = useCallback((dataChanged: boolean): PageHeaderButton[] => [
+    { text: t('button.connections'), icon: "plug", color: "teal", onClick: () => openConnectionsDialog({ t }), disabled: false, },
     { text: t('button.save'), icon: "save", color: "green", onClick: () => dispatch(saveStations()), disabled: !dataChanged, },
     { text: t('button.cancel'), icon: "cancel", color: "black", onClick: () => dispatch(cancelStationsEditing()), disabled: !dataChanged, },
   ], [dispatch, t]);
@@ -83,8 +84,8 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
   if (changed != initiallyChanged) {
     setInitiallyChanged(!initiallyChanged);
     setTimeout(() => {
-      updateButtonAttributes(0, { disabled: !changed });
       updateButtonAttributes(1, { disabled: !changed });
+      updateButtonAttributes(2, { disabled: !changed });
     }, 1);
   }
 
@@ -110,6 +111,11 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
               </Anchor>
             );
           }
+        },
+        {
+          id: 'connection',
+          header: t('table.connection'),
+          accessorKey: 'connectionName',
         },
         {
           id: 'connectionStatus',

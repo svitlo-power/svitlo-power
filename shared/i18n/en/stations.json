@@ -1,7 +1,11 @@
 {
   "title": "Stations",
+  "button": {
+    "connections": "Connections"
+  },
   "table": {
     "name": "Name",
+    "connection": "Connection",
     "connectionStatus": "Connection status",
     "mode": "Mode",
     "lastUpdated": "Last updated",
@@ -14,8 +18,30 @@
     "label": "Battery capacity (in kWh)",
     "tooltip": "Edit battery capacity",
     "valueLabel": "{{value}} kWh"
-  }
-  ,
+  },
+  "connections": {
+    "title": "DEYE connections",
+    "add": "Add connection",
+    "createTitle": "New DEYE connection",
+    "editTitle": "Edit DEYE connection",
+    "deleteTitle": "Delete connection",
+    "deleteConfirm": "Delete connection \"{{name}}\"?",
+    "table": {
+      "name": "Name",
+      "email": "User email",
+      "syncOnPoll": "Sync on poll"
+    },
+    "fields": {
+      "name": "Name",
+      "baseUrl": "Base URL",
+      "appId": "Application ID",
+      "appSecret": "Application secret",
+      "email": "User email",
+      "password": "User password",
+      "syncStationsOnPoll": "Sync stations on poll",
+      "secretPlaceholder": "Leave empty to keep the current value"
+    }
+  },
   "back": "Back to Stations",
   "timeRange": {
     "label": "Time Range",

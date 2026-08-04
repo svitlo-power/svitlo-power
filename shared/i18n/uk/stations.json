@@ -1,7 +1,11 @@
 {
   "title": "Станції",
+  "button": {
+    "connections": "З'єднання"
+  },
   "table": {
     "name": "Назва",
+    "connection": "З'єднання",
     "connectionStatus": "Статус підключення",
     "mode": "Режим",
     "lastUpdated": "Останнє оновлення",
@@ -14,8 +18,30 @@
     "label": "Ємність батареї (в кВт·год)",
     "tooltip": "Редагувати ємність батареї",
     "valueLabel": "{{value}} кВт·год"
-  }
-  ,
+  },
+  "connections": {
+    "title": "З'єднання DEYE",
+    "add": "Додати з'єднання",
+    "createTitle": "Нове з'єднання DEYE",
+    "editTitle": "Редагувати з'єднання DEYE",
+    "deleteTitle": "Видалити з'єднання",
+    "deleteConfirm": "Видалити з'єднання \"{{name}}\"?",
+    "table": {
+      "name": "Назва",
+      "email": "Email користувача",
+      "syncOnPoll": "Синхронізація при опитуванні"
+    },
+    "fields": {
+      "name": "Назва",
+      "baseUrl": "Базовий URL",
+      "appId": "Ідентифікатор застосунку (App ID)",
+      "appSecret": "Секрет застосунку (App Secret)",
+      "email": "Email користувача",
+      "password": "Пароль користувача",
+      "syncStationsOnPoll": "Синхронізувати станції при опитуванні",
+      "secretPlaceholder": "Залиште порожнім, щоб зберегти поточне значення"
+    }
+  },
   "back": "Повернутися до станцій",
   "timeRange": {
     "label": "Діапазон часу",

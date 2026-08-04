@@ -1,13 +1,14 @@
 import asyncio
 from datetime import datetime
 from typing import List
+from beanie import PydanticObjectId
 from injector import inject
 
 from app.repositories import IStationsRepository, IStationsDataRepository
 from shared.models import Station, StationData
 from shared.services.events.service import EventsService
 from ..base import BaseService
-from ..deye_api import DeyeApiService
+from ..station_connections import StationConnectionsService
 
 
 @inject
@@ -15,12 +16,12 @@ class StationsService(BaseService):
     def __init__(
         self,
         events: EventsService,
-        deye_api: DeyeApiService,
+        station_connections: StationConnectionsService,
         stations: IStationsRepository,
         stations_data: IStationsDataRepository,
     ):
         super().__init__(events)
-        self._deye_api = deye_api
+        self._station_connections = station_connections
         self._stations = stations
         self._stations_data = stations_data
 
@@ -74,18 +75,30 @@ class StationsService(BaseService):
             battery_capacity = battery_capacity
         )
 
-    async def sync_stations(self):
-        stations = await self._deye_api.get_station_list()
-        if stations is None:
-            return
-        for station in stations.station_list:
-            await self._stations.add_station(station)
+    async def sync_stations(self, connection_ids: List[PydanticObjectId] | None = None):
+        for connection in self._station_connections.get_connections():
+            if connection_ids is not None and connection.id not in connection_ids:
+                continue
+
+            client = await self._station_connections.get_client(connection.id)
+            if client is None:
+                continue
+
+            stations = await client.get_station_list()
+            if stations is None:
+                continue
+            for station in stations.station_list:
+                await self._stations.add_station(station, connection.id)
 
     async def sync_stations_data(self):
         stations = await self._stations.get_stations()
 
         for station in stations:
-            station_data = await self._deye_api.get_station_data(station.station_id)
+            client = await self._station_connections.get_client(station.connection_id)
+            if client is None:
+                continue
+
+            station_data = await client.get_station_data(station.station_id)
             if station_data is None:
                 continue
 

@@ -13,6 +13,7 @@ export type ServerStationItem = BaseServerStationItem & {
   connectionStatus: string;
   gridInterconnectionType: string;
   lastUpdateTime: Date;
+  connectionName: string | null;
 };
 
 export type StationItem = ServerStationItem & {

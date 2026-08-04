@@ -1,6 +1,7 @@
 from .users import UsersRepository
 from .stations import StationsRepository
 from .stations_data import StationsDataRepository
+from .station_connections import StationConnectionsRepository
 from .visits_counter import VisitsCounterRepository
 from .messages import MessagesRepository
 from .bots import BotsRepository
@@ -13,4 +14,5 @@ from .dashboard import DashboardRepository
 
 __all__ = [UsersRepository, MessagesRepository, BotsRepository, StationsRepository,
            StationsDataRepository, VisitsCounterRepository, LookupsRepository,
-           ChatsRepository, ExtDataRepository, ExtDeviceRepository, DashboardRepository]
+           ChatsRepository, ExtDataRepository, ExtDeviceRepository, DashboardRepository,
+           StationConnectionsRepository]
