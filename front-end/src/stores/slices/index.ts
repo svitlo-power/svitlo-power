@@ -6,6 +6,7 @@ export * from './buildingsSummary';
 export * from './extData';
 export * from './chats';
 export * from './dashboardConfig';
+export * from './deyeConnections';
 export * from './messages';
 export * from './outagesSchedule';
 export * from './powerLogs';

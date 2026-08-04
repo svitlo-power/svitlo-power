@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from beanie import Document
+from beanie import Document, PydanticObjectId
 from pydantic import Field
 
 from .beanie_filter import BeanieFilter
@@ -35,6 +35,8 @@ class Station(Document, LookupModel):
     order: int = 1
     enabled: bool = True
 
+    connection_id: Optional[PydanticObjectId] = None
+
     class Settings:
         name = "stations"
 
@@ -48,7 +50,8 @@ class Station(Document, LookupModel):
             f"owner_name='{self.owner_name}', region_nation_id={self.region_nation_id}, "
             f"region_timezone='{self.region_timezone}', generationPower={self.generation_power}, "
             f"lastUpdateTime={self.last_update_time}, start_operating_time={self.start_operating_time}, "
-            f"battery_capacity={self.battery_capacity}, order={self.order}, enabled={self.enabled})"
+            f"battery_capacity={self.battery_capacity}, order={self.order}, enabled={self.enabled}, "
+            f"connection_id={self.connection_id})"
         )
 
     def to_dict(self):
@@ -73,6 +76,7 @@ class Station(Document, LookupModel):
             "battery_capacity": self.battery_capacity,
             "order": self.order,
             "enabled": self.enabled,
+            "connection_id": str(self.connection_id) if self.connection_id else None,
         }
 
     @classmethod

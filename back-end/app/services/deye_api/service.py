@@ -1,5 +1,4 @@
 import logging
-from injector import inject
 from aiohttp import ClientSession
 
 from shared.services.deye_api import BaseDeyeClient, DeyeCredentials
@@ -10,7 +9,6 @@ from .models import DeyeConfig
 logger = logging.getLogger(__name__)
 
 
-@inject
 class DeyeApiService:
     def __init__(self, config: DeyeConfig, session: ClientSession | None = None):
         creds = DeyeCredentials(

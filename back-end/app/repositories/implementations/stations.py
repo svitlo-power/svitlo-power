@@ -41,7 +41,15 @@ class StationsRepository(IStationsRepository):
         station.battery_capacity = battery_capacity
         await station.save()
 
-    async def add_station(self, station: DeyeStation):
+    async def count_by_connection(self, connection_id: PydanticObjectId) -> int:
+        return await Station.find(Station.connection_id == connection_id).count()
+
+    async def assign_connection_to_unassigned(self, connection_id: PydanticObjectId):
+        await Station.find({"connection_id": None}).update_many(
+            {"$set": {"connection_id": connection_id}}
+        )
+
+    async def add_station(self, station: DeyeStation, connection_id: PydanticObjectId):
         try:
             max_station = await Station.find().sort(-Station.order).first_or_none()
             max_order = max_station.order if max_station else 0
@@ -73,6 +81,7 @@ class StationsRepository(IStationsRepository):
                         station.start_operating_time, timezone.utc
                     ),
                     order                     = max_order + 1,
+                    connection_id             = connection_id,
                 )
 
                 await new_record.insert()
@@ -82,6 +91,7 @@ class StationsRepository(IStationsRepository):
                 existing_station.last_update_time = datetime.fromtimestamp(
                     station.last_update_time, timezone.utc
                 )
+                existing_station.connection_id = connection_id
                 await existing_station.save()
 
         except Exception as e:

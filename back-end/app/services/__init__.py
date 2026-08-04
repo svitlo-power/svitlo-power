@@ -1,6 +1,7 @@
 from .bots import BotsService
 from .beanie_initializer import BeanieInitializer
 from .deye_api import DeyeConfig, DeyeApiService
+from .deye_connections import DeyeConnectionsService
 from .telegram import TelegramConfig, TelegramService
 from .visit_counter import VisitCounterService
 from .outages_schedule import OutagesScheduleService
@@ -20,7 +21,7 @@ from .interfaces import IMessageGeneratorService, MessageItem, IExtDeviceService
 
 
 __all__ = [BeanieInitializer, BotsService, DeyeConfig, DeyeApiService,
-           TelegramConfig, TelegramService, ServicesContainer,
+           DeyeConnectionsService, TelegramConfig, TelegramService, ServicesContainer,
            AuthorizationService, VisitCounterService, EventsService, EventItem,
            MessagesService, OutagesScheduleService, StationsService, LookupsService,
            ChatsService, ExtDataService, DashboardService, UsersService,

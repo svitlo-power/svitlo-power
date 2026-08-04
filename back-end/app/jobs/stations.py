@@ -3,23 +3,27 @@ from injector import Injector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
-from app.services import StationsService
+from app.services import DeyeConnectionsService, StationsService
 
 
 def register(settings: Settings, injector: Injector):
     scheduler = injector.get(AsyncIOScheduler)
 
-    async def sync_stations():
+    async def sync_stations(connection_ids=None):
         stations: StationsService = injector.get(StationsService)
-        await stations.sync_stations()
+        await stations.sync_stations(connection_ids)
 
     async def sync_stations_data():
         stations: StationsService = injector.get(StationsService)
         await stations.sync_stations_data()
 
     async def check_deye_status():
-        if settings.DEYE_SYNC_STATIONS_ON_POLL:
-            await sync_stations()
+        connections: DeyeConnectionsService = injector.get(DeyeConnectionsService)
+        sync_on_poll_ids = [
+            c.id for c in connections.get_connections() if c.sync_stations_on_poll
+        ]
+        if sync_on_poll_ids:
+            await sync_stations(sync_on_poll_ids)
 
             run_at = datetime.now() + timedelta(seconds=10)
             job_id = f"check_deye_continue_{int(run_at.timestamp())}"
@@ -33,6 +37,14 @@ def register(settings: Settings, injector: Injector):
 
         await sync_stations_data()
 
+    async def sync_stations_scheduled():
+        connections: DeyeConnectionsService = injector.get(DeyeConnectionsService)
+        connection_ids = [
+            c.id for c in connections.get_connections() if not c.sync_stations_on_poll
+        ]
+        if connection_ids:
+            await sync_stations(connection_ids)
+
     scheduler.add_job(
         id            = 'check_deye_status',
         func          = check_deye_status,
@@ -40,13 +52,12 @@ def register(settings: Settings, injector: Injector):
         next_run_time = datetime.now(),
         seconds       = int(settings.DEYE_FETCH_INTERVAL),
     )
-    if not settings.DEYE_SYNC_STATIONS_ON_POLL:
-        scheduler.add_job(
-            id            = 'sync_deye_stations',
-            func          = sync_stations,
-            trigger       = 'cron',
-            hour          = '*/3',
-            minute        = '0',
-            second        = '0',
-            next_run_time = datetime.now()
-        )
+    scheduler.add_job(
+        id            = 'sync_deye_stations',
+        func          = sync_stations_scheduled,
+        trigger       = 'cron',
+        hour          = '*/3',
+        minute        = '0',
+        second        = '0',
+        next_run_time = datetime.now()
+    )
