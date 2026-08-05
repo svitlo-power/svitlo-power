@@ -255,12 +255,13 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
     return () => setHeaderText('');
   }, [isEdit, message?.name, setHeaderText, t]);
 
-
   const createTemplateTab = useCallback((
       name: 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
       title: string,
     ) => {
-      return <Tabs.Tab value={name}
+      return <Tabs.Tab
+        key={`template_tab_${name}`}
+        value={name}
         rightSection={
           hasFieldError(name) 
             ? <FontAwesomeIcon icon="exclamation-circle" color="red" /> 
@@ -274,7 +275,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
   const createTemplateTabPanel = useCallback((
       name: 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
     ) => {
-      return <Tabs.Panel value={name}>
+      return <Tabs.Panel value={name} key={`template_tab_pnl_${name}`}>
         <TemplateEditor name={name} control={control} trigger={trigger} />
       </Tabs.Panel>;
     }, [control, trigger]);
@@ -335,11 +336,16 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
         {t('templates.message')}
         <Button ml='md' size="xs"  onClick={onOpenPreview} disabled={!isValid}>{t('button.preview')}</Button>
       </Title>
-      <Tabs defaultValue={`messageTemplate`} mb='xs'>
+      <Tabs
+        defaultValue={`messageTemplate`}
+        mt='sm' mb='xs'
+        keepMounted
+        keepMountedMode="display-none"
+      >
         <Tabs.List mb='xs'>
-          {...tabs}
+          {tabs}
         </Tabs.List>
-        {...tabPanels}
+        {tabPanels}
       </Tabs>
       <FormSubmitButtons {...registerFormButtons()} />
     </form>
