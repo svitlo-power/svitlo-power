@@ -105,7 +105,8 @@ class MessagesService(BaseService):
             last_sent_time       = message.last_sent_time,
             bot_name             = bot_name,
             channel_name         = channel_name,
-            channel_id           = message.channel_id
+            channel_id           = message.channel_id,
+            language             = message.language
         )
 
 
@@ -144,6 +145,7 @@ class MessagesService(BaseService):
             should_send_template = message_preview.should_send_template,
             stations             = stations,
             last_sent_time       = last_sent_time,
+            language             = message_preview.language,
         )
 
         stdout_buffer = io.StringIO()

@@ -10,7 +10,8 @@
     "bot": "Бот",
     "lastMessageSent": "Останнє відправлення",
     "enabled": "Увімкнено",
-    "actions": "Дії"
+    "actions": "Дії",
+    "language": "Мова повідомлення"
   },
   "actions": {
     "edit": "Редагувати"

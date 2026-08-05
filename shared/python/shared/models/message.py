@@ -20,6 +20,7 @@ class Message(Document, LookupModel):
     bot: Optional[Link[Bot]] = None
     last_sent_time: Optional[datetime] = None
     enabled: Optional[bool] = True
+    language: Optional[str] = None
 
     stations: List[Link[Station]] = Field(default_factory=list)
 
@@ -31,7 +32,8 @@ class Message(Document, LookupModel):
         return (
             f"Message(id={self.id}, channel_id='{self.channel_id}', "
             f"name='{self.name}', stations={station_ids}, "
-            f"last_sent_time={self.last_sent_time}, enabled={self.enabled})"
+            f"last_sent_time={self.last_sent_time}, enabled={self.enabled}, "
+            f"language={self.language})"
         )
 
     @classmethod

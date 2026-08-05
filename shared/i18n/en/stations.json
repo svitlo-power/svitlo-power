@@ -5,6 +5,7 @@
   },
   "table": {
     "name": "Name",
+    "alias": "Alias",
     "connection": "Connection",
     "connectionStatus": "Connection status",
     "mode": "Mode",
@@ -12,6 +13,11 @@
     "enabled": "Enabled",
     "batteryCapacity": "Battery capacity",
     "order": "Order"
+  },
+  "aliasEdit": {
+    "tooltip": "Edit alias",
+    "title": "Edit alias",
+    "label": "Alias"
   },
   "batteryEdit": {
     "title": "Edit battery capacity",

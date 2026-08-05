@@ -13,3 +13,12 @@ class LocalizableValue(RootModel[dict[str, str]]):
                 raise ValueError(f"Invalid culture code: {key}")
         return v
 
+    def get_culture_value(self, lang: str) -> str:
+        if lang not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Invalid culture code: {lang}")
+
+        try:
+            return self.root[lang]
+        except KeyError:
+            raise ValueError(f"No value found for culture: {lang}")
+        

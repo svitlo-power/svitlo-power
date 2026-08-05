@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { ServerStationItem, StationsState } from "../types";
 import { fetchStations, saveStations } from "../thunks";
-import { ObjectId } from "../../schemas";
+import { LocalizableValue, ObjectId } from "../../schemas";
 
 const initialState: StationsState = {
   stations: [],
@@ -12,6 +12,11 @@ const initialState: StationsState = {
 export type UpdateStationActionPayload = {
   id: ObjectId;
   enabled: boolean;
+};
+
+export type UpdateStationAliasActionPayload = {
+  id: ObjectId;
+  alias: LocalizableValue;
 };
 
 export type UpdateStationBatteryCapacityActionPayload = {
@@ -35,6 +40,16 @@ export const stationsSlice = createSlice({
       }
       if (station.enabled !== payload.enabled) {
         station.enabled = payload.enabled;
+        station.changed = true;
+      }
+    },
+    updateStationAlias(state, { payload }: PayloadAction<UpdateStationAliasActionPayload>) {
+      const station = state.stations.find(s => s.id === payload.id);
+      if (!station) {
+        return;
+      }
+      if (station.stationAlias !== payload.alias) {
+        station.stationAlias = payload.alias;
         station.changed = true;
       }
     },
@@ -105,6 +120,7 @@ export const {
   updateStationState,
   updateStationOrder,
   updateStationBatteryCapacity,
+  updateStationAlias,
   stationStateSaved,
 } = stationsSlice.actions;
 export const stationsReducer = stationsSlice.reducer;

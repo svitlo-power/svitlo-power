@@ -32,6 +32,7 @@ class MessageEditResponseModel(BaseModel):
     should_send_template: str = Field(alias="shouldSendTemplate")
     timeout_template: str = Field(alias="timeoutTemplate")
     enabled: bool
+    language: str
 
     model_config = {
         "populate_by_name": True,
@@ -48,6 +49,7 @@ class MessageCreateRequest(BaseModel):
     should_send_template: str = Field(alias="shouldSendTemplate")
     timeout_template: str = Field(alias="timeoutTemplate")
     enabled: bool
+    language: str
 
     model_config = {
         "populate_by_name": True,
@@ -69,6 +71,7 @@ class MessagePreviewRequest(BaseModel):
     timeout_template: str = Field(alias="timeoutTemplate")
     should_send_template: Optional[str] = Field(None, alias="shouldSendTemplate")
     stations: List[PydanticObjectId]
+    language: str
 
     model_config = {
         "populate_by_name": True,

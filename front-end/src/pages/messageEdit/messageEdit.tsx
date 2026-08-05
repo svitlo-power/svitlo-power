@@ -16,6 +16,7 @@ import { Controller } from "react-hook-form";
 import { openMessagePreviewDialog, TemplateEditor } from "./components";
 import { LookupSchema } from "../../types";
 import { usePageTranslation } from "../../utils";
+import { AVAILABLE_LANGUAGES } from "../../i18n";
 
 type ComponentOwnProps = {
   isEdit: boolean;
@@ -67,6 +68,12 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
     dispatch(fetchStations());
   }, [dispatch]);
 
+  const getLanguageOptions = useCallback((): ComboboxItem[] => AVAILABLE_LANGUAGES.map(lang => ({
+    key: `lang_${lang}`,
+    value: lang,
+    label: t(`lang.${lang}`)
+  })), [t]);
+
   const getBotOptions = useCallback((): ComboboxItem[] => (bots ?? []).map((bot, index) => ({
     key: `bot_${index}`,
     value: bot.id?.toString(),
@@ -116,6 +123,31 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
         name: 'name',
         title: t('columns.name'),
         required: true,
+      },
+      {
+        name: 'language',
+        title: t('columns.language'),
+        required: true,
+        render: (context) => {
+          return <Controller
+            name="language"
+            control={context.helpers.control}
+            defaultValue={'en'}
+            render={({ field }) => (
+              <Select
+                required
+                allowDeselect={false}
+                data={getLanguageOptions()}
+                {...field}
+                label={context.title}
+                leftSection={stationsLoading ? <Loader size="xs" /> : null}
+                value={field.value?.toString() ?? ''}
+                error={context.helpers.getFieldError('language')}
+                onChange={(value) => context.helpers.setControlValue('language', value!, true, false)}
+              />
+            )}
+          />;
+        }
       },
       {
         name: 'enabled',
@@ -268,6 +300,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
     const shouldSendTemplate = getControlValue('shouldSendTemplate') as string;
     const timeoutTemplate = getControlValue('timeoutTemplate') as string;
     const messageTemplate = getControlValue('messageTemplate') as string;
+    const language = getControlValue('language') as string;
     openMessagePreviewDialog({
       message_id: isEdit ? messageId : undefined,
       name,
@@ -275,6 +308,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
       shouldSendTemplate,
       timeoutTemplate,
       messageTemplate,
+      language,
       t,
     });
   };
@@ -282,14 +316,19 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
   return <FormPage loading={loading} >
     <form onSubmit={handleFormSubmit}>
       {renderField('enabled')}
-      {renderField('name')}
+      <SimpleGrid cols={{ xs: 1, sm: 2, }} mt='xs' mb='xs'>
+        {renderField('name')}
+        {renderField('language')}
+      </SimpleGrid>
       <Divider />
       <SimpleGrid cols={{ xs: 1, sm: 2, }} mt='xs' mb='xs'>
         {renderField('botId')}
         {renderField('stations')}
       </SimpleGrid>
       <Divider />
+      <SimpleGrid cols={{ xs: 1, sm: 2, }} mt='xs' mb='xs'>
       {renderField('channelId')}
+      </SimpleGrid>
       <Badge>{message?.channelName ?? ''}</Badge>
       <Divider mt='xs' mb='xs'/>
       <Title order={4}>

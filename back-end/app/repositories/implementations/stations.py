@@ -31,6 +31,7 @@ class StationsRepository(IStationsRepository):
         enabled: bool,
         order: int,
         battery_capacity: float,
+        station_alias: str,
     ):
         station = await self.get_station(station_id)
         if station is None:
@@ -39,6 +40,7 @@ class StationsRepository(IStationsRepository):
         station.enabled = enabled
         station.order = order
         station.battery_capacity = battery_capacity
+        station.station_alias = station_alias
         await station.save()
 
     async def count_by_connection(self, connection_id: PydanticObjectId) -> int:

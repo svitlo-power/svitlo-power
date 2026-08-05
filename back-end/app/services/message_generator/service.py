@@ -43,7 +43,7 @@ class MessageGeneratorService(IMessageGeneratorService):
         self._stations_data = stations_data
         self._injector = injector
 
-    async def _populate_stations_data(self, template_data, stations: List[Station], force):
+    async def _populate_stations_data(self, template_data, stations: List[Station], force, lang):
         message_station = None
         for station in stations:
             if not station.enabled and not force:
@@ -51,9 +51,11 @@ class MessageGeneratorService(IMessageGeneratorService):
 
             data = await self._stations_data.get_station_data_tuple(station.station_id)
 
+            station_name = station.station_alias.get_culture_value(lang) if station.station_alias else station.station_name
+
             station_data = {
                 **(data.to_dict(self._message_timezone) if data is not None else {}),
-                'name': station.station_name,
+                'name': station_name,
                 'grid_interconnection_type': station.grid_interconnection_type,
                 'connection_status': station.connection_status,
                 'battery_capacity': station.battery_capacity
@@ -128,7 +130,7 @@ class MessageGeneratorService(IMessageGeneratorService):
             logger.info(f"All stations for message '{message.name}' are disabled")
             return None
 
-        message_station = await self._populate_stations_data(template_data, stations, force)
+        message_station = await self._populate_stations_data(template_data, stations, force, message.language)
         if len(stations) == 1 and message_station is None:
             logger.info(f"The station for message '{message.name}' is disabled")
             return None

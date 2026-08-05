@@ -5,15 +5,14 @@ import { connect } from "react-redux";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { cancelStationsEditing, fetchStations, saveStations } from "../../stores/thunks";
 import { createSelector } from "@reduxjs/toolkit";
-import { updateStationBatteryCapacity, updateStationOrder, updateStationState } from "../../stores/slices";
+import { updateStationAlias, updateStationBatteryCapacity, updateStationOrder, updateStationState } from "../../stores/slices";
 import { DataTable, ErrorMessage, OrderControl, Page } from "../../components";
 import { ColumnDataType, EventType } from "../../types";
-import { ActionIcon, Anchor, Group, Text, Tooltip } from "@mantine/core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { openBatteryCapacityEditDialog, openConnectionsDialog } from "./components";
+import { Anchor } from "@mantine/core";
+import { AliasCell, BatteryCapacityCell, openConnectionsDialog } from "./components";
 import { usePageTranslation } from "../../utils";
 import { useNavigate } from "react-router-dom";
-import { ObjectId } from "../../schemas";
+import { LocalizableValue, ObjectId } from "../../schemas";
 import { useSubscribeEvent } from "../../hooks";
 
 
@@ -77,6 +76,9 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
   const onStationOrderChange = (currentOrder: number, delta: number) => {
     dispatch(updateStationOrder({ currentOrder, delta }));
   };
+  const onSetAlias = (id: ObjectId, alias: LocalizableValue) => {
+    dispatch(updateStationAlias({ id, alias }));
+  }
   const onSetBatteryCapacity = (id: ObjectId, batteryCapacity: number) => {
     dispatch(updateStationBatteryCapacity({ id, batteryCapacity }));
   }
@@ -111,6 +113,18 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
               </Anchor>
             );
           }
+        },
+        {
+          id: 'stationAlias',
+          header: t('table.alias'),
+          accessorKey: 'stationAlias',
+          cell: ({ row }) => <AliasCell
+              t={t}
+              id={row.original.id}
+              value={row.original.stationAlias}
+              name={row.original.stationName}
+              onAliasChange={onSetAlias}
+            />
         },
         {
           id: 'connection',
@@ -152,35 +166,12 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
           meta: {
             dataType: ColumnDataType.Number,
           },
-          cell: ({ renderValue, row }) => {
-            return <Group justify="space-between">
-              <Text>{t('batteryEdit.valueLabel', { value: renderValue() })}</Text>
-              <Tooltip
-                ml='sm'
-                label={
-                  <Text fw={500} fz={13}>
-                    {t('batteryEdit.tooltip')}
-                  </Text>
-                }
-              >
-                <ActionIcon
-                  color="teal"
-                  onClick={() => openBatteryCapacityEditDialog({
-                    batteryCapacity: row.original.batteryCapacity,
-                    t,
-                    title: t('batteryEdit.title'),
-                    onClose: (result, newCapacity) => {
-                      if (result) {
-                        onSetBatteryCapacity(row.original.id, newCapacity)
-                      }
-                    }
-                  })}
-                >
-                  <FontAwesomeIcon icon='edit' />
-                </ActionIcon>
-              </Tooltip>
-            </Group>;
-          }
+          cell: ({ row }) => <BatteryCapacityCell
+              t={t}
+              id={row.original.id}
+              value={row.original.batteryCapacity}
+              onBatteryCapacityChange={onSetBatteryCapacity}
+            />
         },
         {
           id: 'order',

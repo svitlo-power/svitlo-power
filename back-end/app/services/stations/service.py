@@ -67,12 +67,14 @@ class StationsService(BaseService):
         enabled: bool,
         order: int,
         battery_capacity: float,
+        station_alias: str,
     ):
         await self._stations.edit_station(
             station_id       = station_id,
             enabled          = enabled,
             order            = order,
-            battery_capacity = battery_capacity
+            battery_capacity = battery_capacity,
+            station_alias    = station_alias
         )
 
     async def sync_stations(self, connection_ids: List[PydanticObjectId] | None = None):

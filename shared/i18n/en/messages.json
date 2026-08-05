@@ -10,7 +10,8 @@
     "bot": "Bot",
     "lastMessageSent": "Last message sent",
     "enabled": "Enabled",
-    "actions": "Actions"
+    "actions": "Actions",
+    "language": "Message language"
   },
   "actions": {
     "edit": "Edit"
