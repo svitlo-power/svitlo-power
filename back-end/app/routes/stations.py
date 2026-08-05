@@ -20,6 +20,7 @@ def register(app: FastAPI):
             {
                 "id": str(station.id),
                 "stationName": station.station_name,
+                "stationAlias": station.station_alias,
                 "connectionStatus": station.connection_status,
                 "gridInterconnectionType": station.grid_interconnection_type,
                 "lastUpdateTime": station.last_update_time,
@@ -43,7 +44,8 @@ def register(app: FastAPI):
         enabled = payload.get("enabled", False)
         order = payload.get("order", 1)
         battery_capacity = payload.get("batteryCapacity")
+        alias = payload.get("alias")
 
-        await stations.edit_station(station_id, enabled, order, battery_capacity)
+        await stations.edit_station(station_id, enabled, order, battery_capacity, alias)
 
         return {"success": True, "id": station_id }

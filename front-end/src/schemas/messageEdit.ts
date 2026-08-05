@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { objectIdSchema } from './base';
+import { AVAILABLE_LANGUAGES } from '../i18n';
 
 export const messageEditSchema = v.object({
   id: v.nullish(
@@ -44,6 +45,7 @@ export const messageEditSchema = v.object({
     v.trim(),
     v.nonEmpty('Bot is required'),
   ),
+  language: v.picklist(AVAILABLE_LANGUAGES),
 });
 
 export type MessageEdit = v.InferInput<typeof messageEditSchema>;

@@ -1,4 +1,4 @@
-import { ObjectId } from "../../schemas";
+import { LocalizableValue, ObjectId } from "../../schemas";
 import { BaseState } from "./base";
 
 export type BaseServerStationItem = {
@@ -10,6 +10,7 @@ export type BaseServerStationItem = {
 
 export type ServerStationItem = BaseServerStationItem & {
   stationName: string;
+  stationAlias: LocalizableValue;
   connectionStatus: string;
   gridInterconnectionType: string;
   lastUpdateTime: Date;

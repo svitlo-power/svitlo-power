@@ -24,6 +24,7 @@ class IStationsRepository(ABC):
         enabled: bool,
         order: int,
         battery_capacity: float,
+        station_alias: str,
     ):
         ...
 

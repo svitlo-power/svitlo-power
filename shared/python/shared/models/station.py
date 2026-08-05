@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from beanie import Document, PydanticObjectId
 from pydantic import Field
+from shared.models.localizable_value import LocalizableValue
 
 from .beanie_filter import BeanieFilter
 from .lookup import LookupModel, LookupValue
@@ -10,6 +11,7 @@ from .lookup import LookupModel, LookupValue
 class Station(Document, LookupModel):
     station_id: Optional[int]
     station_name: Optional[str] = Field(None, max_length=128)
+    station_alias: Optional[LocalizableValue] = None
 
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None

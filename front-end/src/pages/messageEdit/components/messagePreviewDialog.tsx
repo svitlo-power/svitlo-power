@@ -16,6 +16,7 @@ type OpenMessagePreviewOptions = {
   shouldSendTemplate: string;
   timeoutTemplate: string;
   messageTemplate: string;
+  language: string;
   t: TFunction;
 };
 
@@ -26,6 +27,7 @@ export function openMessagePreviewDialog({
   shouldSendTemplate,
   timeoutTemplate,
   messageTemplate,
+  language,
   t,
 }: OpenMessagePreviewOptions) {
 
@@ -53,7 +55,13 @@ export function openMessagePreviewDialog({
 
     useEffect(() => {
       dispatch(getTemplatePreview({
-        id: message_id, name, stations, shouldSendTemplate, timeoutTemplate, messageTemplate,
+        id: message_id,
+        name,
+        stations,
+        shouldSendTemplate,
+        timeoutTemplate,
+        messageTemplate,
+        language,
       }));
     }, [dispatch]);
 

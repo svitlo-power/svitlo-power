@@ -49,6 +49,7 @@ type TemplatePreviewArgs = {
   shouldSendTemplate: string;
   timeoutTemplate: string;
   messageTemplate: string;
+  language: string;
 };
 
 export const getTemplatePreview = createAsyncThunk<TemplatePreviewResponse, TemplatePreviewArgs>(
@@ -68,6 +69,7 @@ export const getTemplatePreview = createAsyncThunk<TemplatePreviewResponse, Temp
       shouldSendTemplate: args.shouldSendTemplate,
       timeoutTemplate: args.timeoutTemplate,
       stations: args.stations,
+      language: args.language,
     } as TemplatePreviewRequest;
     const response = await apiClient.post<TemplatePreviewResponse>('/messages/getPreview', request);
     if (response.data.success) {
