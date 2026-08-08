@@ -28,6 +28,7 @@ class MessageEditResponseModel(BaseModel):
     bot_id: PydanticObjectId = Field(alias="botId")
     bot_name: str = Field(alias="botName")
     last_sent_time: Optional[datetime] = Field(None, alias="lastSentTime")
+    template_macros: Optional[str] = Field(None, alias="templateMacros")
     message_template: str = Field(alias="messageTemplate")
     should_send_template: str = Field(alias="shouldSendTemplate")
     timeout_template: str = Field(alias="timeoutTemplate")
@@ -45,6 +46,7 @@ class MessageCreateRequest(BaseModel):
     channel_id: str = Field(alias="channelId")
     stations: List[PydanticObjectId]
     bot_id: PydanticObjectId = Field(alias="botId")
+    template_macros: Optional[str] = Field(None, alias="templateMacros")
     message_template: str = Field(alias="messageTemplate")
     should_send_template: str = Field(alias="shouldSendTemplate")
     timeout_template: str = Field(alias="timeoutTemplate")
@@ -70,6 +72,7 @@ class MessagePreviewRequest(BaseModel):
     message_template: str = Field(alias="messageTemplate")
     timeout_template: str = Field(alias="timeoutTemplate")
     should_send_template: Optional[str] = Field(None, alias="shouldSendTemplate")
+    template_macros: Optional[str] = Field(None, alias="templateMacros")
     stations: List[PydanticObjectId]
     language: str
 

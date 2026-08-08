@@ -23,7 +23,8 @@
   "templates": {
     "shouldSend": "Should send template",
     "timeout": "Timeout template",
-    "message": "Message template"
+    "message": "Message template",
+    "macros": "Shared code"
   },
   "noData": "No data",
   "preview": {

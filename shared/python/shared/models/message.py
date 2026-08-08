@@ -16,6 +16,7 @@ class Message(Document, LookupModel):
     message_template: Optional[str] = None
     should_send_template: Optional[str] = None
     timeout_template: Optional[str] = None
+    template_macros: Optional[str] = None
 
     bot: Optional[Link[Bot]] = None
     last_sent_time: Optional[datetime] = None

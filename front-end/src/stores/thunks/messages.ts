@@ -46,6 +46,7 @@ type TemplatePreviewArgs = {
   id?: ObjectId;
   name: string;
   stations: ObjectId[];
+  templateMacros: string;
   shouldSendTemplate: string;
   timeoutTemplate: string;
   messageTemplate: string;
@@ -65,6 +66,7 @@ export const getTemplatePreview = createAsyncThunk<TemplatePreviewResponse, Temp
       name: args.name,
       botId: message.botId,
       channelId: message.channelId,
+      templateMacros: args.templateMacros,
       messageTemplate: args.messageTemplate,
       shouldSendTemplate: args.shouldSendTemplate,
       timeoutTemplate: args.timeoutTemplate,
