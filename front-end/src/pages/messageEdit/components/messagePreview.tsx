@@ -1,6 +1,6 @@
 import { FC, useMemo } from "react";
 import { TemplatePreview } from "../../../stores/types";
-import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs, Table } from "@mantine/core";
+import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs } from "@mantine/core";
 import EditorView from '@uiw/react-codemirror';
 import { langs } from '@uiw/codemirror-extensions-langs';
 import Markdown from "react-markdown";
@@ -19,9 +19,7 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
   const yes = t('button.yes');
   const no = t('button.no');
   const data = preview?.data;
-  const requests = (data?.requests as Array<Record<string, unknown>> | undefined) ?? [];
   const hasData = data !== undefined && data !== null;
-  const hasRequests = requests.length > 0;
 
   const jsonExtensions = useMemo(
     () => [langs.json()],
@@ -53,36 +51,16 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
       </Tabs.List>
       <Tabs.Panel value="message">
         <Paper withBorder radius="md" p="sm">
-          <ScrollArea style={{ maxHeight: 400 }}>
+          <ScrollArea>
             <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{preview?.message ?? ''}</Markdown>
           </ScrollArea>
         </Paper>
       </Tabs.Panel>
       <Tabs.Panel value="data">
-        <ScrollArea style={{ maxHeight: 400 }}>
-          {hasRequests && (
-            <>
-              <Text fw={500} mb="xs">{t('previewLabels.requests')}</Text>
-              <Table mb="sm">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('previewLabels.request')}</Table.Th>
-                    <Table.Th>{t('previewLabels.value')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {requests.map((item, index) => (
-                    <Table.Tr key={index}>
-                      <Table.Td>{String(item.request ?? '')}</Table.Td>
-                      <Table.Td>{String(item.value ?? '')}</Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </>
-          )}
+        <ScrollArea>
           <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
           <EditorView
+            theme={"dark"}
             value={jsonContent}
             height="300px"
             extensions={jsonExtensions}
