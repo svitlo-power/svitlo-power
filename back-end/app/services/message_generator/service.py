@@ -1,6 +1,7 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import Any, Dict, List
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from injector import Injector, inject
 
@@ -135,7 +136,7 @@ class MessageGeneratorService(IMessageGeneratorService):
             logger.info(f"The station for message '{message.name}' is disabled")
             return None
 
-        context = TemplateRequestContext()
+        context = TemplateRequestContext(collect_data=include_data)
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, context)
 
         timeout = await get_send_timeout(message.timeout_template, template_data, message.template_macros)
@@ -150,9 +151,18 @@ class MessageGeneratorService(IMessageGeneratorService):
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, context)
         message_content = await generate_message(message.message_template, template_data, message.template_macros)
 
+        data = None
+        if include_data:
+            data = {
+                **template_data,
+                'requests': context.collected_data,
+            }
+            data = json.loads(json.dumps(data, default=str))
+
         return MessageItem(
             message = message_content,
             should_send = should_send,
             timeout = timeout,
             next_send_time = datetime.now(timezone.utc) if next_send_time < datetime.now(timezone.utc) else next_send_time,
+            data = data,
         )

@@ -24,6 +24,10 @@ class TemplateRequest(ABC):
     async def resolve(self, injector: Injector) -> Any:
         ...
 
+    def describe(self) -> str:
+        fields = ', '.join(f'{k}={v}' for k, v in self.__dict__.items())
+        return f'{self.__class__.__name__}({fields})'
+
 
 @dataclass(frozen=True)
 class NumericTemplateRequest(TemplateRequest):

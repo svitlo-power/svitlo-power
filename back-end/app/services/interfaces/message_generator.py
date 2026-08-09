@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from shared.models.message import Message
 
@@ -11,6 +12,7 @@ class MessageItem:
     timeout: int
     should_send: bool
     next_send_time: datetime
+    data: Optional[Dict[str, Any]] = None
 
 
 class IMessageGeneratorService(ABC):

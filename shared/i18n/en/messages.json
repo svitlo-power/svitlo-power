@@ -35,7 +35,10 @@
     "shouldSend": "Should send:",
     "timeout": "Timeout (seconds):",
     "nextSendTime": "Next send time:",
-    "message": "Message:"
+    "message": "Message:",
+    "data": "Data:",
+    "request": "Request",
+    "value": "Value"
   },
   "button": {
     "create": "Create",

@@ -1,6 +1,6 @@
 
 from collections.abc import Set
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from injector import Injector
 
@@ -78,10 +78,14 @@ class ResolvedValue:
 class TemplateRequestContext:
     _collector: TemplateRequestCollector
     _resolver: TemplateRequestResolver
+    _collect_data: bool
+    _collected_data: List[Dict[str, Any]]
     
-    def __init__(self):
+    def __init__(self, collect_data: bool = False):
         self._collector = TemplateRequestCollector()
         self._resolver = TemplateRequestResolver()
+        self._collect_data = collect_data
+        self._collected_data: List[Dict[str, Any]] = []
 
     def add_request(self, request: TemplateRequest) -> TemplateRequest:
         self._collector.add(request)
@@ -89,9 +93,19 @@ class TemplateRequestContext:
 
     async def resolve_requests(self, injector: Injector):
         self._resolved = await self._resolver.resolve_requests(self._collector, injector)
+        if self._collect_data:
+            for request, value in self._resolved.items():
+                self._collected_data.append({
+                    'request': request.describe(),
+                    'value': value,
+                })
 
     def get_resolved_value(self, request: TemplateRequest) -> ResolvedValue:
         resolved_request = self._resolved[request]
         if resolved_request is None:
             raise ValueError(f"No resolved value for request {request}!")
         return ResolvedValue(resolved_request)
+
+    @property
+    def collected_data(self) -> List[Dict[str, Any]]:
+        return self._collected_data

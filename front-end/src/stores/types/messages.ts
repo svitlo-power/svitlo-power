@@ -33,6 +33,7 @@ export type TemplatePreview = {
   timeout: number;
   message: string;
   nextSendTime: Date;
+  data?: Record<string, unknown>;
 };
 
 export type TemplatePreviewResponse = BaseResponse & TemplatePreview;
