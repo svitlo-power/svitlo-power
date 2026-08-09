@@ -8,7 +8,7 @@ import { Control, Controller, UseFormTrigger } from "react-hook-form";
 import { ErrorMessage } from "../../../components";
 
 type ComponentProps = {
-  name: 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate';
+  name: 'templateMacros' | 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate';
   control: Control<MessageEdit>;
   trigger: UseFormTrigger<MessageEdit>;
 };
@@ -40,7 +40,7 @@ const Component: FC<ComponentProps> = ({ name, control, trigger }: ComponentProp
               trigger(name);
             }}
             ref={field.ref}
-            value={field.value as string}
+            value={field.value as string ?? ''}
             spellCheck={true}
             extensions={extensions}
           />

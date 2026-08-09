@@ -13,6 +13,7 @@ type OpenMessagePreviewOptions = {
   message_id?: ObjectId;
   name: string,
   stations: ObjectId[];
+  templateMacros: string;
   shouldSendTemplate: string;
   timeoutTemplate: string;
   messageTemplate: string;
@@ -24,6 +25,7 @@ export function openMessagePreviewDialog({
   message_id,
   name,
   stations,
+  templateMacros,
   shouldSendTemplate,
   timeoutTemplate,
   messageTemplate,
@@ -58,6 +60,7 @@ export function openMessagePreviewDialog({
         id: message_id,
         name,
         stations,
+        templateMacros,
         shouldSendTemplate,
         timeoutTemplate,
         messageTemplate,

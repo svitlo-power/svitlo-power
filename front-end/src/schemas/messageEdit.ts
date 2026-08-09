@@ -19,6 +19,9 @@ export const messageEditSchema = v.object({
   channelName: v.nullish(
     v.string(),
   ),
+  templateMacros: v.nullish(
+    v.string(),
+  ),
   messageTemplate: v.pipe(
     v.string(),
     v.trim(),

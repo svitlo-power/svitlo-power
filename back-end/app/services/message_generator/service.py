@@ -138,21 +138,21 @@ class MessageGeneratorService(IMessageGeneratorService):
         context = TemplateRequestContext()
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, context)
 
-        timeout = await get_send_timeout(message.timeout_template, template_data)
+        timeout = await get_send_timeout(message.timeout_template, template_data, message.template_macros)
         template_data['timeout'] = timeout
-        should_send = await get_should_send(message.should_send_template, template_data)
+        should_send = await get_should_send(message.should_send_template, template_data, message.template_macros)
         next_send_time = (
             (message.last_sent_time or datetime.min) + timedelta(seconds=timeout)
         ).replace(tzinfo=timezone.utc)
 
-        _ = await generate_message(message.message_template, template_data)
+        _ = await generate_message(message.message_template, template_data, message.template_macros)
         await context.resolve_requests(self._injector)
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, context)
-        message_content = await generate_message(message.message_template, template_data)
+        message_content = await generate_message(message.message_template, template_data, message.template_macros)
 
         return MessageItem(
             message = message_content,
             should_send = should_send,
             timeout = timeout,
-            next_send_time = next_send_time,
+            next_send_time = datetime.now(timezone.utc) if next_send_time < datetime.now(timezone.utc) else next_send_time,
         )

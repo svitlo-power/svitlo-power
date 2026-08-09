@@ -256,7 +256,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
   }, [isEdit, message?.name, setHeaderText, t]);
 
   const createTemplateTab = useCallback((
-      name: 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
+      name: 'templateMacros' | 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
       title: string,
     ) => {
       return <Tabs.Tab
@@ -273,7 +273,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
     }, [hasFieldError]);
 
   const createTemplateTabPanel = useCallback((
-      name: 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
+      name: 'templateMacros' | 'messageTemplate' | 'timeoutTemplate' | 'shouldSendTemplate',
     ) => {
       return <Tabs.Panel value={name} key={`template_tab_pnl_${name}`}>
         <TemplateEditor name={name} control={control} trigger={trigger} />
@@ -282,6 +282,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
 
   const tabs = useMemo(
     () => [
+      createTemplateTab('templateMacros', t('templates.macros')),
       createTemplateTab('shouldSendTemplate', t('templates.shouldSend')),
       createTemplateTab('timeoutTemplate', t('templates.timeout')),
       createTemplateTab('messageTemplate', t('templates.message')),
@@ -289,6 +290,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
   );
   const tabPanels = useMemo(
     () => [
+      createTemplateTabPanel('templateMacros'),
       createTemplateTabPanel('shouldSendTemplate'),
       createTemplateTabPanel('timeoutTemplate'),
       createTemplateTabPanel('messageTemplate'),
@@ -298,6 +300,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
   const onOpenPreview = () => {
     const name = getControlValue('name') as string;
     const stations = getControlValue('stations') as ObjectId[];
+    const templateMacros = getControlValue('templateMacros') as string;
     const shouldSendTemplate = getControlValue('shouldSendTemplate') as string;
     const timeoutTemplate = getControlValue('timeoutTemplate') as string;
     const messageTemplate = getControlValue('messageTemplate') as string;
@@ -306,6 +309,7 @@ const Component: FC<ComponentProps> = ({ isEdit, bots, message, loading, station
       message_id: isEdit ? messageId : undefined,
       name,
       stations,
+      templateMacros,
       shouldSendTemplate,
       timeoutTemplate,
       messageTemplate,
