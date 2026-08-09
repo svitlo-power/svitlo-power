@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Any, Optional
+from typing import Dict, List, Any, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
 
@@ -88,6 +88,7 @@ class MessagePreviewResponse(BaseModel):
     should_send: bool = Field(alias="shouldSend")
     timeout: int
     next_send_time: datetime = Field(alias="nextSendTime")
+    data: Optional[Dict[str, Any]] = Field(default=None)
 
     model_config = {
         "populate_by_name": True,

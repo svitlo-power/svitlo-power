@@ -8,12 +8,11 @@ from app.repositories import IStationsDataRepository
 
 
 @dataclass(frozen=True)
-class AverageRequest(NumericTemplateRequest):
-    name: ClassVar[str] = "get_average"
+class AverageAllRequest(NumericTemplateRequest):
+    name: ClassVar[str] = "get_average_all"
 
     station_id: int
     column: str
-    start_date: datetime
 
     async def resolve(self, injector: Injector) -> float:
         stations_data = injector.get(IStationsDataRepository)

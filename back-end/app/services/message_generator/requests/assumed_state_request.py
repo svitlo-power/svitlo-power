@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 from injector import Injector
 
 from ..models import TemplateRequest
@@ -8,6 +9,8 @@ from app.repositories import IStationsDataRepository
 
 @dataclass(frozen=True)
 class AssumedStateRequest(TemplateRequest):
+    name: ClassVar[str] = "get_assumed_state"
+
     station_id: int
 
     async def resolve(self, injector: Injector) -> float:

@@ -1,6 +1,7 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import Any, Dict, List
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from injector import Injector, inject
 
@@ -14,12 +15,32 @@ from ..interfaces import IMessageGeneratorService, MessageItem
 from .requests import (
     AssumedStateRequest,
     AverageMinutesRequest,
+    AverageAllRequest,
     AverageRequest,
 )
 from .template_method import TemplateMethod, TemplateMethodMode
 
 
 logger = logging.getLogger(__name__)
+
+_METHOD_KEYS = frozenset({
+    AverageRequest.name,
+    AverageAllRequest.name,
+    AverageMinutesRequest.name,
+    AssumedStateRequest.name,
+    'timedelta',
+})
+
+def _strip_methods(obj: Any) -> Any:
+    """Recursively remove template method callables from data structures."""
+    if isinstance(obj, dict):
+        return {
+            k: _strip_methods(v) for k, v in obj.items()
+            if k not in _METHOD_KEYS
+        }
+    if isinstance(obj, list):
+        return [_strip_methods(item) for item in obj]
+    return obj
 
 
 @inject
@@ -78,39 +99,39 @@ class MessageGeneratorService(IMessageGeneratorService):
         for station_data in template_data['stations']:
             if 'current' in station_data:
                 station_id = station_data['current']['station_id']
-                station_data['get_average'] = TemplateMethod(
+                station_data[AverageRequest.name] = TemplateMethod(
                     AverageRequest,
                     station_id=station_id,
                     start_date=last_sent_time,
                 ).bind(context, mode)
-                station_data['get_average_all'] = TemplateMethod(
+                station_data[AverageAllRequest.name] = TemplateMethod(
                     AverageRequest,
                     station_id=station_id
                 ).bind(context, mode)
-                station_data['get_average_minutes'] = TemplateMethod(
+                station_data[AverageMinutesRequest.name] = TemplateMethod(
                     AverageMinutesRequest,
                     station_id=station_id
                 ).bind(context, mode)
-                station_data['get_assumed_state'] = TemplateMethod(
+                station_data[AssumedStateRequest.name] = TemplateMethod(
                     AssumedStateRequest,
                     station_id=station_id
                 ).bind(context, mode)
         if 'station' in template_data and template_data['station'] is not None and 'current' in template_data['station']:
             station_id = template_data['station']['current']['station_id']
-            template_data['station']['get_average'] = TemplateMethod(
+            template_data['station'][AverageRequest.name] = TemplateMethod(
                 AverageRequest,
                 station_id=station_id,
                 start_date=last_sent_time,
             ).bind(context, mode)
-            template_data['station']['get_average_all'] = TemplateMethod(
-                AverageRequest,
+            template_data['station'][AverageAllRequest.name] = TemplateMethod(
+                AverageAllRequest,
                 station_id=station_id
             ).bind(context, mode)
-            template_data['station']['get_average_minutes'] = TemplateMethod(
+            template_data['station'][AverageMinutesRequest.name] = TemplateMethod(
                 AverageMinutesRequest,
                 station_id=station_id
             ).bind(context, mode)
-            template_data['station']['get_assumed_state'] = TemplateMethod(
+            template_data['station'][AssumedStateRequest.name] = TemplateMethod(
                 AssumedStateRequest,
                 station_id=station_id
             ).bind(context, mode)
@@ -135,7 +156,7 @@ class MessageGeneratorService(IMessageGeneratorService):
             logger.info(f"The station for message '{message.name}' is disabled")
             return None
 
-        context = TemplateRequestContext()
+        context = TemplateRequestContext(collect_data=include_data)
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, context)
 
         timeout = await get_send_timeout(message.timeout_template, template_data, message.template_macros)
@@ -150,9 +171,18 @@ class MessageGeneratorService(IMessageGeneratorService):
         self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, context)
         message_content = await generate_message(message.message_template, template_data, message.template_macros)
 
+        data = None
+        if include_data:
+            data = {
+                **template_data,
+                'requests': context.collected_data,
+            }
+            data = _strip_methods(json.loads(json.dumps(data, default=str)))
+
         return MessageItem(
             message = message_content,
             should_send = should_send,
             timeout = timeout,
             next_send_time = datetime.now(timezone.utc) if next_send_time < datetime.now(timezone.utc) else next_send_time,
+            data = data,
         )

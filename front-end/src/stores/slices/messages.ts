@@ -107,6 +107,7 @@ export const messagesSlice = createSlice({
             nextSendTime: preview.nextSendTime,
             shouldSend: preview.shouldSend,
             timeout: preview.timeout,
+            data: preview.data ?? {},
           };
         })
         .addCase(getTemplatePreview.rejected, (state, action: PayloadAction<unknown>) => {

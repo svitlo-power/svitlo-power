@@ -155,7 +155,7 @@ class MessagesService(BaseService):
         try:
             info = None
             with redirect_stdout(stdout_buffer):
-                info = await self._message_generator.generate_message(message, True)
+                info = await self._message_generator.generate_message(message, True, include_data=True)
 
             if info is None:
                 captured_output = stdout_buffer.getvalue()
@@ -166,7 +166,8 @@ class MessagesService(BaseService):
                 message        = info.message,
                 should_send    = info.should_send,
                 timeout        = info.timeout,
-                next_send_time = info.next_send_time
+                next_send_time = info.next_send_time,
+                data           = info.data,
             )
         except Exception as e:
             raise e

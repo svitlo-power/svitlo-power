@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
+from typing import ClassVar
 from injector import Injector
 
 from ..models import NumericTemplateRequest
@@ -8,6 +9,8 @@ from app.repositories import IStationsDataRepository
 
 @dataclass(frozen=True)
 class AverageMinutesRequest(NumericTemplateRequest):
+    name: ClassVar[str] = "get_average_minutes"
+
     station_id: int
     column: str
     minutes: int

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 
 from injector import Injector, inject
 
@@ -20,9 +20,15 @@ class MessageGeneratorConfig:
 
 @dataclass(frozen=True)
 class TemplateRequest(ABC):
+    name: ClassVar[str]
+
     @abstractmethod
     async def resolve(self, injector: Injector) -> Any:
         ...
+
+    def describe(self) -> str:
+        fields = ', '.join(f'{k}={v}' for k, v in self.__dict__.items())
+        return f'{self.name}({fields})'
 
 
 @dataclass(frozen=True)
