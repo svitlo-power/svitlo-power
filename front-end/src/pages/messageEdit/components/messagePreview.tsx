@@ -1,8 +1,10 @@
 import { FC, useMemo } from "react";
 import { TemplatePreview } from "../../../stores/types";
 import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs } from "@mantine/core";
-import EditorView from '@uiw/react-codemirror';
+import { EditorView } from "@codemirror/view";
+import ReactCodeMirror, { StateEffect } from '@uiw/react-codemirror';
 import { langs } from '@uiw/codemirror-extensions-langs';
+import { foldEffect, syntaxTree } from "@codemirror/language";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
@@ -30,6 +32,31 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
     () => JSON.stringify(data, null, 2),
     [data]
   );
+
+  const collapseJson = (view: EditorView) => {
+    const effects: StateEffect<{ from: number; to: number; }>[] = [];
+
+    syntaxTree(view.state).iterate({
+      enter(node) {
+        if (node.from === 0) {
+          return;
+        }
+
+        if (node.name === "Object" || node.name === "Array") {
+          effects.push(
+            foldEffect.of({
+              from: node.from,
+              to: node.to,
+            })
+          );
+        }
+      },
+    });
+
+    if (effects.length) {
+      view.dispatch({ effects });
+    }
+  };
 
   return <>
     <Group>
@@ -59,12 +86,15 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
       <Tabs.Panel value="data">
         <ScrollArea>
           <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
-          <EditorView
+          <ReactCodeMirror
             theme={"dark"}
             value={jsonContent}
             height="300px"
             extensions={jsonExtensions}
             editable={false}
+            onCreateEditor={(view) => {
+              collapseJson(view);
+            }}
           />
         </ScrollArea>
       </Tabs.Panel>
