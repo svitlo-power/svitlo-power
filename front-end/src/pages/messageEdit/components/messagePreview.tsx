@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { TemplatePreview } from "../../../stores/types";
-import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs, Table } from "@mantine/core";
+import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs, Table, Code } from "@mantine/core";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
@@ -16,8 +16,10 @@ type MessagePreviewProps = {
 export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, t }) => {
   const yes = t('button.yes');
   const no = t('button.no');
-  const requests = (preview?.data?.requests as Array<Record<string, unknown>> | undefined) ?? [];
-  const hasData = requests.length > 0;
+  const data = preview?.data;
+  const requests = (data?.requests as Array<Record<string, unknown>> | undefined) ?? [];
+  const hasData = data !== undefined && data !== null;
+  const hasRequests = requests.length > 0;
   return <>
     <Group>
       <Text fw={500}>{t('previewLabels.shouldSend')}</Text>
@@ -46,22 +48,29 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
       <Tabs.Panel value="data">
         <Paper withBorder radius="md" p="sm">
           <ScrollArea style={{ maxHeight: 400 }}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>{t('previewLabels.request')}</Table.Th>
-                  <Table.Th>{t('previewLabels.value')}</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {requests.map((item, index) => (
-                  <Table.Tr key={index}>
-                    <Table.Td>{String(item.request ?? '')}</Table.Td>
-                    <Table.Td>{String(item.value ?? '')}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
+            {hasRequests && (
+              <>
+                <Text fw={500} mb="xs">{t('previewLabels.requests')}</Text>
+                <Table mb="sm">
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('previewLabels.request')}</Table.Th>
+                      <Table.Th>{t('previewLabels.value')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {requests.map((item, index) => (
+                      <Table.Tr key={index}>
+                        <Table.Td>{String(item.request ?? '')}</Table.Td>
+                        <Table.Td>{String(item.value ?? '')}</Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </>
+            )}
+            <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
+            <Code block style={{ width: '100%' }}>{JSON.stringify(data, null, 2)}</Code>
           </ScrollArea>
         </Paper>
       </Tabs.Panel>

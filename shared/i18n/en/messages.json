@@ -38,7 +38,9 @@
     "message": "Message:",
     "data": "Data:",
     "request": "Request",
-    "value": "Value"
+    "value": "Value",
+    "requests": "Requests",
+    "templateData": "Template Data"
   },
   "button": {
     "create": "Create",

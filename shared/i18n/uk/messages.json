@@ -39,7 +39,9 @@
     "message": "Повідомлення:",
     "data": "Дані:",
     "request": "Запит",
-    "value": "Значення"
+    "value": "Значення",
+    "requests": "Запити",
+    "templateData": "Дані шаблону"
   },
   "button": {
     "create": "Створити",
