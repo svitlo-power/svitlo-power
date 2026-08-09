@@ -70,9 +70,7 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
               </>
             )}
             <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
-            <ScrollArea>
-              <Code block style={{ width: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(data, null, 2)}</Code>
-            </ScrollArea>
+            <Code block style={{ width: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(data, null, 2)}</Code>
           </ScrollArea>
         </Paper>
       </Tabs.Panel>
