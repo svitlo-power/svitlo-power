@@ -22,6 +22,22 @@ from .template_method import TemplateMethod, TemplateMethodMode
 
 logger = logging.getLogger(__name__)
 
+_METHOD_KEYS = frozenset({
+    'get_average', 'get_average_all', 'get_average_minutes', 'get_assumed_state',
+})
+
+
+def _strip_methods(obj: Any) -> Any:
+    """Recursively remove template method callables from data structures."""
+    if isinstance(obj, dict):
+        return {
+            k: _strip_methods(v) for k, v in obj.items()
+            if k not in _METHOD_KEYS
+        }
+    if isinstance(obj, list):
+        return [_strip_methods(item) for item in obj]
+    return obj
+
 
 @inject
 class MessageGeneratorService(IMessageGeneratorService):
@@ -157,6 +173,7 @@ class MessageGeneratorService(IMessageGeneratorService):
                 **template_data,
                 'requests': context.collected_data,
             }
+            data = _strip_methods(data)
             data = json.loads(json.dumps(data, default=str))
 
         return MessageItem(

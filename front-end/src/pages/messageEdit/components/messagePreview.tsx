@@ -1,6 +1,8 @@
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import { TemplatePreview } from "../../../stores/types";
-import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs, Table, Code } from "@mantine/core";
+import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs, Table } from "@mantine/core";
+import EditorView from '@uiw/react-codemirror';
+import { langs } from '@uiw/codemirror-extensions-langs';
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
@@ -20,6 +22,17 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
   const requests = (data?.requests as Array<Record<string, unknown>> | undefined) ?? [];
   const hasData = data !== undefined && data !== null;
   const hasRequests = requests.length > 0;
+
+  const jsonExtensions = useMemo(
+    () => [langs.json()],
+    []
+  );
+
+  const jsonContent = useMemo(
+    () => JSON.stringify(data, null, 2),
+    [data]
+  );
+
   return <>
     <Group>
       <Text fw={500}>{t('previewLabels.shouldSend')}</Text>
@@ -46,33 +59,36 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
         </Paper>
       </Tabs.Panel>
       <Tabs.Panel value="data">
-        <Paper withBorder radius="md" p="sm">
-          <ScrollArea style={{ maxHeight: 400 }}>
-            {hasRequests && (
-              <>
-                <Text fw={500} mb="xs">{t('previewLabels.requests')}</Text>
-                <Table mb="sm">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>{t('previewLabels.request')}</Table.Th>
-                      <Table.Th>{t('previewLabels.value')}</Table.Th>
+        <ScrollArea style={{ maxHeight: 400 }}>
+          {hasRequests && (
+            <>
+              <Text fw={500} mb="xs">{t('previewLabels.requests')}</Text>
+              <Table mb="sm">
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>{t('previewLabels.request')}</Table.Th>
+                    <Table.Th>{t('previewLabels.value')}</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {requests.map((item, index) => (
+                    <Table.Tr key={index}>
+                      <Table.Td>{String(item.request ?? '')}</Table.Td>
+                      <Table.Td>{String(item.value ?? '')}</Table.Td>
                     </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {requests.map((item, index) => (
-                      <Table.Tr key={index}>
-                        <Table.Td>{String(item.request ?? '')}</Table.Td>
-                        <Table.Td>{String(item.value ?? '')}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </>
-            )}
-            <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
-            <Code block style={{ width: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(data, null, 2)}</Code>
-          </ScrollArea>
-        </Paper>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </>
+          )}
+          <Text fw={500} mb="xs">{t('previewLabels.templateData')}</Text>
+          <EditorView
+            value={jsonContent}
+            height="300px"
+            extensions={jsonExtensions}
+            editable={false}
+          />
+        </ScrollArea>
       </Tabs.Panel>
     </Tabs>
     <Group justify="flex-end">
