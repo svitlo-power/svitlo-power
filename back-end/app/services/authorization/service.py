@@ -58,11 +58,12 @@ class AuthorizationService:
             raise ValueError(TranslationService.t("common.error.invalidLoginOrPassword"))
         return user
 
-    async def login(self, user_name: str, password: str):
+    async def login(self, user_name: str, password: str, ip_address: str = None):
         user = await self._get_user(user_name, password)
 
         await self._login_history_repository.add_login_history(
             user_id=user.id,
+            ip_address=ip_address,
         )
 
         access = create_access_token(

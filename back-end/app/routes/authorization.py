@@ -1,8 +1,9 @@
 from beanie import PydanticObjectId
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi_injector import Injected
 from pydantic import BaseModel, Field
 from app.services.authorization import AuthorizationService
+from app.utils import get_client_ip
 from app.utils.jwt_dependencies import jwt_refresh_required, jwt_required
 
 class LoginRequest(BaseModel):
@@ -31,12 +32,14 @@ class ChangePasswordRequest(BaseModel):
 def register(app: FastAPI):
     @app.post("/api/auth/login")
     async def login(
+        request: Request,
         body: LoginRequest,
         authorization: AuthorizationService = Injected(AuthorizationService),
     ):
         try:
+            ip_address = get_client_ip(request)
             access_token, refresh_token = await authorization.login(
-                body.user_name, body.password
+                body.user_name, body.password, ip_address
             )
             return {
                 "success": True,
