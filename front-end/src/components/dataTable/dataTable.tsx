@@ -125,7 +125,7 @@ export const DataTable = <T,>({
     manualSorting: manualSorting ?? false,
     getFilteredRowModel: getFilteredRowModel(),
     manualFiltering: manualFiltering ?? false,
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: usePagination ? getPaginationRowModel() : undefined,
     manualPagination: manualPagination ?? false,
     rowCount: pagingInfo?.total,
   };

@@ -15,6 +15,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { generatePasswordResetLink, getApiBaseUrl, getCurlExample, getCurlExampleOneLine, getHomeAssistantExample, integrationNotes } from "../../utils";
 import { ObjectId } from "../../schemas";
 import { usePageTranslation } from "../../utils";
+import { openLoginHistoryDialog } from "../../dialogs";
 
 
 type ComponentProps = {
@@ -326,15 +327,15 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
         fetchAction={fetchData}
         defSort={[{ id: 'name', desc: false }]}
         columns={[
-              {
-                id: 'name',
-                header: t('table.username'),
-                enableSorting: true,
-                accessorKey: 'name',
-                meta: {
-                  dataType: ColumnDataType.Text,
-                },
-              },
+          {
+            id: 'name',
+            header: t('table.username'),
+            enableSorting: true,
+            accessorKey: 'name',
+            meta: {
+              dataType: ColumnDataType.Text,
+            },
+          },
           {
             id: 'isActive',
             header: t('table.active'),
@@ -423,6 +424,13 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
                   text: t('actions.edit'),
                   onlyIcon: true,
                   clickHandler: (row) => openEditDialog(row),
+                },
+                {
+                  icon: 'history',
+                  color: 'green',
+                  text: t('actions.loginHistory'),
+                  onlyIcon: true,
+                  clickHandler: (row) => openLoginHistoryDialog({ userId: row.id!, userName: row.name, t }),
                 },
                 {
                   icon: 'trash',

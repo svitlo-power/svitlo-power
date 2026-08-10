@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 
 from app.settings import Settings
 from shared.models import User
-from app.repositories import IUsersRepository
+from app.repositories import IUsersRepository, ILoginHistoryRepository
 from shared.services.translation.service import TranslationService
 from shared.utils.jwt_utils import create_access_token, create_refresh_token
 from shared.utils.key_generation import generate_password_reset_token
@@ -23,10 +23,12 @@ class AuthorizationService:
     def __init__(
         self,
         users_repository: IUsersRepository,
+        login_history_repository: ILoginHistoryRepository,
         settings: Settings,
     ):
         self._settings: Settings = settings
         self._users_repository: IUsersRepository = users_repository
+        self._login_history_repository: ILoginHistoryRepository = login_history_repository
 
     async def get_current_user(self, token: str = Depends(oauth2_scheme)) -> str:
         credentials_error = HTTPException(
@@ -58,6 +60,10 @@ class AuthorizationService:
 
     async def login(self, user_name: str, password: str):
         user = await self._get_user(user_name, password)
+
+        await self._login_history_repository.add_login_history(
+            user_id=user.id,
+        )
 
         access = create_access_token(
             identity   = user.name,

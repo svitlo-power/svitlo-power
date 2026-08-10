@@ -1,15 +1,18 @@
 import logging
 from typing import List
 from injector import inject
+from beanie import PydanticObjectId
 
 from shared.models.user import User, ReportMode
+from shared.models.login_history import LoginHistory
 from shared.services.events.service import EventsService
-from app.repositories import IUsersRepository
+from app.repositories import IUsersRepository, ILoginHistoryRepository
 from app.settings import Settings
 from shared.utils.key_generation import generate_api_token, generate_password_reset_token
 from shared.utils.jwt_utils import create_access_token
 from ..base import BaseService
-from app.models.api import UserListResponseModel
+from app.models.api import UserListResponseModel, LoginHistoryItemResponse
+
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +24,12 @@ class UsersService(BaseService):
         settings: Settings,
         events: EventsService,
         users_repository: IUsersRepository,
+        login_history_repository: ILoginHistoryRepository,
     ):
         super().__init__(events)
         self._settings = settings
         self._users_repository = users_repository
+        self._login_history_repository = login_history_repository
 
     def _process_user(self, user: User) -> UserListResponseModel:
         return UserListResponseModel(
@@ -42,6 +47,21 @@ class UsersService(BaseService):
     async def get_users(self, all: bool) -> List[UserListResponseModel]:
         users = await self._users_repository.get_users(all)
         return [self._process_user(u) for u in users]
+
+    def _process_login_history(self, history: LoginHistory) -> LoginHistoryItemResponse:
+        return LoginHistoryItemResponse(
+            id          = history.id,
+            login_time  = history.login_time,
+            ip_address  = history.ip_address,
+        )
+
+    async def get_login_history(
+        self,
+        user_id: PydanticObjectId
+    ) -> List[LoginHistoryItemResponse]:
+        histories = await self._login_history_repository.get_login_history(user_id)
+
+        return [self._process_login_history(item) for item in histories]
 
     async def save_user(
         self,

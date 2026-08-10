@@ -10,9 +10,10 @@ from .chats import ChatsRepository
 from .ext_data import ExtDataRepository
 from .ext_device import ExtDeviceRepository
 from .dashboard import DashboardRepository
+from .login_history import LoginHistoryRepository
 
 
 __all__ = [UsersRepository, MessagesRepository, BotsRepository, StationsRepository,
            StationsDataRepository, VisitsCounterRepository, LookupsRepository,
            ChatsRepository, ExtDataRepository, ExtDeviceRepository, DashboardRepository,
-           StationConnectionsRepository]
+           StationConnectionsRepository, LoginHistoryRepository]

@@ -13,6 +13,7 @@ from .station import Station
 from .station_data import StationData
 from .user import User, ReportMode
 from .visit_counter import VisitCounter, DailyVisitCounter
+from .login_history import LoginHistory
 from .beanie_filter import BeanieFilter
 
 
@@ -21,10 +22,10 @@ __all__ = [
     User, ReportMode, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
-    LocalizableValue,
+    LocalizableValue, LoginHistory,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
-    StationConnection, VisitCounter, DailyVisitCounter]
+    StationConnection, VisitCounter, DailyVisitCounter, LoginHistory]

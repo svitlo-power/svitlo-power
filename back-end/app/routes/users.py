@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Literal
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi_injector import Injected
 from app.services import UsersService
 from app.utils.jwt_dependencies import jwt_required
-from app.models.api import UserListResponseModel
-
+from app.models.api import UserListResponseModel, LoginHistoryItemResponse
+from beanie import PydanticObjectId
 
 def register(app: FastAPI):
 
@@ -19,6 +19,14 @@ def register(app: FastAPI):
         result = [u for u in users if u.name != current_name]
 
         return result
+
+    @app.get("/api/users/login-history/{user_id}")
+    async def get_login_history(
+        user_id: PydanticObjectId,
+        _=Depends(jwt_required),
+        users=Injected(UsersService),
+    ) -> List[LoginHistoryItemResponse]:
+        return await users.get_login_history(user_id)
 
     @app.put("/api/users/save")
     async def save_user(
