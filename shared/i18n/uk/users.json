@@ -4,7 +4,9 @@
     "active": "Активний",
     "isReporter": "Репортер",
     "apiToken": "API токен",
-    "actions": "Дії"
+    "actions": "Дії",
+    "loginTime": "Дата логіну",
+    "ipAddress": "IP адреса"
   },
   "badge": {
     "na": "Н/Д",
@@ -32,7 +34,8 @@
     "editUserTitle": "Редагувати користувача",
     "createUserTitle": "Створити користувача",
     "apiTokenTitle": "API токен",
-    "createEventTitle": "Створити подію"
+    "createEventTitle": "Створити подію",
+    "loginHistoryTitle": "Історія входів {{name}}"
   },
   "misc": {
     "saveChangesBeforeGenerating": "Будь ласка, спочатку збережіть зміни перед генерацією токена"

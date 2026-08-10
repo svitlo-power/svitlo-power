@@ -16,6 +16,7 @@ import {
   powerLogsReducer,
   buildingsSummaryReducer,
   extDevicesReducer,
+  loginHistoryReducer,
 } from "./slices";
 import { logout } from "./slices";
 import { lookupValuesReducer } from "./slices/lookupValues";
@@ -38,6 +39,7 @@ const appReducer = combineReducers({
   ['users']: usersReducer,
   ['visitCounter']: visitCounterReducer,
   ['extDevices']: extDevicesReducer,
+  ['loginHistory']: loginHistoryReducer,
 });
 
 type RootState = ReturnType<typeof appReducer>;

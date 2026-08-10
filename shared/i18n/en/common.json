@@ -74,7 +74,8 @@
   },
   "actions": {
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "loginHistory": "Login History"
   },
   "logIn": "Log in",
   "logOut": "Log out",

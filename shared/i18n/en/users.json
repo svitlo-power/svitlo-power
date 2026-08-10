@@ -4,7 +4,9 @@
     "active": "Active",
     "isReporter": "Is Reporter",
     "apiToken": "API Token",
-    "actions": "Actions"
+    "actions": "Actions",
+    "loginTime": "Login Time",
+    "ipAddress": "IP Address"
   },
   "badge": {
     "na": "N/A",
@@ -32,7 +34,8 @@
     "editUserTitle": "Edit User",
     "createUserTitle": "Create User",
     "apiTokenTitle": "API Token",
-    "createEventTitle": "Create Event"
+    "createEventTitle": "Create Event",
+    "loginHistoryTitle": "Login History for {{name}}"
   },
   "misc": {
     "saveChangesBeforeGenerating": "Please save changes before generating a token"
