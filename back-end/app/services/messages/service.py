@@ -113,18 +113,18 @@ class MessagesService(BaseService):
 
     async def save_state(self, message_id: PydanticObjectId, state: bool):
         await self._messages.save_state(message_id, state)
-        self.broadcast_private("messages_updated")
+        await self.broadcast_private("messages_updated")
 
 
     async def create_message(self, dto: MessageCreateRequest):
         message = await self._messages.create(dto.model_dump())
-        self.broadcast_private("messages_updated")
+        await self.broadcast_private("messages_updated")
         return message.id
 
 
     async def update_message(self, id: PydanticObjectId, dto: MessageUpdateRequest):
         message = await self._messages.update(id, dto.model_dump())
-        self.broadcast_private("messages_updated")
+        await self.broadcast_private("messages_updated")
         return message.id
     
     async def get_message_preview(self, message_preview: MessagePreviewRequest) -> MessagePreviewResponse:

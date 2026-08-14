@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from injector import inject
 from pydantic import ValidationError
 from datetime import datetime, timezone
@@ -76,7 +77,7 @@ class OutagesScheduleService(BaseService):
             logger.error(f"YASNO connection error: {e}")
             return None
 
-        except aiohttp.ClientTimeout:
+        except asyncio.TimeoutError:
             logger.error("Timeout while requesting YASNO API")
             return None
 

@@ -83,6 +83,8 @@ class DashboardService(BaseService):
 
     async def get_building(self, building_id: PydanticObjectId) -> EditBuildingResponse:
         building = await self._dashboard.get_building(building_id)
+        if building is None:
+            return None
         response = self._process_building(building)
         return EditBuildingResponse(
             **response.model_dump(),
@@ -122,7 +124,7 @@ class DashboardService(BaseService):
         station = await self._stations.get_station(request.station_id) if request.station_id else None
         users = await asyncio.gather(
             *[self._users.get_user_by_id(user_id) for user_id in request.report_user_ids]
-        ) if request.report_user_ids else None
+        ) if request.report_user_ids else []
 
         building = Building(
             name         = request.name,
@@ -241,8 +243,10 @@ class DashboardService(BaseService):
 
             return BuildingWithSummaryResponse(
                 **res.model_dump(),
-                name  = building.name,
-                color = building.color,
+                name             = building.name,
+                color            = building.color,
+                has_bound_station = building.station is not None,
+                order            = building.order,
             )
 
         return [await process_building(b) for b in buildings]

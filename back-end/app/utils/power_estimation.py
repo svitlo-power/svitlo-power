@@ -6,6 +6,9 @@ def get_kilowatthour_consumption(average_consumption_w: float, minutes: int):
     return average_consumption_w * minutes / 60000.0
 
 def get_estimate_discharge_time(batt_capacity_kwh: float, batt_soc: int, average_consumption_kwh: float, target_batt_soc: int = 0):
+    if average_consumption_kwh == 0:
+        return "00:00"
+
     remaining_energy_kwh = batt_capacity_kwh * (batt_soc - target_batt_soc) / 100
     time_left = remaining_energy_kwh / average_consumption_kwh
 
@@ -14,6 +17,9 @@ def get_estimate_discharge_time(batt_capacity_kwh: float, batt_soc: int, average
     return f"{hours:02d}:{minutes:02d}"
 
 def get_estimate_charge_time(batt_capacity_kwh: float, current_batt_soc: int, charge_power_kw: float, target_batt_soc: int = 100):
+    if charge_power_kw == 0:
+        return "00:00"
+
     remaining_energy_kwh = batt_capacity_kwh * (target_batt_soc - current_batt_soc) / 100
     time_left = remaining_energy_kwh / charge_power_kw
 

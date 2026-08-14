@@ -94,12 +94,12 @@ class ChatsService(BaseService):
 
     async def approve_chat_request(self, request: ChatIdRequest):
         await self._chats.approve_chat_request(request.id)
-        self.broadcast_private("chats_updated")
+        await self.broadcast_private("chats_updated")
 
     async def reject_chat_request(self, request: ChatIdRequest):
         await self._chats.reject_chat_request(request.id)
-        self.broadcast_private("chats_updated")
+        await self.broadcast_private("chats_updated")
 
     async def disallow_chat(self, request: ChatIdRequest):
         await self._chats.disallow_chat(request.id)
-        self.broadcast_private("chats_updated")
+        await self.broadcast_private("chats_updated")
