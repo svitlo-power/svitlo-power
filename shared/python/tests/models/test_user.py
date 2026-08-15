@@ -1,6 +1,7 @@
 """Tests for shared/models/user.py."""
 import pytest
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from shared.models.user import User, ReportMode
 
@@ -90,3 +91,24 @@ class TestUserStr:
         assert "testuser" in s
         assert "is_reporter=True" in s
         assert "report_mode=ReportMode.PING" in s
+
+
+class TestUserGetLookupValues:
+    @pytest.mark.asyncio
+    async def test_get_lookup_values(self):
+        from shared.models.lookup import LookupValue
+        from beanie import PydanticObjectId
+
+        user1 = User(name="user1", password="pass1")
+        user1.id = PydanticObjectId()
+        user2 = User(name="user2", password="pass2")
+        user2.id = PydanticObjectId()
+
+        mock_filter = MagicMock()
+        with patch.object(User, "find", return_value=AsyncMock()) as mock_find:
+            mock_find.return_value.to_list = AsyncMock(return_value=[user1, user2])
+            result = await User.get_lookup_values(mock_filter)
+            assert len(result) == 2
+            assert isinstance(result[0], LookupValue)
+            assert result[0].value == user1.id
+            assert result[1].value == user2.id

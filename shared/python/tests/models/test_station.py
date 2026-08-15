@@ -1,5 +1,7 @@
 """Tests for shared/models/station.py."""
+import pytest
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from shared.models.station import Station
 
@@ -133,3 +135,36 @@ class TestStationToDict:
         assert d["order"] == 2
         assert d["enabled"] is True
         assert d["connection_id"] is None
+
+
+class TestStationGetLookupValues:
+    @pytest.mark.asyncio
+    async def test_get_lookup_values(self):
+        from shared.models.lookup import LookupValue
+        from beanie import PydanticObjectId
+        from unittest.mock import AsyncMock, patch, MagicMock
+
+        station1 = Station(station_id=1, station_name="Station 1")
+        station1.id = PydanticObjectId()
+        station2 = Station(station_id=2, station_name="Station 2")
+        station2.id = PydanticObjectId()
+
+        mock_filter = MagicMock()
+        # Create a proper mock chain: find -> sort -> to_list
+        # The sort method is called with Station.order, so we need to mock it to accept any arg
+        mock_find = AsyncMock()
+        mock_sort = MagicMock()
+        mock_sort.to_list = AsyncMock(return_value=[station1, station2])
+        # sort() is called with Station.order, so we need to accept any argument
+        mock_find.sort = MagicMock(return_value=mock_sort)
+
+        # The issue is that Station.order is a Pydantic field that can't be accessed directly
+        # We need to patch the class attribute before calling get_lookup_values
+        # Use create=True to create the attribute if it doesn't exist
+        with patch.object(Station, "order", 1, create=True):
+            with patch.object(Station, "find", return_value=mock_find):
+                result = await Station.get_lookup_values(mock_filter)
+                assert len(result) == 2
+                assert isinstance(result[0], LookupValue)
+                assert result[0].value == station1.id
+                assert result[1].value == station2.id

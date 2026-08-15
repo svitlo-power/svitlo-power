@@ -85,6 +85,21 @@ class TestLoadAndRegisterModules:
                 load_and_register_modules(str(tmp_path), "test_package", "register")
                 mock_logger.error.assert_called_once()
 
+    def test_continues_on_func_exception(self, tmp_path):
+        module_file = tmp_path / "test_module.py"
+        module_file.write_text("def register(app):\n    pass\n")
+
+        def register(app):
+            raise Exception("Registration error")
+
+        mock_module = MagicMock()
+        mock_module.register = register
+
+        with patch("shared.utils.registration.import_module", return_value=mock_module):
+            with patch("shared.utils.registration.logger") as mock_logger:
+                load_and_register_modules(str(tmp_path), "test_package", "register", "arg1")
+                mock_logger.error.assert_called_once()
+
     def test_passes_kwargs(self, tmp_path):
         module_file = tmp_path / "test_module.py"
         module_file.write_text("def register(app, config=None):\n    pass\n")

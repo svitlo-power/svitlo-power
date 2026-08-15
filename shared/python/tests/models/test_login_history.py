@@ -1,5 +1,7 @@
 """Tests for shared/models/login_history.py."""
+import pytest
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from shared.models.login_history import LoginHistory
 
@@ -46,3 +48,16 @@ class TestLoginHistoryToDict:
         lh = LoginHistory(user_id=PydanticObjectId())
         d = lh.to_dict()
         assert d["ip_address"] is None
+
+
+class TestLoginHistoryUserProperty:
+    @pytest.mark.asyncio
+    async def test_user_property(self):
+        from beanie import PydanticObjectId
+        from shared.models.user import User
+
+        lh = LoginHistory(user_id=PydanticObjectId())
+        mock_user = MagicMock()
+        with patch.object(User, "get", new_callable=AsyncMock, return_value=mock_user):
+            result = await lh.user
+            assert result == mock_user

@@ -40,15 +40,17 @@ class TestRegisterChainedSignalHandlers:
         with patch("shared.utils.signals.signal.getsignal", return_value=signal.SIG_DFL):
             with patch("shared.utils.signals.signal.signal") as mock_signal:
                 with patch("shared.utils.signals.asyncio.create_task") as mock_create_task:
-                    with patch("shared.utils.signals.signal.default_int_handler"):
+                    with patch("shared.utils.signals.signal.default_int_handler") as mock_default_handler:
                         handler = AsyncMock()
                         register_chained_signal_handlers(handler, signals=[signal.SIGTERM])
 
                         # Get the wrapper function that was registered
                         wrapper = mock_signal.call_args[0][1]
 
-                        # Call the wrapper
+                        # Call the wrapper inside the patch context inside the patch context
                         wrapper(signal.SIGTERM, None)
 
                         # The handler should have been scheduled as a task
                         mock_create_task.assert_called_once()
+                        # default_int_handler should have been called
+                        mock_default_handler.assert_called_once_with(signal.SIGTERM, None)

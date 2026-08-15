@@ -170,3 +170,11 @@ class TestLen:
         q.put_nowait("a")
         q.get()
         assert len(q) == 0
+
+
+class TestNotifyAsync:
+    @pytest.mark.asyncio
+    async def test_notify_async_no_waiters(self):
+        q = BoundedQueue()
+        # Should not raise even with no waiters
+        await q._notify_async()

@@ -1,5 +1,7 @@
 """Tests for shared/models/station_data.py."""
+import pytest
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from shared.models.station_data import StationData
 
@@ -82,3 +84,16 @@ class TestStationDataToDict:
         sd = StationData(station_id=PydanticObjectId())
         d = sd.to_dict()
         assert d["last_update_time"] is None
+
+
+class TestStationDataStationProperty:
+    @pytest.mark.asyncio
+    async def test_station_property(self):
+        from beanie import PydanticObjectId
+        from shared.models.station import Station
+
+        sd = StationData(station_id=PydanticObjectId())
+        mock_station = MagicMock()
+        with patch.object(Station, "get", new_callable=AsyncMock, return_value=mock_station):
+            result = await sd.station
+            assert result == mock_station

@@ -363,7 +363,146 @@ class TestBaseDeyeClientRequest:
         assert result is None
 
 
-class TestBaseDeyeClientStationMethods:
+class TestBaseDeyeClientRequestTokenInMsg:
+    @pytest.mark.asyncio
+    async def test_request_token_in_msg_retries(self):
+        creds = DeyeCredentials(
+            base_url="http://test.com",
+            app_id="app1",
+            app_secret="secret",
+            email="test@test.com",
+            password="pass",
+        )
+        client = BaseDeyeClient(creds)
+        client._token = "old_token"
+
+        call_count = [0]
+
+        def make_mock_response():
+            mock_resp = MagicMock()
+            mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp
+
+        def mock_request(*args, **kwargs):
+            call_count[0] += 1
+            mock_resp = make_mock_response()
+            mock_resp.status = 200
+            mock_resp.raise_for_status = MagicMock()
+            if call_count[0] == 1:
+                mock_resp.json = AsyncMock(return_value={"success": False, "msg": "token expired"})
+            else:
+                mock_resp.json = AsyncMock(return_value={"success": True, "data": "value"})
+            return mock_resp
+
+        mock_session = MagicMock()
+        mock_session.request = mock_request
+        client._session = mock_session
+
+        with patch.object(client, "refresh_token", new_callable=AsyncMock, return_value=None):
+            result = await client.request("POST", "/endpoint", {})
+            assert result == {"success": True, "data": "value"}
+            assert call_count[0] == 2
+
+    @pytest.mark.asyncio
+    async def test_request_token_in_msg_second_attempt_returns_data(self):
+        """Test that when token-in-msg retry succeeds on second attempt, data is returned."""
+        creds = DeyeCredentials(
+            base_url="http://test.com",
+            app_id="app1",
+            app_secret="secret",
+            email="test@test.com",
+            password="pass",
+        )
+        client = BaseDeyeClient(creds)
+        client._token = "old_token"
+
+        call_count = [0]
+
+        def make_mock_response():
+            mock_resp = MagicMock()
+            mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp
+
+        def mock_request(*args, **kwargs):
+            call_count[0] += 1
+            mock_resp = make_mock_response()
+            mock_resp.status = 200
+            mock_resp.raise_for_status = MagicMock()
+            if call_count[0] == 1:
+                mock_resp.json = AsyncMock(return_value={"success": False, "msg": "invalid token"})
+            else:
+                mock_resp.json = AsyncMock(return_value={"success": True, "data": "ok"})
+            return mock_resp
+
+        mock_session = MagicMock()
+        mock_session.request = mock_request
+        client._session = mock_session
+
+        with patch.object(client, "refresh_token", new_callable=AsyncMock, return_value=None):
+            result = await client.request("POST", "/endpoint", {})
+            assert result == {"success": True, "data": "ok"}
+            assert call_count[0] == 2
+
+    @pytest.mark.asyncio
+    async def test_request_token_in_msg_second_attempt_still_fails(self):
+        """Test that when token-in-msg retry still fails on second attempt, returns the data (no retry on second attempt)."""
+        creds = DeyeCredentials(
+            base_url="http://test.com",
+            app_id="app1",
+            app_secret="secret",
+            email="test@test.com",
+            password="pass",
+        )
+        client = BaseDeyeClient(creds)
+        client._token = "old_token"
+
+        call_count = [0]
+
+        def make_mock_response():
+            mock_resp = MagicMock()
+            mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp
+
+        def mock_request(*args, **kwargs):
+            call_count[0] += 1
+            mock_resp = make_mock_response()
+            mock_resp.status = 200
+            mock_resp.raise_for_status = MagicMock()
+            mock_resp.json = AsyncMock(return_value={"success": False, "msg": "token invalid"})
+            return mock_resp
+
+        mock_session = MagicMock()
+        mock_session.request = mock_request
+        client._session = mock_session
+
+        with patch.object(client, "refresh_token", new_callable=AsyncMock, return_value=None):
+            result = await client.request("POST", "/endpoint", {})
+            # On second attempt, it doesn't retry, so returns the data
+            assert result == {"success": False, "msg": "token invalid"}
+            assert call_count[0] == 2
+
+    @pytest.mark.asyncio
+    async def test_request_exception_returns_none(self):
+        """Test that when an exception occurs during request, returns None."""
+        creds = DeyeCredentials(
+            base_url="http://test.com",
+            app_id="app1",
+            app_secret="secret",
+            email="test@test.com",
+            password="pass",
+        )
+        client = BaseDeyeClient(creds)
+        client._token = "token123"
+        mock_session = MagicMock()
+        mock_session.request = MagicMock(side_effect=Exception("Connection error"))
+        client._session = mock_session
+
+        result = await client.request("POST", "/endpoint", {})
+        assert result is None
+
     @pytest.mark.asyncio
     async def test_get_station_list(self):
         creds = DeyeCredentials(

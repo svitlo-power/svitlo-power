@@ -47,7 +47,67 @@ class TestLocalTransport:
             await transport.publish("test_channel", event)
 
     @pytest.mark.asyncio
+    async def test_publish_with_none_handler_does_nothing(self):
+        transport = LocalTransport()
+        transport.handler = None
+        event = EventItem(type="test", data={}, private=False)
+        # Should not raise, just return None
+        result = await transport.publish("test_channel", event)
+        assert result is None
+
+    @pytest.mark.asyncio
     async def test_start_subscriber_sets_handler(self):
+        transport = LocalTransport()
+
+        async def handler(channel, event):
+            pass
+
+        await transport.start_subscriber(handler)
+        assert transport.handler == handler
+
+    @pytest.mark.asyncio
+    async def test_start_subscriber_returns_none(self):
+        transport = LocalTransport()
+
+        async def handler(channel, event):
+            pass
+
+        result = await transport.start_subscriber(handler)
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_start_subscriber_overwrites_handler(self):
+        transport = LocalTransport()
+
+        async def handler1(channel, event):
+            pass
+
+        async def handler2(channel, event):
+            pass
+
+        await transport.start_subscriber(handler1)
+        assert transport.handler == handler1
+        await transport.start_subscriber(handler2)
+        assert transport.handler == handler2
+
+    @pytest.mark.asyncio
+    async def test_publish_with_handler_calls_handler(self):
+        transport = LocalTransport()
+        received = []
+
+        async def handler(channel, event):
+            received.append((channel, event))
+
+        transport.handler = handler
+        event = EventItem(type="test", data={"key": "value"}, private=False)
+        await transport.publish("test_channel", event)
+        assert len(received) == 1
+        assert received[0][0] == "test_channel"
+        assert received[0][1] == event
+
+    @pytest.mark.asyncio
+    async def test_start_subscriber_calls_handler_assignment(self):
+        """Test that start_subscriber assigns the handler (covers line 15)."""
         transport = LocalTransport()
 
         async def handler(channel, event):

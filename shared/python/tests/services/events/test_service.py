@@ -217,3 +217,59 @@ class TestEventsServiceCleanup:
             await service.cleanup_all()
             mock_put1.assert_called_once_with(None)
             mock_put2.assert_called_once_with(None)
+
+
+class TestEventsServiceRequestShutdownException:
+    @pytest.mark.asyncio
+    async def test_request_shutdown_handles_put_exception(self):
+        config = EventsServiceConfig(redis_uri="redis://localhost:6379", is_debug=True)
+        service = EventsService(config)
+        q = BoundedQueue()
+        service.add_public_client(q)
+        service.add_private_client(q)
+
+        with patch.object(q, "put_nowait", side_effect=Exception("Queue error")):
+            # Should not raise
+            await service.request_shutdown()
+
+
+class TestEventsServiceBroadcastToLocal:
+    @pytest.mark.asyncio
+    async def test_broadcast_to_local_removes_dead_clients(self):
+        config = EventsServiceConfig(redis_uri="redis://localhost:6379", is_debug=True)
+        service = EventsService(config)
+        q = BoundedQueue()
+        service.add_public_client(q)
+
+        event = EventItem(type="test", data={}, private=False)
+        with patch.object(q, "put_nowait", side_effect=Exception("Queue error")):
+            await service._broadcast_to_local(service._public_clients, event)
+            assert q not in service._public_clients
+
+    @pytest.mark.asyncio
+    async def test_broadcast_to_local_keeps_alive_clients(self):
+        config = EventsServiceConfig(redis_uri="redis://localhost:6379", is_debug=True)
+        service = EventsService(config)
+        q = BoundedQueue()
+        service.add_public_client(q)
+
+        event = EventItem(type="test", data={}, private=False)
+        with patch.object(q, "put_nowait") as mock_put:
+            await service._broadcast_to_local(service._public_clients, event)
+            mock_put.assert_called_once_with(event)
+            assert q in service._public_clients
+
+
+class TestEventsServiceCleanupAllException:
+    @pytest.mark.asyncio
+    async def test_cleanup_all_removes_dead_clients(self):
+        config = EventsServiceConfig(redis_uri="redis://localhost:6379", is_debug=True)
+        service = EventsService(config)
+        q = BoundedQueue()
+        service.add_public_client(q)
+        service.add_private_client(q)
+
+        with patch.object(q, "put_nowait", side_effect=Exception("Queue error")):
+            await service.cleanup_all()
+            assert q not in service._public_clients
+            assert q not in service._private_clients

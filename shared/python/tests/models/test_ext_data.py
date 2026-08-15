@@ -1,5 +1,7 @@
 """Tests for shared/models/ext_data.py."""
+import pytest
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, AsyncMock, patch
 
 from shared.models.ext_data import ExtData
 
@@ -46,3 +48,16 @@ class TestExtDataToDict:
         d = ext_data.to_dict()
         assert d["grid_state"] is True
         assert d["received_at"] == "2024-01-01T12:00:00+00:00"
+
+
+class TestExtDataUserProperty:
+    @pytest.mark.asyncio
+    async def test_user_property(self):
+        from beanie import PydanticObjectId
+        from shared.models.user import User
+
+        ext_data = ExtData(user_id=PydanticObjectId())
+        mock_user = MagicMock()
+        with patch.object(User, "get", new_callable=AsyncMock, return_value=mock_user):
+            result = await ext_data.user
+            assert result == mock_user
