@@ -73,7 +73,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push back-end
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: back-end/Dockerfile
@@ -96,7 +96,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push migrate
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: back-end/Dockerfile
@@ -119,7 +119,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push sse-back-end
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: sse-back-end/Dockerfile
