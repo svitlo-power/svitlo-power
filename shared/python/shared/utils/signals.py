@@ -15,7 +15,9 @@ def register_chained_signal_handlers(
         if os.name != "nt":
             signals = (signal.SIGINT, signal.SIGTERM)
         else:
-            signals = (signal.SIGINT, signal.SIGBREAK)
+            # SIGBREAK is Windows-specific; fallback to SIGTERM if not available
+            sigbreak = getattr(signal, "SIGBREAK", signal.SIGTERM)
+            signals = (signal.SIGINT, sigbreak)
 
     for sig in signals:
         original_handler = signal.getsignal(sig)
