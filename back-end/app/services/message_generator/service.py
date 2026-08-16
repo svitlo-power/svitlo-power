@@ -50,7 +50,7 @@ class MessageGeneratorService(IMessageGeneratorService):
             return ZoneInfo(timezone)
         except ZoneInfoNotFoundError:
             logger.warning(f'Cannot get timezone {timezone}, falling back to UTC')
-            return ZoneInfo('utc')
+            return ZoneInfo('UTC')
 
     def __init__(
         self,
