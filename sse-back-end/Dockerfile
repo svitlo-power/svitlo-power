@@ -3,16 +3,16 @@ FROM python:latest
 WORKDIR /svitlo-power-sse-api
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV DEBUG True
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBUG=True
 
 COPY sse-back-end/requirements.txt /svitlo-power-sse-api/
 COPY shared/python /shared/python
 
 # install python dependencies
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip --root-user-action=ignore
+RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 COPY sse-back-end/ /svitlo-power-sse-api/
 

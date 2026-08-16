@@ -12,7 +12,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -48,14 +48,14 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.10.0
+        uses: docker/setup-buildx-action@v4.2.0
 
       - name: Log in to registry
         if: github.event_name == 'push'
-        uses: docker/login-action@v3.4.0
+        uses: docker/login-action@v4.6.0
         with:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
@@ -63,7 +63,7 @@ jobs:
 
       - name: Extract metadata for back-end
         id: meta-back-end
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ secrets.REGISTRY_URL }}/svitlo-power-back-end
           tags: |
@@ -86,7 +86,7 @@ jobs:
 
       - name: Extract metadata for migrate
         id: meta-migrate
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ secrets.REGISTRY_URL }}/svitlo-power-migrate
           tags: |
@@ -109,7 +109,7 @@ jobs:
 
       - name: Extract metadata for sse-back-end
         id: meta-sse-back-end
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v6.2.0
         with:
           images: ${{ secrets.REGISTRY_URL }}/svitlo-power-sse-back-end
           tags: |
