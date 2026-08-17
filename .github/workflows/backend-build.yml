@@ -19,6 +19,7 @@ jobs:
         with:
           python-version: '3.12'
           cache: 'pip'
+          update-environment: true
 
       - name: Install shared package dependencies
         run: |
