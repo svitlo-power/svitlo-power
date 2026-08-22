@@ -9,7 +9,7 @@ on:
 jobs:
   docker-test:
     name: Docker Test Summary
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, proxmox]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -56,7 +56,7 @@ jobs:
 
   test:
     name: Run Tests
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, proxmox]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -90,7 +90,7 @@ jobs:
 
   build-and-push:
     name: Build and Push Images
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, proxmox]
     needs: test
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     steps:
