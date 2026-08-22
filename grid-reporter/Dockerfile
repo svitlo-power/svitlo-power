@@ -5,8 +5,8 @@ WORKDIR /svitlo-power-grid-reporter
 COPY requirements.txt /svitlo-power-grid-reporter/
 COPY --from=shared ./python /shared/python
 
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip --root-user-action=ignore
+RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
 COPY . /svitlo-power-grid-reporter/
 

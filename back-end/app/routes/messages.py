@@ -51,7 +51,7 @@ def register(app: FastAPI):
     ):
         if not channel_id or not bot_id:
             raise HTTPException(status_code=400, detail="channelId and botId should be specified")
-        channel_name = _get_channel_name(channel_id, bot_id)
+        channel_name = _get_channel_name(telegram, channel_id, bot_id)
         return { 'success': True, 'channelName': channel_name }
 
 

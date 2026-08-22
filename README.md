@@ -49,7 +49,25 @@ docker compose exec svitlo-power-back-end bash
 docker compose ps
 ```
 
-**Services:** `svitlo-power-back-end`, `svitlo-power-sse-back-end`, `svitlo-power-front-end`, `svitlo-power-grid-reporter`, `svitlo-power-mongo`, `svitlo-power-rds`
+**Services:** `svitlo-power-back-end`, `svitlo-power-sse-back-end`, `svitlo-power-front-end`, `svitlo-power-grid-reporter`, `svitlo-power-mongo`, `svitlo-power-rds`, `svitlo-power-tests`
+
+## To run tests in docker ##
+
+Tests run in a container based on the `svitlo-power-api` image (no rebuild needed). The service is behind the `tests` profile, so it won't start with a regular `docker compose up`.
+
+```bash
+# Run all back-end tests
+docker compose --profile tests run --rm svitlo-power-tests
+
+# Rebuild the base image first if the code changed
+docker compose build svitlo-power-back-end
+docker compose --profile tests run --rm svitlo-power-tests
+
+# Run a specific test file / test
+docker compose --profile tests run --rm svitlo-power-tests python -m pytest tests/app/test_settings.py -v
+```
+
+Note: the test service intentionally has no `env_file: .env` — real values from `.env` would override defaults that some tests assert on.
 
 ### Development
 

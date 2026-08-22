@@ -42,6 +42,8 @@ def register(app: FastAPI):
 
             return {"status": "ok"}
 
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error updating grid power: {e}")
             raise HTTPException(
@@ -69,6 +71,8 @@ def register(app: FastAPI):
                 )
 
             return { "status": "ok", "id": data_id }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error creating ext data: {e}")
             raise HTTPException(
@@ -94,6 +98,8 @@ def register(app: FastAPI):
 
             return {"status": "ok"}
 
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error deleting ext data: {e}")
             raise HTTPException(
@@ -126,6 +132,8 @@ def register(app: FastAPI):
 
             return result
 
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error getting ext data by id: {e}")
             raise HTTPException(
