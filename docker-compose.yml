@@ -65,6 +65,22 @@ services:
       - web_network
     restart: "no"
 
+  svitlo-power-tests:
+    image: svitlo-power-api
+    profiles: ["tests"]
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && python -m pytest tests -v"
+      ]
+    working_dir: /svitlo-power-api
+    networks:
+      - web_network
+    restart: "no"
+
   svitlo-power-sse-back-end:
     build:
       context: .
