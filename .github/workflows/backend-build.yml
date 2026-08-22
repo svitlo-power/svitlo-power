@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ── Stage 1: Test in Docker (gates the build) ─────────────────────────────
   docker-test:
     name: Docker Test Summary
     runs-on: self-hosted
@@ -15,13 +16,26 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Build back-end image
-        run: docker compose build svitlo-power-back-end
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: back-end/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: svitlo-power-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run tests in docker
-        id: tests
         run: |
           set -o pipefail
-          docker compose --profile tests run --rm svitlo-power-tests | tee test_output.txt
+          docker run --rm \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            -v "${{ github.workspace }}/back-end:/svitlo-power-api" \
+            svitlo-power-api:ci \
+            sh -c "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && python -m pytest tests -v" \
+            | tee test_output.txt
 
       - name: Generate Docker Test Summary
         if: always()
@@ -54,44 +68,19 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  test:
-    name: Run Tests
-    runs-on: self-hosted
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7.0.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v5
         with:
-          python-version: '3.14'
-          cache: 'pip'
+          name: test-output
+          path: test_output.txt
+          retention-days: 7
 
-      - name: Install shared package dependencies
-        run: |
-          cd shared/python
-          pip install -e .
-
-      - name: Install back-end test dependencies
-        run: |
-          cd back-end
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio
-
-      - name: Run shared package tests
-        run: |
-          cd shared/python
-          python -m pytest tests/ -v
-
-      - name: Run back-end tests
-        run: |
-          cd back-end
-          python -m pytest tests/ -v
-
+  # ── Stage 2: Build and Push (only after tests pass) ───────────────────────
   build-and-push:
     name: Build and Push Images
     runs-on: self-hosted
-    needs: test
+    needs: docker-test
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     steps:
       - name: Checkout code
