@@ -7,6 +7,53 @@ on:
     branches: [main]
 
 jobs:
+  docker-test:
+    name: Docker Test Summary
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+
+      - name: Build back-end image
+        run: docker compose build svitlo-power-back-end
+
+      - name: Run tests in docker
+        id: tests
+        run: |
+          set -o pipefail
+          docker compose --profile tests run --rm svitlo-power-tests | tee test_output.txt
+
+      - name: Generate Docker Test Summary
+        if: always()
+        run: |
+          {
+            echo "## 🧪 Docker Test Summary"
+            echo ""
+            if [ -f test_output.txt ]; then
+              PASSED=$(grep -oE '[0-9]+ passed' test_output.txt | tail -1 | grep -oE '[0-9]+' || echo 0)
+              FAILED=$(grep -oE '[0-9]+ failed' test_output.txt | tail -1 | grep -oE '[0-9]+' || echo 0)
+              ERRORS=$(grep -oE '[0-9]+ error' test_output.txt | tail -1 | grep -oE '[0-9]+' || echo 0)
+              DURATION=$(grep -oE 'in [0-9.]+s' test_output.txt | tail -1)
+              echo "| Result | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed | $PASSED |"
+              echo "| ❌ Failed | $FAILED |"
+              echo "| 🔥 Errors | $ERRORS |"
+              echo "| ⏱ Duration | ${DURATION:-n/a} |"
+              echo ""
+              if grep -qE '(failed|error)' test_output.txt; then
+                echo "<details><summary>Failed tests</summary>"
+                echo ""
+                echo '```'
+                grep -E '^FAILED' test_output.txt
+                echo '```'
+                echo "</details>"
+              fi
+            else
+              echo "⚠️ No test output found."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test:
     name: Run Tests
     runs-on: self-hosted
