@@ -14,6 +14,10 @@ class IDashboardRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_building_by_station_id(self, station_id: int) -> Optional[Building]:
+        ...
+
+    @abstractmethod
     async def edit_building(self, building: Building):
         ...
 
