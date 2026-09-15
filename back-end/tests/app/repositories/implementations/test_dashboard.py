@@ -9,6 +9,8 @@ from shared.models.dashboard_config import DashboardConfig
 
 # Mock Beanie class-level query attributes to prevent AttributeError when beanie is not initialized
 Building.order = MagicMock()
+Building.station = MagicMock()
+Building.station.id = MagicMock()
 
 
 class TestDashboardRepository:
@@ -28,6 +30,24 @@ class TestDashboardRepository:
             
             assert result == mock_building
             mock_get.assert_called_once_with(building_id, fetch_links=True)
+
+    @pytest.mark.asyncio
+    async def test_get_building_by_station_id(self):
+        """Test get_building_by_station_id."""
+        station_id = 1
+        mock_building = MagicMock(spec=Building)
+        
+        with patch.object(Building, 'find_one', new_callable=AsyncMock) as mock_find_one:
+            mock_find_one.return_value = mock_building
+            
+            repo = DashboardRepository()
+            result = await repo.get_building_by_station_id(station_id)
+            
+            assert result == mock_building
+            mock_find_one.assert_called_once()
+            # Verify the query was built correctly
+            call_args = mock_find_one.call_args
+            assert call_args[1]['fetch_links'] is True
 
     @pytest.mark.asyncio
     async def test_edit_building(self):

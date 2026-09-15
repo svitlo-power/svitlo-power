@@ -17,6 +17,7 @@ from .requests import (
     AverageMinutesRequest,
     AverageAllRequest,
     AverageRequest,
+    GetExtGridStateRequest,
 )
 from .template_method import TemplateMethod, TemplateMethodMode
 
@@ -28,6 +29,7 @@ _METHOD_KEYS = frozenset({
     AverageAllRequest.name,
     AverageMinutesRequest.name,
     AssumedStateRequest.name,
+    GetExtGridStateRequest.name,
     'timedelta',
 })
 
@@ -105,7 +107,7 @@ class MessageGeneratorService(IMessageGeneratorService):
                     start_date=last_sent_time,
                 ).bind(context, mode)
                 station_data[AverageAllRequest.name] = TemplateMethod(
-                    AverageRequest,
+                    AverageAllRequest,
                     station_id=station_id
                 ).bind(context, mode)
                 station_data[AverageMinutesRequest.name] = TemplateMethod(
@@ -114,6 +116,10 @@ class MessageGeneratorService(IMessageGeneratorService):
                 ).bind(context, mode)
                 station_data[AssumedStateRequest.name] = TemplateMethod(
                     AssumedStateRequest,
+                    station_id=station_id
+                ).bind(context, mode)
+                station_data[GetExtGridStateRequest.name] = TemplateMethod(
+                    GetExtGridStateRequest,
                     station_id=station_id
                 ).bind(context, mode)
         if 'station' in template_data and template_data['station'] is not None and 'current' in template_data['station']:
@@ -133,6 +139,10 @@ class MessageGeneratorService(IMessageGeneratorService):
             ).bind(context, mode)
             template_data['station'][AssumedStateRequest.name] = TemplateMethod(
                 AssumedStateRequest,
+                station_id=station_id
+            ).bind(context, mode)
+            template_data['station'][GetExtGridStateRequest.name] = TemplateMethod(
+                GetExtGridStateRequest,
                 station_id=station_id
             ).bind(context, mode)
 

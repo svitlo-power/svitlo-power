@@ -10,7 +10,16 @@ class DashboardRepository(IDashboardRepository):
 
     async def get_building(self, id: PydanticObjectId) -> Building:
         return await Building.get(id, fetch_links=True)
-    
+
+    async def get_building_by_station_id(
+        self,
+        station_id: int,
+    ) -> Optional[Building]:
+        return await Building.find_one(
+            Building.station.id == station_id,
+            fetch_links=True,
+        )
+
     async def edit_building(self, building: Building):
         await building.save()
 

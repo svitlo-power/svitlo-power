@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Optional
 from injector import Injector
 
 from ..models import NumericTemplateRequest
@@ -13,6 +13,7 @@ class AverageAllRequest(NumericTemplateRequest):
 
     station_id: int
     column: str
+    start_date: Optional[datetime] = None
 
     async def resolve(self, injector: Injector) -> float:
         stations_data = injector.get(IStationsDataRepository)
