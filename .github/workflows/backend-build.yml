@@ -3,8 +3,20 @@ name: Backend Build
 on:
   push:
     branches: [main]
+    paths:
+      - 'shared/**'
+      - 'back-end/**'
+      - 'sse-back-end/**'
+      - 'grid-reporter/**'
+      - '.github/workflows/backend-build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'shared/**'
+      - 'back-end/**'
+      - 'sse-back-end/**'
+      - 'grid-reporter/**'
+      - '.github/workflows/backend-build.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

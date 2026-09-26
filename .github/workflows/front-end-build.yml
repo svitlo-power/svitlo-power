@@ -6,11 +6,13 @@ on:
     paths:
       - 'front-end/**'
       - 'shared/i18n/**'
+      - '.github/workflows/front-end-build.yml'
   pull_request:
     branches: [main]
     paths:
       - 'front-end/**'
       - 'shared/i18n/**'
+      - '.github/workflows/front-end-build.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
