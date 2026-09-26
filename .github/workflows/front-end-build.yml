@@ -70,4 +70,4 @@ jobs:
           cache-from: type=gha,scope=svitlo-power-front-end
           cache-to: type=gha,mode=max,scope=svitlo-power-front-end
           build-contexts: |
-            shared=../shared
+            shared=./shared
