@@ -61,7 +61,7 @@ jobs:
         uses: docker/build-push-action@v7.3.0
         with:
           context: front-end
-          file: Dockerfile
+          file: front-end/Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
