@@ -60,8 +60,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7.3.0
         with:
-          context: .
-          file: front-end/Dockerfile
+          context: front-end
+          file: Dockerfile
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -70,4 +70,4 @@ jobs:
           cache-from: type=gha,scope=svitlo-power-front-end
           cache-to: type=gha,mode=max,scope=svitlo-power-front-end
           build-contexts: |
-            shared=./shared
+            shared=../shared
