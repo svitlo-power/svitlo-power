@@ -3,8 +3,20 @@ name: Backend Build
 on:
   push:
     branches: [main]
+    paths:
+      - 'shared/**'
+      - 'back-end/**'
+      - 'sse-back-end/**'
+      - 'grid-reporter/**'
+      - '.github/workflows/backend-build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'shared/**'
+      - 'back-end/**'
+      - 'sse-back-end/**'
+      - 'grid-reporter/**'
+      - '.github/workflows/backend-build.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -105,48 +117,6 @@ jobs:
       - name: Cleanup compose stack
         if: always()
         run: docker compose --profile tests down --remove-orphans --volumes || true
-
-  # ---------------------------------------------------------------------------
-  # Native test job — disabled: fully duplicates test-docker on the same runner.
-  # To re-enable: uncomment and add `test` back to build-and-push needs.
-  # ---------------------------------------------------------------------------
-  # test:
-  #   name: Tests (native)
-  #   runs-on: [self-hosted, Linux, X64, proxmox]
-  #   timeout-minutes: 20
-  #   if: >-
-  #     github.event_name != 'pull_request' ||
-  #     github.event.pull_request.head.repo.full_name == github.repository
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v7.0.1
-  #       with:
-  #         persist-credentials: false
-  #
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v7
-  #       with:
-  #         python-version: '3.14'
-  #         cache: 'pip'
-  #         cache-dependency-path: back-end/requirements.txt
-  #
-  #     - name: Install shared package
-  #       working-directory: shared/python
-  #       run: pip install -e .
-  #
-  #     - name: Install back-end test dependencies
-  #       working-directory: back-end
-  #       run: |
-  #         pip install -r requirements.txt
-  #         pip install pytest pytest-asyncio
-  #
-  #     - name: Run shared package tests
-  #       working-directory: shared/python
-  #       run: python -m pytest tests/ -v
-  #
-  #     - name: Run back-end tests
-  #       working-directory: back-end
-  #       run: python -m pytest tests/ -v
 
   build-and-push:
     name: Build ${{ matrix.image }}
