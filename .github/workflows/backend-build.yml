@@ -135,6 +135,8 @@ jobs:
             dockerfile: back-end/Dockerfile
           - image: svitlo-power-sse-back-end
             dockerfile: sse-back-end/Dockerfile
+          - image: svitlo-power-grid-reporter
+            dockerfile: grid-reporter/Dockerfile
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
