@@ -10,11 +10,12 @@ set -euo pipefail
 # Reads registry credentials from .env (loaded by docker-compose).
 # Falls back to local build (deploy.sh) if any registry pull fails.
 #
-# Images pulled from registry (matching docker-compose.yml):
-#   - svitlo-power-api (back-end)
-#   - svitlo-power-sse-api (sse-back-end)
+# Images pulled from registry (matching docker-compose.yml image names):
+#   - svitlo-power-back-end (back-end)
+#   - svitlo-power-sse-back-end (sse-back-end)
 #   - svitlo-power-grid-reporter (grid-reporter)
-#   - svitlo-power-ui (front-end, nginx with baked-in dist)
+#   - svitlo-power-front-end (front-end, nginx with baked-in dist)
+# Note: svitlo-power-migrate uses same image as svitlo-power-back-end
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
@@ -27,7 +28,7 @@ ENV_FILE="$REPO_ROOT/.env"
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: .env not found. Create it from .env.sample first."
     echo "Falling back to local build deploy.sh..."
-    exec "$REPO_ROOT/deploy.sh" "$@"
+    exec bash "$REPO_ROOT/deploy.sh" "$@"
 fi
 
 # --- Registry login --------------------------------------------------------
@@ -46,25 +47,26 @@ if [ -z "${REGISTRY_URL:-}" ] || [ -z "${REGISTRY_USERNAME:-}" ] || [ -z "${REGI
     echo "Error: REGISTRY_URL, REGISTRY_USERNAME, or REGISTRY_PASSWORD not set."
     echo "Add them to .env or export them in environment."
     echo "Falling back to local build deploy.sh..."
-    exec "$REPO_ROOT/deploy.sh" "$@"
+    exec bash "$REPO_ROOT/deploy.sh" "$@"
 fi
 
 echo "Logging in to registry $REGISTRY_URL..."
-if ! docker login "$REGISTRY_URL" -u "$REGISTRY_USERNAME" -p "$REGISTRY_PASSWORD"; then
+if ! echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USERNAME" --password-stdin; then
     echo "Error: Registry login failed."
     echo "Falling back to local build deploy.sh..."
-    exec "$REPO_ROOT/deploy.sh" "$@"
+    exec bash "$REPO_ROOT/deploy.sh" "$@"
 fi
 
 # --- Pull images -----------------------------------------------------------
-# Pull all 4 custom images from registry with the specified tag
+# Pull all custom images from registry with the specified tag
+# Image names now match docker-compose.yml (no retag needed)
 echo "Pulling images with tag: $TAG"
 
 IMAGES=(
-    "svitlo-power-api"
-    "svitlo-power-sse-api"
+    "svitlo-power-back-end"
+    "svitlo-power-sse-back-end"
     "svitlo-power-grid-reporter"
-    "svitlo-power-ui"
+    "svitlo-power-front-end"
 )
 
 for IMAGE in "${IMAGES[@]}"; do
@@ -73,11 +75,8 @@ for IMAGE in "${IMAGES[@]}"; do
     if ! docker pull "$FULL_IMAGE"; then
         echo "Error: Failed to pull $FULL_IMAGE from $REGISTRY_URL."
         echo "Falling back to local build deploy.sh..."
-        exec "$REPO_ROOT/deploy.sh" "$@"
+        exec bash "$REPO_ROOT/deploy.sh" "$@"
     fi
-
-    # Retag to local name expected by docker-compose
-    docker tag "$FULL_IMAGE" "$IMAGE:$TAG"
 done
 
 # Also pull base images used in docker-compose (redis)
