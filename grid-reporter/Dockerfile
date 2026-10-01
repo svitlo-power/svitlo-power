@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /svitlo-power-grid-reporter
 
-COPY requirements.txt /svitlo-power-grid-reporter/
+COPY grid-reporter/requirements.txt /svitlo-power-grid-reporter/
 COPY shared/python /shared/python
 
 RUN pip install --upgrade pip --root-user-action=ignore
