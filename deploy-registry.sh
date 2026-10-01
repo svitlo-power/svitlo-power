@@ -20,6 +20,12 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
+# --- Check deploy.sh exists (fallback) ------------------------------------
+DEPLOY_SH_FOUND=false
+if [ -x "$REPO_ROOT/deploy.sh" ]; then
+    DEPLOY_SH_FOUND=true
+fi
+
 # --- Determine tag ---------------------------------------------------------
 TAG="${1:-latest}"
 
@@ -28,7 +34,12 @@ ENV_FILE="$REPO_ROOT/.env"
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: .env not found. Create it from .env.sample first."
     echo "Falling back to local build deploy.sh..."
-    exec bash "$REPO_ROOT/deploy.sh" "$@"
+    if [ "$DEPLOY_SH_FOUND" = true ]; then
+        exec bash "$REPO_ROOT/deploy.sh" "$@"
+    else
+        echo "Error: deploy.sh not found or not executable. Cannot fallback."
+        exit 1
+    fi
 fi
 
 # --- Registry login --------------------------------------------------------
@@ -47,14 +58,24 @@ if [ -z "${REGISTRY_URL:-}" ] || [ -z "${REGISTRY_USERNAME:-}" ] || [ -z "${REGI
     echo "Error: REGISTRY_URL, REGISTRY_USERNAME, or REGISTRY_PASSWORD not set."
     echo "Add them to .env or export them in environment."
     echo "Falling back to local build deploy.sh..."
-    exec bash "$REPO_ROOT/deploy.sh" "$@"
+    if [ "$DEPLOY_SH_FOUND" = true ]; then
+        exec bash "$REPO_ROOT/deploy.sh" "$@"
+    else
+        echo "Error: deploy.sh not found or not executable. Cannot fallback."
+        exit 1
+    fi
 fi
 
 echo "Logging in to registry $REGISTRY_URL..."
 if ! echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USERNAME" --password-stdin; then
     echo "Error: Registry login failed."
     echo "Falling back to local build deploy.sh..."
-    exec bash "$REPO_ROOT/deploy.sh" "$@"
+    if [ "$DEPLOY_SH_FOUND" = true ]; then
+        exec bash "$REPO_ROOT/deploy.sh" "$@"
+    else
+        echo "Error: deploy.sh not found or not executable. Cannot fallback."
+        exit 1
+    fi
 fi
 
 # --- Pull images -----------------------------------------------------------
@@ -75,7 +96,12 @@ for IMAGE in "${IMAGES[@]}"; do
     if ! docker pull "$FULL_IMAGE"; then
         echo "Error: Failed to pull $FULL_IMAGE from $REGISTRY_URL."
         echo "Falling back to local build deploy.sh..."
-        exec bash "$REPO_ROOT/deploy.sh" "$@"
+        if [ "$DEPLOY_SH_FOUND" = true ]; then
+            exec bash "$REPO_ROOT/deploy.sh" "$@"
+        else
+            echo "Error: deploy.sh not found or not executable. Cannot fallback."
+            exit 1
+        fi
     fi
 done
 
