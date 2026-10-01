@@ -91,7 +91,7 @@ docker compose down || { echo "Failed to stop containers"; exit 1; }
 echo "Starting containers with registry images (tag: $TAG)..."
 # Export TAG so docker-compose can use it if needed
 export TAG
-docker compose up -d || { echo "Failed to start containers"; exit 1; }
+docker compose up -d --scale svitlo-power-sse-back-end=3 || { echo "Failed to start containers"; exit 1; }
 
 echo "Deployment successful!"
 
