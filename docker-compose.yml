@@ -19,13 +19,13 @@ services:
     build:
       context: .
       dockerfile: back-end/Dockerfile
-    image: svitlo-power-api
+    image: svitlo-power-back-end
     restart: always
     env_file: .env
     environment:
       - DEBUG=False
     volumes:
-      - ./back-end/db.sqlite3:/svitlo-power-api/db.sqlite3
+      - ./back-end/db.sqlite3:/svitlo-power-back-end/db.sqlite3
     expose:
       - "5005"
     networks:
@@ -47,7 +47,7 @@ services:
     stop_grace_period: 15s
 
   svitlo-power-migrate:
-    image: svitlo-power-api
+    image: svitlo-power-back-end
     container_name: svitlo-power-migrate
     env_file: .env
     command:
@@ -64,7 +64,7 @@ services:
     restart: "no"
 
   svitlo-power-tests:
-    image: svitlo-power-api
+    image: svitlo-power-back-end
     profiles: ["tests"]
     environment:
       - PYTHONDONTWRITEBYTECODE=1
@@ -74,7 +74,7 @@ services:
         "-c",
         "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && python -m pytest tests -v"
       ]
-    working_dir: /svitlo-power-api
+    working_dir: /svitlo-power-back-end
     networks:
       - web_network
     restart: "no"
