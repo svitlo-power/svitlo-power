@@ -2,8 +2,6 @@ services:
   svitlo-power-rds:
     image: redis:7
     container_name: svitlo-power-rds
-    ports:
-      - "6379:6379"
     volumes:
       - svitlo_power_rds_data:/data
     command: ["redis-server", "--appendonly", "yes"]
