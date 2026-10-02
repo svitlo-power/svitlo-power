@@ -80,3 +80,34 @@ runs:
         VERSION="${PREFIX}${NN}"
         echo "Computed version: ${VERSION}"
         echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+    - name: Publish computed version
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image-name }}
+        VERSION: ${{ steps.compute.outputs.version }}
+        IS_PR: ${{ inputs.is-pr }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        PR_HEAD_REF: ${{ github.head_ref }}
+      run: |
+        {
+          echo "## 🐳 Docker Image"
+          echo ""
+          echo "| | Value |"
+          echo "|---|---|"
+          echo "| **Image** | \`${IMAGE_NAME}:${VERSION}\` |"
+          echo "| **Version** | \`${VERSION}\` |"
+          
+          if [[ "${IS_PR}" == "true" ]]; then
+            echo ""
+            echo "### 🔀 Pull Request"
+            echo ""
+            echo "| | Value |"
+            echo "|---|---|"
+            echo "| **PR** | [#${PR_NUMBER}](${PR_URL}) |"
+            echo "| **Title** | ${PR_TITLE} |"
+            echo "| **Branch** | \`${PR_HEAD_REF}\` |"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
