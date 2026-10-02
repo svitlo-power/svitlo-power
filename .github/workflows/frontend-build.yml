@@ -56,6 +56,11 @@ jobs:
     outputs:
       version: ${{ steps.compute.outputs.version }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Compute version
         id: compute
         uses: ./.github/actions/compute-image-version
