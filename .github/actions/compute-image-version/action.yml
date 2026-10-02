@@ -47,8 +47,14 @@ runs:
         echo "Current UTC year/month: ${YEAR}.${MONTH}"
         echo "Looking for tags with prefix: ${PREFIX}"
         
-        # Build registry API URL
-        REGISTRY_API_URL="${REGISTRY_URL}/v2/${IMAGE_NAME}/tags/list"
+        # Normalize registry URL to include https:// if protocol is missing
+        if [[ "${REGISTRY_URL}" =~ ^https?:// ]]; then
+          REGISTRY_BASE="${REGISTRY_URL%/}"
+        else
+          REGISTRY_BASE="https://${REGISTRY_URL%/}"
+        fi
+        
+        REGISTRY_API_URL="${REGISTRY_BASE}/v2/${IMAGE_NAME}/tags/list"
         
         # Prepare auth header if credentials provided
         AUTH_HEADER=""
@@ -57,10 +63,16 @@ runs:
         fi
         
         # Query registry for tags
-        TAGS_JSON=$(curl -sf -H "${AUTH_HEADER}" "${REGISTRY_API_URL}" 2>/dev/null || echo '"'"'{"tags":[]}'"'"')
+        TAGS_JSON=$(curl -sSLf -H "${AUTH_HEADER}" "${REGISTRY_API_URL}" 2>/dev/null || echo '{"tags":[]}')
+        
+        # Validate that TAGS_JSON is valid JSON; fallback if not
+        if ! echo "${TAGS_JSON}" | jq empty 2>/dev/null; then
+          echo "Warning: Response from ${REGISTRY_API_URL} was not valid JSON, assuming no tags"
+          TAGS_JSON='{"tags":[]}'
+        fi
         
         # Extract tags matching yyyy.mm.nn pattern for current month
-        MATCHING_TAGS=$(echo "${TAGS_JSON}" | jq -r '.tags[] | select(. | startswith("'"'"${PREFIX}"'"'"))' 2>/dev/null | sort -V || true)
+        MATCHING_TAGS=$(echo "${TAGS_JSON}" | jq -r '.tags[]? | select(. | startswith("'"'"${PREFIX}"'"'"))' 2>/dev/null | sort -V || true)
         
         if [[ -z "${MATCHING_TAGS}" ]]; then
           # No existing tags for this month, start at 00

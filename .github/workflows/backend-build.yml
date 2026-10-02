@@ -1,4 +1,4 @@
-﻿name: Backend Build
+name: Backend Build
 
 on:
   push:
@@ -201,7 +201,9 @@ jobs:
 
   cleanup:
     name: Cleanup old images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build-and-push]
