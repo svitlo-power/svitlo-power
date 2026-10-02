@@ -1,0 +1,71 @@
+{
+  "title": "Privacy Policy",
+  "lastUpdated": "Last updated: September 30, 2026",
+  "introduction": "This Privacy Policy explains how Svitlo Power (the “Service”) collects, uses, stores, and shares information when you use our website or mobile application. By accessing or using the Service, you agree to this Policy to the extent permitted by applicable law. If you do not agree, do not access or use the Service and stop using it.",
+  "sections": [
+    {
+      "title": "Information we collect",
+      "paragraphs": [
+        "We collect information that is needed to provide and protect the Service. The information may include details you provide when creating or using an account, such as your email address and account credentials; settings and information you submit about your energy equipment, stations, or buildings; and messages or support requests you send to us.",
+        "When you use the Service, Google Analytics 4 may collect usage and technical information such as pages or screens viewed, interactions, browser or app details, operating system, device information, and approximate location inferred from network information. Google processes this information on our behalf under its own privacy terms."
+      ]
+    },
+    {
+      "title": "How we use information",
+      "paragraphs": [
+        "We use information to provide account access and Service features, display and manage your energy-system information, respond to requests, maintain security, diagnose problems, and understand and improve how the Service is used."
+      ]
+    },
+    {
+      "title": "Your content and rights in the Service",
+      "paragraphs": [
+        "You retain any ownership rights you have in information and content you submit to the Service. You grant Svitlo Power a non-exclusive, worldwide, royalty-free license to host, store, reproduce, modify as technically necessary, display, and otherwise process that content solely to provide, maintain, secure, and improve the Service and to meet legal obligations. We may allow our service providers to process it for these purposes. This license ends when the content is deleted from active systems, except for copies retained in backups or as required by law.",
+        "All rights, title, and interest in the Service itself, including its software, design, branding, and materials, belong to Svitlo Power or its licensors and are not transferred to you. While you comply with this Policy and applicable terms, we grant you a limited, personal, non-exclusive, non-transferable, revocable right to use the Service for its intended purpose. You may not copy, modify, distribute, sell, or reverse engineer the Service except where applicable law does not allow that restriction."
+      ]
+    },
+    {
+      "title": "Changes to and suspension of the Service",
+      "paragraphs": [
+        "To the extent permitted by law, we may change, limit, suspend, or discontinue any part of the Service, or suspend or terminate access where reasonably necessary to protect the Service, comply with law, address misuse, or enforce applicable terms. The Service may not always be available or uninterrupted. If you do not accept a change to the Service or this Policy, stop using the Service. Any rights that cannot legally be limited remain unaffected."
+      ]
+    },
+    {
+      "title": "Sharing and third-party services",
+      "paragraphs": [
+        "We do not sell your personal information. We share information only as needed to operate the Service, at your direction, or when required by law. This can include infrastructure and analytics providers, and third-party services that you connect or use with the Service, such as energy-platform or messaging integrations. Those providers process information under their own terms and privacy policies."
+      ]
+    },
+    {
+      "title": "Storage and retention",
+      "paragraphs": [
+        "Information is stored on systems used to operate the Service. We retain it for as long as needed to provide the Service, meet legal obligations, resolve disputes, and enforce our agreements. You may request deletion of your account and associated personal information using the contact details below. Some information may remain in backups or records we are legally required to keep for a limited period."
+      ]
+    },
+    {
+      "title": "Security",
+      "paragraphs": [
+        "We use reasonable technical and organizational measures to protect information. No method of transmission or storage is completely secure, and we cannot guarantee absolute security."
+      ]
+    },
+    {
+      "title": "Your choices and rights",
+      "paragraphs": [
+        "Depending on where you live, you may have the right to access, correct, or delete your personal information, or to object to or restrict certain processing. Contact us to make a request. You can also stop using the Service and revoke access to connected third-party services at any time."
+      ]
+    },
+    {
+      "title": "Children’s privacy",
+      "paragraphs": [
+        "The Service is not intended for children under 13, or the minimum age required in your country to use online services without parental consent. We do not knowingly collect personal information from children."
+      ]
+    },
+    {
+      "title": "Changes to this policy",
+      "paragraphs": [
+        "We may update this Policy from time to time and publish the updated version on this page with a revised “Last updated” date. If you do not agree to an update, stop using the Service. Where applicable law requires notice or consent, we will provide it and obtain consent as required."
+      ]
+    }
+  ],
+  "contact": "For privacy questions or requests, contact the developers on Telegram:",
+  "or": "or"
+}
