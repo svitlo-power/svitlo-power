@@ -4,19 +4,19 @@ on:
   push:
     branches: [main]
     paths:
-      - 'shared/**'
-      - 'back-end/**'
-      - 'sse-back-end/**'
-      - 'grid-reporter/**'
-      - '.github/workflows/backend-build.yml'
+      - "shared/**"
+      - "back-end/**"
+      - "sse-back-end/**"
+      - "grid-reporter/**"
+      - ".github/workflows/backend-build.yml"
   pull_request:
     branches: [main]
     paths:
-      - 'shared/**'
-      - 'back-end/**'
-      - 'sse-back-end/**'
-      - 'grid-reporter/**'
-      - '.github/workflows/backend-build.yml'
+      - "shared/**"
+      - "back-end/**"
+      - "sse-back-end/**"
+      - "grid-reporter/**"
+      - ".github/workflows/backend-build.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,7 +27,7 @@ permissions:
 
 env:
   REGISTRY: ${{ vars.REGISTRY_URL || secrets.REGISTRY_URL }}
-  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
   test-docker:
@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 30
     # Do not run fork PR code on the self-hosted runner
     if: >-
-      github.event_name != 'pull_request' ||
+      github.event_name != "pull_request" ||
       github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout code
@@ -63,42 +63,42 @@ jobs:
           set +e
 
           {
-            echo "## 🧪 Docker Test Summary"
+            echo "## ðŸ§ª Docker Test Summary"
             echo ""
 
             if [ ! -s test_output.txt ]; then
-              echo "⚠️ No test output found."
+              echo "âš ï¸ No test output found."
               exit 0
             fi
 
-            sed -r 's/\x1B\[[0-9;]*[a-zA-Z]//g' test_output.txt > test_output.clean.txt
+            sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
 
             # parse only the pytest summary line, not the whole log
-            SUMMARY_LINE=$(grep -E '^=+.*(passed|failed|error|no tests ran|skipped).*=+$' \
+            SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
                             test_output.clean.txt | tail -1)
 
-            PASSED=$(grep -oE '[0-9]+ passed'   <<<"$SUMMARY_LINE" | grep -oE '^[0-9]+')
-            FAILED=$(grep -oE '[0-9]+ failed'   <<<"$SUMMARY_LINE" | grep -oE '^[0-9]+')
-            ERRORS=$(grep -oE '[0-9]+ errors?'  <<<"$SUMMARY_LINE" | grep -oE '^[0-9]+')
-            SKIPPED=$(grep -oE '[0-9]+ skipped' <<<"$SUMMARY_LINE" | grep -oE '^[0-9]+')
-            DURATION=$(grep -oE 'in [0-9.]+s'   <<<"$SUMMARY_LINE" | tail -1 | sed 's/^in //')
+            PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+            FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+            ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+            SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+            DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
 
             echo "| Result | Count |"
             echo "|--------|-------|"
-            echo "| ✅ Passed   | ${PASSED:-0} |"
-            echo "| ❌ Failed   | ${FAILED:-0} |"
-            echo "| 🔥 Errors   | ${ERRORS:-0} |"
-            echo "| ⏭ Skipped  | ${SKIPPED:-0} |"
-            echo "| ⏱ Duration | ${DURATION:-n/a} |"
+            echo "| âœ… Passed   | ${PASSED:-0} |"
+            echo "| âŒ Failed   | ${FAILED:-0} |"
+            echo "| ðŸ”¥ Errors   | ${ERRORS:-0} |"
+            echo "| â­ Skipped  | ${SKIPPED:-0} |"
+            echo "| â± Duration | ${DURATION:-n/a} |"
             echo ""
 
             if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
               echo "<details><summary>Failed / errored tests</summary>"
               echo ""
-              echo '```'
-              grep -E '^(FAILED|ERROR)' test_output.clean.txt | sort -u \
+              echo "```"
+              grep -E "^(FAILED|ERROR)" test_output.clean.txt | sort -u \
                 || echo "(not parsed, see full log)"
-              echo '```'
+              echo "```"
               echo "</details>"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
@@ -118,11 +118,28 @@ jobs:
         if: always()
         run: docker compose --profile tests down --remove-orphans --volumes || true
 
+  compute-version:
+    name: Compute image version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+    steps:
+      - name: Compute version
+        id: compute
+        uses: ./.github/actions/compute-image-version
+        with:
+          image-name: svitlo-power-back-end
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+          is-pr: ${{ github.event_name == "pull_request" }}
+
   build-and-push:
     name: Build ${{ matrix.image }}
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 45
-    needs: [test-docker]
+    needs: [test-docker, compute-version]
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -147,7 +164,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.2.0
 
       - name: Log in to registry
-        if: github.event_name == 'push'
+        if: github.event_name == "push"
         uses: docker/login-action@v4.6.0
         with:
           registry: ${{ env.REGISTRY }}
@@ -164,6 +181,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.compute-version.outputs.version }},enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v7.3.0
@@ -171,9 +189,40 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           platforms: linux/amd64
-          push: ${{ github.event_name == 'push' }}
+          push: ${{ github.event_name == "push" }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            VERSION=${{ needs.compute-version.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  cleanup:
+    name: Cleanup old images
+    if: github.event_name == "push" && github.ref == "refs/heads/main"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-and-push]
+    steps:
+      - name: Cleanup svitlo-power-back-end
+        uses: ./.github/actions/cleanup-old-images
+        with:
+          image-name: svitlo-power-back-end
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Cleanup svitlo-power-sse-back-end
+        uses: ./.github/actions/cleanup-old-images
+        with:
+          image-name: svitlo-power-sse-back-end
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Cleanup svitlo-power-grid-reporter
+        uses: ./.github/actions/cleanup-old-images
+        with:
+          image-name: svitlo-power-grid-reporter
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}

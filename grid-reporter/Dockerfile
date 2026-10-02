@@ -2,6 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /svitlo-power-grid-reporter
 
+# Version argument (injected at build time)
+ARG VERSION=0000.00.00
+RUN mkdir -p /app && echo "${VERSION}" > /app/VERSION
+
 COPY grid-reporter/requirements.txt /svitlo-power-grid-reporter/
 COPY shared/python /shared/python
 

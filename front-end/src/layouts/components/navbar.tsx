@@ -9,6 +9,7 @@ import { ProfileData } from "../../stores/types";
 import iconDark from "../../assets/icon_dark.png";
 import iconLight from "../../assets/icon_light.png";
 import { TFunction } from "i18next";
+import { VersionDisplay } from "./versionDisplay";
 
 type MenuRowProps = {
   t: TFunction;
@@ -219,7 +220,7 @@ export const Navbar: FC<NavbarProps> = ({ t, user, isNavbarCollapsed, toggleNavb
                             <CountryFlag />
                           </Link>
                         </Tooltip>
-                      : <Button variant="subtle" size="md" leftSection={<CountryFlag />}>
+                      : <Button variant="subtle" size="sm" leftSection={<CountryFlag />}>
                           {t('title.language')}
                         </Button>
                   }
@@ -229,6 +230,7 @@ export const Navbar: FC<NavbarProps> = ({ t, user, isNavbarCollapsed, toggleNavb
                 </Menu.Dropdown>
               </Menu>
               <ThemePicker isNavbarCollapsed={isNavbarCollapsed} />
+              <VersionDisplay />
             </Stack>
           </Group>
         </Stack>

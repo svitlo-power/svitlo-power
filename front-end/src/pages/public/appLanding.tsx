@@ -1,17 +1,17 @@
-import { Container, Title, Text, Button, Group, Stack, Card, Grid, Box, SimpleGrid, Image, useMantineColorScheme, Divider, Anchor } from '@mantine/core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { IconName } from '@fortawesome/fontawesome-svg-core';
-import { useState, useEffect } from 'react';
-import { ThemePicker } from '../../components';
-import { Authors } from '../../layouts/components/authors';
-import { VisitTracker } from '../../layouts/components/visitTracker';
-import classes from './appLanding.module.css';
-import iconDark from '../../assets/icon_dark_with_text.png';
-import iconLight from '../../assets/icon_light_with_text.png';
-import appImage1 from '../../assets/app/app01.png';
-import appImage2 from '../../assets/app/app02.png';
-import appImage3 from '../../assets/app/app03.png';
-import { initGA, trackPageView } from '../../utils/analytics';
+import { Container, Title, Text, Button, Group, Stack, Card, Grid, Box, SimpleGrid, Image, useMantineColorScheme, Divider, Anchor } from "@mantine/core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconName } from "@fortawesome/fontawesome-svg-core";
+import { useState, useEffect } from "react";
+import { ThemePicker } from "../../components";
+import { Authors } from "../../layouts/components/authors";
+import { VisitTracker } from "../../layouts/components/visitTracker";
+import classes from "./appLanding.module.css";
+import iconDark from "../../assets/icon_dark_with_text.png";
+import iconLight from "../../assets/icon_light_with_text.png";
+import appImage1 from "../../assets/app/app01.png";
+import appImage2 from "../../assets/app/app02.png";
+import appImage3 from "../../assets/app/app03.png";
+import { initGA, trackPageView } from "../../utils/analytics";
 
 interface FeatureCardProps {
   icon: IconName;
@@ -36,10 +36,9 @@ const FeatureCard = ({ icon, title, description }: FeatureCardProps) => (
 export const AppLandingPage = () => {
   const { colorScheme } = useMantineColorScheme();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState<string>('');
-  const [appVersion, setAppVersion] = useState<string>('');
+  const [downloadUrl, setDownloadUrl] = useState<string>("");
   
-  const iconSrc = colorScheme === 'dark' ? iconLight : iconDark;
+  const iconSrc = colorScheme === "dark" ? iconLight : iconDark;
   const appImages = [appImage1, appImage2, appImage3];
 
   useEffect(() => {
@@ -53,17 +52,14 @@ export const AppLandingPage = () => {
   useEffect(() => {
     const fetchDownloadUrl = async () => {
       try {
-        const response = await fetch('/api/app/info');
+        const response = await fetch("/api/app/info");
         const data = await response.json();
         
         if (data.updateUrl) {
           setDownloadUrl(data.updateUrl);
         }
-        if (data.version) {
-          setAppVersion(data.version);
-        }
       } catch (error) {
-        console.error('Failed to fetch download URL:', error);
+        console.error("Failed to fetch download URL:", error);
       }
     };
 
@@ -73,37 +69,37 @@ export const AppLandingPage = () => {
   // Google Analytics
   useEffect(() => {
     initGA();
-    trackPageView('/app', 'App Landing Page');
+    trackPageView("/app", "App Landing Page");
   }, []);
 
   const features = [
     {
-      icon: 'bolt' as IconName,
-      title: 'Real-Time Monitoring',
-      description: 'Track the power status of Sviltopark residential complex in real-time from anywhere'
+      icon: "bolt" as IconName,
+      title: "Real-Time Monitoring",
+      description: "Track the power status of Sviltopark residential complex in real-time from anywhere"
     },
     {
-      icon: 'chart-bar' as IconName,
-      title: 'Power Statistics',
-      description: 'Detailed statistics of power generation and energy usage analytics'
+      icon: "chart-bar" as IconName,
+      title: "Power Statistics",
+      description: "Detailed statistics of power generation and energy usage analytics"
     },
     {
-      icon: 'calendar-check' as IconName,
-      title: 'Outage Schedule',
-      description: 'Stay informed with up-to-date planned power outage schedules for your area'
+      icon: "calendar-check" as IconName,
+      title: "Outage Schedule",
+      description: "Stay informed with up-to-date planned power outage schedules for your area"
     },
     {
-      icon: 'mobile' as IconName,
-      title: 'Modern Interface',
-      description: 'Intuitive and beautiful design with dark and light themes for the best user experience'
+      icon: "mobile" as IconName,
+      title: "Modern Interface",
+      description: "Intuitive and beautiful design with dark and light themes for the best user experience"
     }
   ];
 
   const handleDownload = () => {
     if (downloadUrl) {
-      window.open(downloadUrl, '_blank');
+      window.open(downloadUrl, "_blank");
     } else {
-      console.error('Download URL not available');
+      console.error("Download URL not available");
     }
   };
 
@@ -130,7 +126,7 @@ export const AppLandingPage = () => {
                 src={iconSrc} 
                 alt="Svitlo Power Logo"
                 fit="contain"
-                style={{ alignSelf: 'flex-start' }}
+                style={{ alignSelf: "flex-start" }}
               />
               <Title order={2} c="dimmed" fw={500}>
                 Complete Power Monitoring for Sviltopark Residential Complex
@@ -154,14 +150,6 @@ export const AppLandingPage = () => {
                 <Text size="sm" c="dimmed">
                   <FontAwesomeIcon icon="mobile" /> Android 13.0 or higher required
                 </Text>
-                {appVersion && (
-                  <>
-                    <Text size="sm" c="dimmed">•</Text>
-                    <Text size="sm" c="dimmed">
-                      Version {appVersion}
-                    </Text>
-                  </>
-                )}
               </Group>
             </Stack>
           </Grid.Col>
@@ -174,7 +162,7 @@ export const AppLandingPage = () => {
                     src={image}
                     alt={`Svitlo Power App Screenshot ${index + 1}`}
                     className={`${classes.appScreenshot} ${
-                      index === currentImageIndex ? classes.active : ''
+                      index === currentImageIndex ? classes.active : ""
                     }`}
                   />
                 ))}
@@ -184,7 +172,7 @@ export const AppLandingPage = () => {
                   <button
                     key={index}
                     className={`${classes.dot} ${
-                      index === currentImageIndex ? classes.activeDot : ''
+                      index === currentImageIndex ? classes.activeDot : ""
                     }`}
                     onClick={() => setCurrentImageIndex(index)}
                     aria-label={`Go to screenshot ${index + 1}`}
@@ -238,10 +226,10 @@ export const AppLandingPage = () => {
         {/* Footer */}
         <Divider my="lg" />
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md" mb="md">
-          <Box ta={{ base: 'center', md: 'left' }}>
+          <Box ta={{ base: "center", md: "left" }}>
             <Authors />
           </Box>
-          <Box ta={{ base: 'center', md: 'right' }}>
+          <Box ta={{ base: "center", md: "right" }}>
             <VisitTracker />
           </Box>
         </SimpleGrid>
@@ -249,4 +237,3 @@ export const AppLandingPage = () => {
     </Container>
   );
 };
-
