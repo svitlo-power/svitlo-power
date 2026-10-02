@@ -1,4 +1,4 @@
-name: Front-end Build
+﻿name: Front-end Build
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
     paths:
       - "front-end/**"
       - "shared/i18n/**"
-      - ".github/workflows/front-end-build.yml"
+      - ".github/workflows/frontend-build.yml"
   pull_request:
     branches: [main]
     paths:
       - "front-end/**"
       - "shared/i18n/**"
-      - ".github/workflows/front-end-build.yml"
+      - ".github/workflows/frontend-build.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

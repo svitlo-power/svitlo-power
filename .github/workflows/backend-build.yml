@@ -1,4 +1,4 @@
-name: Backend Build
+﻿name: Backend Build
 
 on:
   push:
@@ -34,7 +34,6 @@ jobs:
     name: Tests (docker)
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 30
-    # Do not run fork PR code on the self-hosted runner
     if: >-
       github.event_name != "pull_request" ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -59,21 +58,19 @@ jobs:
         if: always()
         shell: bash
         run: |
-          # no errexit: grep returns 1 on no match and would kill the step
           set +e
 
           {
-            echo "## ðŸ§ª Docker Test Summary"
+            echo "## 🧪 Docker Test Summary"
             echo ""
 
             if [ ! -s test_output.txt ]; then
-              echo "âš ï¸ No test output found."
+              echo "⚠️ No test output found."
               exit 0
             fi
 
             sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
 
-            # parse only the pytest summary line, not the whole log
             SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
                             test_output.clean.txt | tail -1)
 
@@ -85,11 +82,11 @@ jobs:
 
             echo "| Result | Count |"
             echo "|--------|-------|"
-            echo "| âœ… Passed   | ${PASSED:-0} |"
-            echo "| âŒ Failed   | ${FAILED:-0} |"
-            echo "| ðŸ”¥ Errors   | ${ERRORS:-0} |"
-            echo "| â­ Skipped  | ${SKIPPED:-0} |"
-            echo "| â± Duration | ${DURATION:-n/a} |"
+            echo "| ✅ Passed   | ${PASSED:-0} |"
+            echo "| ❌ Failed   | ${FAILED:-0} |"
+            echo "| 🔥 Errors   | ${ERRORS:-0} |"
+            echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+            echo "| ⏱️ Duration | ${DURATION:-n/a} |"
             echo ""
 
             if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
@@ -147,7 +144,6 @@ jobs:
         include:
           - image: svitlo-power-back-end
             dockerfile: back-end/Dockerfile
-          # same Dockerfile/context as back-end — identical image, verify intent
           - image: svitlo-power-migrate
             dockerfile: back-end/Dockerfile
           - image: svitlo-power-sse-back-end
