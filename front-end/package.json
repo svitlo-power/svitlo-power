@@ -10,9 +10,9 @@
     "build": "npm run i18n:sync && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test": "npm run i18n:sync && vitest",
+    "test:run": "npm run i18n:sync && vitest run",
+    "test:ui": "npm run i18n:sync && vitest --ui"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
