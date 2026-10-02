@@ -1,0 +1,75 @@
+name: "Cleanup Old Images"
+description: "Deletes all but 2 most recent yyyy.mm.nn tags per image, protects latest tag"
+inputs:
+  image-name:
+    description: "Name of the Docker image (e.g., svitlo-power-back-end)"
+    required: true
+  registry-url:
+    description: "Docker registry URL (e.g., ghcr.io or docker.io)"
+    required: true
+  registry-username:
+    description: "Registry username for authentication"
+    required: true
+  registry-password:
+    description: "Registry password/token for authentication"
+    required: true
+  keep-count:
+    description: "Number of recent versions to keep"
+    required: false
+    default: "2"
+runs:
+  using: "composite"
+  steps:
+    - name: Cleanup old image versions
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image-name }}
+        REGISTRY_URL: ${{ inputs.registry-url }}
+        REGISTRY_USERNAME: ${{ inputs.registry-username }}
+        REGISTRY_PASSWORD: ${{ inputs.registry-password }}
+        KEEP_COUNT: ${{ inputs.keep-count }}
+      run: |
+        set -euo pipefail
+        
+        REGISTRY_API_URL="${REGISTRY_URL}/v2/${IMAGE_NAME}/tags/list"
+        AUTH_HEADER="Authorization: Basic $(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 -w 0)"
+        
+        # Get all tags
+        TAGS_JSON=$(curl -sf -H "${AUTH_HEADER}" "${REGISTRY_API_URL}" 2>/dev/null || echo '"'"'{"tags":[]}'"'"')
+        
+        # Extract yyyy.mm.nn tags and sort by version
+        VERSION_TAGS=$(echo "${TAGS_JSON}" | jq -r ".tags[] | select(. | test(\"^\\\d{4}\\\.\\\d{2}\\\.\\\d{2}$\"))" | sort -V)
+        
+        # Count total version tags
+        TOTAL=$(echo "${VERSION_TAGS}" | grep -c "^" || echo 0)
+        
+        if [[ ${TOTAL} -le ${KEEP_COUNT} ]]; then
+          echo "Only ${TOTAL} version tags found, keeping all (threshold: ${KEEP_COUNT})"
+          exit 0
+        fi
+        
+        # Calculate how many to delete
+        TO_DELETE=$((TOTAL - KEEP_COUNT))
+        echo "Found ${TOTAL} version tags, will delete ${TO_DELETE} oldest"
+        
+        # Get tags to delete (oldest ones)
+        TAGS_TO_DELETE=$(echo "${VERSION_TAGS}" | head -n ${TO_DELETE})
+        
+        # Delete each tag
+        for TAG in ${TAGS_TO_DELETE}; do
+          echo "Deleting tag: ${TAG}"
+          DELETE_URL="${REGISTRY_URL}/v2/${IMAGE_NAME}/manifests/${TAG}"
+          
+          # Get manifest digest
+          DIGEST=$(curl -sf -H "${AUTH_HEADER}" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -I "${DELETE_URL}" 2>/dev/null | grep -i "docker-content-digest" | cut -d" " -f2 | tr -d "\r")
+          
+          if [[ -n "${DIGEST}" ]]; then
+            DELETE_MANIFEST_URL="${REGISTRY_URL}/v2/${IMAGE_NAME}/manifests/${DIGEST}"
+            curl -sf -X DELETE -H "${AUTH_HEADER}" "${DELETE_MANIFEST_URL}" 2>/dev/null || echo "Warning: Failed to delete ${TAG}"
+            echo "Deleted: ${TAG} (${DIGEST})"
+          else
+            echo "Warning: Could not get digest for ${TAG}"
+          fi
+        done
+        
+        echo "Cleanup complete"

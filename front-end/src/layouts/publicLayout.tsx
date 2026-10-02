@@ -1,5 +1,5 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { Anchor, AppShell, Box, Container, Group, Image, SimpleGrid, Transition, useMantineColorScheme, Button, Menu, ActionIcon } from "@mantine/core";
+import { Anchor, AppShell, Box, Container, Group, Image, SimpleGrid, Transition, useMantineColorScheme, Button, Menu, ActionIcon, em } from "@mantine/core";
 import { CountryFlag, LangPicker, ThemePicker } from "../components";
 import classes from './styles/publicLayout.module.css';
 import { VisitTracker } from "./components/visitTracker";
@@ -10,6 +10,8 @@ import iconLight from "../assets/icon_light_with_text.png";
 import { usePageTranslation } from "../utils";
 import { useSubscribeEvent } from "../hooks";
 import { EventType } from "../types";
+import { VersionDisplay } from "./components/versionDisplay";
+import { useMediaQuery } from "@mantine/hooks";
 
 type PublicLayoutProps = {
   children: ReactNode;
@@ -20,6 +22,7 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
   const [isHovering, setIsHovering] = useState(false);
   const { colorScheme } = useMantineColorScheme();
   const iconSrc = colorScheme === 'dark' ? iconLight : iconDark;
+  const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.altKey) {
@@ -113,6 +116,10 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
                     <Box m='sm'>
                       <ThemePicker isNavbarCollapsed={false} size="md" />
                     </Box>
+                    { isMobile && <>
+                    <Menu.Divider />
+                    <VersionDisplay />
+</> }
                   </Menu.Dropdown>
                 </Menu>
               </Box>
@@ -121,14 +128,15 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
         </header>
       </AppShell.Header>
       <AppShell.Main>
-        <Box className={classes.main}>
+        <Box className={classes.main} pt="md" pb="md">
           {children}
         </Box>
       </AppShell.Main>
       <AppShell.Footer>
-        <SimpleGrid pt={2} verticalSpacing={0} spacing={0} p={0} ta={'center'} cols={{ xs: 1, md: 2}}>
+        <SimpleGrid pt={2} verticalSpacing={0} spacing={0} p={0} ta={'center'} cols={{ xs: 1, md: isMobile ? 2 : 3}}>
           <Authors />
           <VisitTracker/>
+          { !isMobile && <VersionDisplay /> }
         </SimpleGrid>
       </AppShell.Footer>
     </AppShell>;

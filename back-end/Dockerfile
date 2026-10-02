@@ -7,6 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DEBUG=True
 
+# Version argument (injected at build time)
+ARG VERSION=0000.00.00
+RUN mkdir -p /app && echo "${VERSION}" > /app/VERSION
+
 COPY back-end/requirements.txt /svitlo-power-back-end/
 COPY shared/python /shared/python
 COPY shared/i18n /shared/i18n

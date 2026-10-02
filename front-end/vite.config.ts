@@ -13,6 +13,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/version': {
+        target: 'http://localhost:5005',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   build: {

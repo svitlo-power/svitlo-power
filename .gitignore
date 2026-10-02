@@ -35,7 +35,6 @@ yarn.lock
 
 shared.egg-info
 
-.github/
 mongo_dump/
 
 # grid-reporter
