@@ -127,6 +127,10 @@ jobs:
     timeout-minutes: 10
     needs: [build-and-push]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - name: Cleanup svitlo-power-front-end
         uses: ./.github/actions/cleanup-old-images
         with:

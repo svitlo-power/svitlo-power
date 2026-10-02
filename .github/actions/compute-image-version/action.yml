@@ -99,7 +99,7 @@ runs:
           echo "|---|---|"
           echo "| **Image** | \`${IMAGE_NAME}:${VERSION}\` |"
           echo "| **Version** | \`${VERSION}\` |"
-          
+
           if [[ "${IS_PR}" == "true" ]]; then
             echo ""
             echo "### 🔀 Pull Request"
