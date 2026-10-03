@@ -13,10 +13,6 @@ inputs:
   registry-password:
     description: "Registry password/token for authentication"
     required: false
-  is-pr:
-    description: "Whether this is a PR build (reads version but doesn't increment)"
-    required: true
-    default: "false"
 outputs:
   version:
     description: "Computed version in yyyy.mm.nn format"
@@ -32,7 +28,6 @@ runs:
         REGISTRY_URL: ${{ inputs.registry-url }}
         REGISTRY_USERNAME: ${{ inputs.registry-username }}
         REGISTRY_PASSWORD: ${{ inputs.registry-password }}
-        IS_PR: ${{ inputs.is-pr }}
       run: |
         set -euo pipefail
         
@@ -104,21 +99,16 @@ runs:
         fi
         
         # Extract tags matching yyyy.mm.nn pattern for current month
-        MATCHING_TAGS=$(echo "${TAGS_JSON}" | jq -r '.tags[]? | select(. | startswith("'"'"${PREFIX}"'"'"))' 2>/dev/null | sort -V || true)
+        # Use jq --arg to safely pass the prefix variable (avoids quoting issues)
+        MATCHING_TAGS=$(echo "${TAGS_JSON}" | jq -r --arg prefix "${PREFIX}" '.tags[]? | select(. | startswith($prefix))' 2>/dev/null | sort -V || true)
         
         if [[ -z "${MATCHING_TAGS}" ]]; then
           # No existing tags for this month, start at 00
           NN="00"
         else
-          # Get highest nn from matching tags
+          # Get highest nn from matching tags and always increment
           HIGHEST=$(echo "${MATCHING_TAGS}" | tail -1 | sed -E "s/^${PREFIX}//")
-          if [[ "${IS_PR}" == "true" ]]; then
-            # PR build: use the current highest, don't increment
-            NN="${HIGHEST}"
-          else
-            # Main branch build: increment
-            NN=$(printf "%02d" $((10#${HIGHEST} + 1)))
-          fi
+          NN=$(printf "%02d" $((10#${HIGHEST} + 1)))
         fi
         
         VERSION="${PREFIX}${NN}"
@@ -130,7 +120,6 @@ runs:
       env:
         IMAGE_NAME: ${{ inputs.image-name }}
         VERSION: ${{ steps.compute.outputs.version }}
-        IS_PR: ${{ inputs.is-pr }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         PR_TITLE: ${{ github.event.pull_request.title }}
         PR_URL: ${{ github.event.pull_request.html_url }}
@@ -143,15 +132,5 @@ runs:
           echo "|---|---|"
           echo "| **Image** | \`${IMAGE_NAME}:${VERSION}\` |"
           echo "| **Version** | \`${VERSION}\` |"
-          
-          if [[ "${IS_PR}" == "true" ]]; then
-            echo ""
-            echo "### 🔀 Pull Request"
-            echo ""
-            echo "| | Value |"
-            echo "|---|---|"
-            echo "| **PR** | [#${PR_NUMBER}](${PR_URL}) |"
-            echo "| **Title** | ${PR_TITLE} |"
-            echo "| **Branch** | \`${PR_HEAD_REF}\` |"
-          fi
+          echo ""
         } >> "$GITHUB_STEP_SUMMARY"

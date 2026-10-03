@@ -71,7 +71,6 @@ jobs:
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-          is-pr: ${{ github.event_name == 'pull_request' }}
 
   build-and-push:
     name: Build front-end image
