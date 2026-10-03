@@ -123,8 +123,15 @@ jobs:
     name: Compute image version
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: svitlo-power-back-end
+          - image: svitlo-power-sse-back-end
+          - image: svitlo-power-grid-reporter
     outputs:
-      version: ${{ steps.compute.outputs.version }}
+      versions: ${{ steps.set-output.outputs.versions }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -135,10 +142,15 @@ jobs:
         id: compute
         uses: ./.github/actions/compute-image-version
         with:
-          image-name: svitlo-power-back-end
+          image-name: ${{ matrix.image }}
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set matrix output
+        id: set-output
+        run: |
+          echo "versions={\"${{ matrix.image }}\":\"${{ steps.compute.outputs.version }}\"}" >> $GITHUB_OUTPUT
 
   build-and-push:
     name: Build ${{ matrix.image }}
@@ -151,8 +163,6 @@ jobs:
       matrix:
         include:
           - image: svitlo-power-back-end
-            dockerfile: back-end/Dockerfile
-          - image: svitlo-power-migrate
             dockerfile: back-end/Dockerfile
           - image: svitlo-power-sse-back-end
             dockerfile: sse-back-end/Dockerfile
@@ -185,7 +195,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.compute-version.outputs.version }},enable={{is_default_branch}}
+            type=raw,value=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }},enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v7.3.0
@@ -198,7 +208,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
-            VERSION=${{ needs.compute-version.outputs.version }}
+            VERSION=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
