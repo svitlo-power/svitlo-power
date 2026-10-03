@@ -7,12 +7,16 @@ on:
       - "front-end/**"
       - "shared/i18n/**"
       - ".github/workflows/frontend-build.yml"
+      - ".github/actions/compute-image-version/**"
+      - ".github/actions/cleanup-old-images/**"
   pull_request:
     branches: [main]
     paths:
       - "front-end/**"
       - "shared/i18n/**"
       - ".github/workflows/frontend-build.yml"
+      - ".github/actions/compute-image-version/**"
+      - ".github/actions/cleanup-old-images/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
