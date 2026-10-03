@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import List
 from beanie import init_beanie
 from sqlalchemy import create_engine
@@ -52,6 +53,8 @@ id_maps = {
     "messages": {},
 }
 
+logger = logging.getLogger(__name__)
+
 async def init():
     await init_beanie(
         database=mongo_client[settings.MONGO_DB],
@@ -73,7 +76,7 @@ async def init():
 
 
 async def migrate_users(session):
-    print("Migrating Users...")
+    logger.info("Migrating Users...")
     users = session.query(SQLUser).all()
     for u in users:
         m = User(
@@ -87,26 +90,26 @@ async def migrate_users(session):
         )
         await m.insert()
         id_maps["users"][u.id] = m.id
-    print(f"  Migrated {len(users)} users")
+    logger.info(f"  Migrated {len(users)} users")
 
 
 async def migrate_ext_data(session):
-    print("Migrating ExtData...")
+    logger.info("Migrating ExtData...")
     ext_data: SQLExtData = session.query(SQLExtData).all()
     for row in ext_data:
         user_id = id_maps["users"][row.user.id]
         if user_id is None:
-            print("  !! Missing User {e.user}, skipping ExtData {e.id}")
+            logger.warning(f"  !! Missing User {row.user}, skipping ExtData {row.id}")
         m = ExtData(
             grid_state  = row.grid_state,
             user_id     = user_id,
             received_at = row.received_at
         )
         await m.insert()
-    print(f"  Migrated {len(ext_data)} ExtData records")
+    logger.info(f"  Migrated {len(ext_data)} ExtData records")
 
 async def migrate_stations(session):
-    print("Migrating Stations...")
+    logger.info("Migrating Stations...")
     stations = session.query(SQLStation).all()
     for s in stations:
         m = Station(
@@ -132,16 +135,16 @@ async def migrate_stations(session):
         )
         await m.insert()
         id_maps["stations"][s.id] = m.id
-    print(f"  Migrated {len(stations)} stations")
+    logger.info(f"  Migrated {len(stations)} stations")
 
 
 async def migrate_station_data(session):
-    print("Migrating StationData...")
+    logger.info("Migrating StationData...")
     station_data =  session.query(SQLStationData).all()
     for row in station_data:
         station_id = id_maps["stations"][int(row.station_id)]
         if not station_id:
-            print(f"  !! Missing Station {row.station_id}, skipping StationData {row.id}")
+            logger.warning(f"  !! Missing Station {row.station_id}, skipping StationData {row.id}")
             continue
 
         m = StationData(
@@ -162,11 +165,11 @@ async def migrate_station_data(session):
             wire_power          = row.wire_power,
         )
         await m.insert()
-    print(f"  Migrated {len(station_data)} StationData records")
+    logger.info(f"  Migrated {len(station_data)} StationData records")
 
 
 async def migrate_buildings(session):
-    print("Migrating Buildings...")
+    logger.info("Migrating Buildings...")
     mongo_stations = {str(s.id): s for s in await Station.find_all().to_list()}
     mongo_users = {str(u.id): u for u in await User.find_all().to_list()}
 
@@ -179,7 +182,7 @@ async def migrate_buildings(session):
         mongo_user_id = str(id_maps["users"][row.report_user_id])
         report_user = mongo_users.get(mongo_user_id)
         if not report_user:
-            print(f"  !! Missing user {row.report_user_id}, skipping Building {row.id}")
+            logger.warning(f"  !! Missing user {row.report_user_id}, skipping Building {row.id}")
             continue
 
         m = Building(
@@ -189,12 +192,12 @@ async def migrate_buildings(session):
             report_user = report_user,
         )
         await m.insert()
-        print(f"  Migrated building {row.id}")
-    print("  Done buildings")
+        logger.info(f"  Migrated building {row.id}")
+    logger.info("  Done buildings")
 
 
 async def migrate_bots(session):
-    print("Migrating Bots...")
+    logger.info("Migrating Bots...")
     bots = session.query(SQLBot).all()
     for b in bots:
         m = Bot(
@@ -204,11 +207,11 @@ async def migrate_bots(session):
         )
         await m.insert()
         id_maps["bots"][b.id] = m.id
-    print(f"  Migrated {len(bots)} bots")
+    logger.info(f"  Migrated {len(bots)} bots")
 
 
 async def migrate_allowed_chats(session):
-    print("Migrating AllowedChats...")
+    logger.info("Migrating AllowedChats...")
     mongo_bots = {str(b.id): b for b in await Bot.find_all().to_list()}
     chats = session.query(SQLAllowedChat).all()
     for c in chats:
@@ -219,11 +222,11 @@ async def migrate_allowed_chats(session):
             approve_date = c.approve_date,
         )
         await m.insert()
-    print(f"  Migrated {len(chats)} allowed chats")
+    logger.info(f"  Migrated {len(chats)} allowed chats")
 
 
 async def migrate_chat_requests(session):
-    print("Migrating ChatRequests...")
+    logger.info("Migrating ChatRequests...")
     mongo_bots = {str(b.id): b for b in await Bot.find_all().to_list()}
     requests = session.query(SQLChatRequest).all()
     for r in requests:
@@ -234,11 +237,11 @@ async def migrate_chat_requests(session):
             request_date = r.request_date,
         )
         await m.insert()
-    print(f"  Migrated {len(requests)} chat requests")
+    logger.info(f"  Migrated {len(requests)} chat requests")
 
 
 async def migrate_messages(session):
-    print("Migrating Messages...")
+    logger.info("Migrating Messages...")
     mongo_stations = {str(s.id): s for s in await Station.find_all().to_list()}
     mongo_bots = {str(b.id): b for b in await Bot.find_all().to_list()}
     messages = session.query(SQLMessage).all()
@@ -258,22 +261,22 @@ async def migrate_messages(session):
         )
         await m.insert()
         id_maps["messages"][msg.id] = m.id
-    print(f"  Migrated {len(messages)} messages")
+    logger.info(f"  Migrated {len(messages)} messages")
 
 
 async def migrate_visit_counters(session):
-    print("Migrating VisitCounters...")
+    logger.info("Migrating VisitCounters...")
     counters = session.query(SQLVisitCounter).all()
     for c in counters:
         m = VisitCounter(
             visits_count = c.count
         )
         await m.insert()
-    print(f"  Migrated {len(counters)} VisitCounters")
+    logger.info(f"  Migrated {len(counters)} VisitCounters")
 
 
 async def migrate_daily_visit_counters(session):
-    print("Migrating DailyVisitCounters...")
+    logger.info("Migrating DailyVisitCounters...")
     daily_counters = session.query(SQLDailyVisitCounter).all()
     for c in daily_counters:
         m = DailyVisitCounter(
@@ -281,11 +284,11 @@ async def migrate_daily_visit_counters(session):
             visits_count = c.count
         )
         await m.insert()
-    print(f"  Migrated {len(daily_counters)} DailyVisitCounters")
+    logger.info(f"  Migrated {len(daily_counters)} DailyVisitCounters")
 
 
 async def migrate_dashboard_config(session):
-    print("Migrating DashboardConfig...")
+    logger.info("Migrating DashboardConfig...")
     rows: List[SQLDashboardConfig] = session.query(SQLDashboardConfig).all()
 
     config_map = {r.key: r.value for r in rows}
@@ -304,7 +307,7 @@ async def migrate_dashboard_config(session):
     )
     await m.insert()
 
-    print(f"  Migrated DashboardConfig ({m})")
+    logger.info(f"  Migrated DashboardConfig ({m})")
 
 async def main():
     session = Session()
@@ -322,7 +325,7 @@ async def main():
     await migrate_daily_visit_counters(session)
     await migrate_dashboard_config(session)
 
-    print("Migration completed!")
+    logger.info("Migration completed!")
 
 
 if __name__ == "__main__":

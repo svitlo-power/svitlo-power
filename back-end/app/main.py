@@ -29,4 +29,10 @@ def create_app(settings: Settings) -> FastAPI:
     app.add_middleware(LanguageMiddleware)
     app.state.settings = settings
 
+    # Set apscheduler loggers to WARNING level in production to reduce noise
+    if not settings.DEBUG:
+        logging.getLogger("apscheduler").setLevel(logging.WARNING)
+        logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
+        logging.getLogger("apscheduler.jobstores").setLevel(logging.WARNING)
+
     return app

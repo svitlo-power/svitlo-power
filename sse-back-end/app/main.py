@@ -46,4 +46,11 @@ def create_app(settings: Settings = None):
     events = EventsService(config)
     app.state.events = events
     register_routes(app, events, settings)
+
+    # Set apscheduler loggers to WARNING level in production to reduce noise
+    if not settings.DEBUG:
+        logging.getLogger("apscheduler").setLevel(logging.WARNING)
+        logging.getLogger("apscheduler.executors").setLevel(logging.WARNING)
+        logging.getLogger("apscheduler.jobstores").setLevel(logging.WARNING)
+
     return app
