@@ -9,6 +9,8 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - ".github/workflows/backend-build.yml"
+      - ".github/actions/compute-image-version/**"
+      - ".github/actions/cleanup-old-images/**"
   pull_request:
     branches: [main]
     paths:
@@ -17,6 +19,8 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - ".github/workflows/backend-build.yml"
+      - ".github/actions/compute-image-version/**"
+      - ".github/actions/cleanup-old-images/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

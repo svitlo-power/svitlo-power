@@ -62,13 +62,45 @@ runs:
           AUTH_HEADER="Authorization: Basic $(echo -n "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" | base64 -w 0)"
         fi
         
-        # Query registry for tags
-        TAGS_JSON=$(curl -sSLf -H "${AUTH_HEADER}" "${REGISTRY_API_URL}" 2>/dev/null || echo '{"tags":[]}')
+        # Query registry for tags with retry logic for transient failures
+        MAX_RETRIES=3
+        RETRY_DELAY=2
+        TAGS_JSON=""
+        CURL_EXIT_CODE=0
         
-        # Validate that TAGS_JSON is valid JSON; fallback if not
-        if ! echo "${TAGS_JSON}" | jq empty 2>/dev/null; then
-          echo "Warning: Response from ${REGISTRY_API_URL} was not valid JSON, assuming no tags"
-          TAGS_JSON='{"tags":[]}'
+        for attempt in $(seq 1 ${MAX_RETRIES}); do
+          echo "Querying registry (attempt ${attempt}/${MAX_RETRIES})..."
+          TAGS_JSON=$(curl -sSL -H "${AUTH_HEADER}" "${REGISTRY_API_URL}" 2>&1)
+          CURL_EXIT_CODE=$?
+          
+          if [[ ${CURL_EXIT_CODE} -eq 0 ]]; then
+            # Check if response is valid JSON
+            if echo "${TAGS_JSON}" | jq empty 2>/dev/null; then
+              # Check if registry returned an error
+              if ! echo "${TAGS_JSON}" | jq -e '.errors' >/dev/null 2>&1; then
+                echo "Registry query successful"
+                break
+              else
+                echo "Registry returned error: $(echo "${TAGS_JSON}" | jq -c '.errors')"
+              fi
+            else
+              echo "Invalid JSON response: ${TAGS_JSON}"
+            fi
+          else
+            echo "Curl failed with exit code: ${CURL_EXIT_CODE}"
+          fi
+          
+          if [[ ${attempt} -lt ${MAX_RETRIES} ]]; then
+            echo "Retrying in ${RETRY_DELAY}s..."
+            sleep ${RETRY_DELAY}
+            RETRY_DELAY=$((RETRY_DELAY * 2))
+          fi
+        done
+        
+        if [[ ${CURL_EXIT_CODE} -ne 0 ]] || ! echo "${TAGS_JSON}" | jq empty 2>/dev/null || echo "${TAGS_JSON}" | jq -e '.errors' >/dev/null 2>&1; then
+          echo "Error: Failed to query registry at ${REGISTRY_API_URL} after ${MAX_RETRIES} attempts"
+          echo "Last response: ${TAGS_JSON}"
+          exit 1
         fi
         
         # Extract tags matching yyyy.mm.nn pattern for current month
