@@ -1,5 +1,5 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { Anchor, AppShell, Box, Container, Group, Image, SimpleGrid, Transition, useMantineColorScheme, Button, Menu, ActionIcon, em } from "@mantine/core";
+import { Anchor, AppShell, Box, Container, Group, Image, SimpleGrid, Stack, Transition, useMantineColorScheme, Button, Menu, ActionIcon, em } from "@mantine/core";
 import { CountryFlag, LangPicker, ThemePicker } from "../components";
 import classes from './styles/publicLayout.module.css';
 import { VisitTracker } from "./components/visitTracker";
@@ -54,11 +54,12 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
 
   const t = usePageTranslation('common');
   const { t: privacyPolicyT } = useTranslation('privacyPolicy');
+  const currentYear = new Date().getFullYear();
 
   return <AppShell
       header={{ height: 60 }}
       layout="default"
-      footer={{ height: 42 }}
+    footer={{ height: 58 }}
     >
       <AppShell.Header
           onMouseEnter={() => setIsHovering(true)}
@@ -66,7 +67,9 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
         <header className={classes.header}>
           <Container size="md" className={classes.inner}>
             <Group justify="flex-start" align="center">
-              <Image h={35} w={160} src={iconSrc} alt="Logo" />
+              <Anchor href="/" underline="never">
+                <Image h={35} w={160} src={iconSrc} alt="Logo" />
+              </Anchor>
               <Transition transition="slide-down" mounted={isHovering && isAltPressed}>
                 {(transitionStyles) => (
                   <Anchor
@@ -135,9 +138,12 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
         </Box>
       </AppShell.Main>
       <AppShell.Footer>
-        <SimpleGrid pt={2} verticalSpacing={0} spacing={0} p={0} ta={'center'} cols={{ xs: 1, md: isMobile ? 2 : 3}}>
+        <SimpleGrid h="100%" verticalSpacing={0} spacing={0} p={0} ta="center" cols={{ xs: 1, md: isMobile ? 2 : 4 }} style={{ alignItems: "center" }}>
           <Authors />
-          <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
+          <Stack gap={0} align="center" justify="center">
+            <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
+            <Box fz="xs">© Svitlo Power {currentYear}</Box>
+          </Stack>
           <VisitTracker/>
           { !isMobile && <VersionDisplay /> }
         </SimpleGrid>
