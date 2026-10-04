@@ -9,6 +9,7 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - ".github/workflows/backend-build.yml"
+      - ".github/scripts/detect-backend-images.sh"
       - ".github/actions/compute-image-version/**"
       - ".github/actions/cleanup-old-images/**"
   pull_request:
@@ -19,6 +20,7 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - ".github/workflows/backend-build.yml"
+      - ".github/scripts/detect-backend-images.sh"
       - ".github/actions/compute-image-version/**"
       - ".github/actions/cleanup-old-images/**"
 
@@ -34,10 +36,50 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
+  detect-images:
+    name: Detect changed images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect affected images
+        id: detect
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: bash .github/scripts/detect-backend-images.sh "$BASE_SHA" "$HEAD_SHA" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Publish selected images
+        env:
+          MATRIX: ${{ steps.detect.outputs.matrix }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          {
+            echo "## 🐳 Selected backend images"
+            echo ""
+            echo "**Trigger:** \`${{ github.event_name }}\`"
+            echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
+            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 3 images"
+            echo ""
+            echo "| Image | Dockerfile |"
+            echo "|---|---|"
+            jq -r '.include[] | "| \(.image) | \(.dockerfile) |"' <<<"$MATRIX"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test-docker:
     name: Tests (docker)
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 30
+    env:
+      REGISTRY_URL: ${{ vars.REGISTRY_URL || secrets.REGISTRY_URL }}
     if: >
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -119,55 +161,15 @@ jobs:
         if: always()
         run: docker compose --profile tests down --remove-orphans --volumes || true
 
-  compute-version:
-    name: Compute image version
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: svitlo-power-back-end
-          - image: svitlo-power-sse-back-end
-          - image: svitlo-power-grid-reporter
-    outputs:
-      versions: ${{ steps.set-output.outputs.versions }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Compute version
-        id: compute
-        uses: ./.github/actions/compute-image-version
-        with:
-          image-name: ${{ matrix.image }}
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-
-      - name: Set matrix output
-        id: set-output
-        run: |
-          echo "versions={\"${{ matrix.image }}\":\"${{ steps.compute.outputs.version }}\"}" >> $GITHUB_OUTPUT
-
   build-and-push:
     name: Build ${{ matrix.image }}
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 45
-    needs: [test-docker, compute-version]
+    needs: [detect-images, test-docker]
     strategy:
       fail-fast: false
       max-parallel: 2
-      matrix:
-        include:
-          - image: svitlo-power-back-end
-            dockerfile: back-end/Dockerfile
-          - image: svitlo-power-sse-back-end
-            dockerfile: sse-back-end/Dockerfile
-          - image: svitlo-power-grid-reporter
-            dockerfile: grid-reporter/Dockerfile
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -185,6 +187,15 @@ jobs:
           username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
+      - name: Compute version
+        id: compute
+        uses: ./.github/actions/compute-image-version
+        with:
+          image-name: ${{ matrix.image }}
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6.2.0
@@ -195,7 +206,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }},enable={{is_default_branch}}
+            type=raw,value=${{ steps.compute.outputs.version }},enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v7.3.0
@@ -208,7 +219,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
-            VERSION=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }}
+            VERSION=${{ steps.compute.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
@@ -217,30 +228,19 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build-and-push]
+    needs: [build-and-push, detect-images]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Cleanup svitlo-power-back-end
+      - name: Cleanup old image versions
         uses: ./.github/actions/cleanup-old-images
         with:
-          image-name: svitlo-power-back-end
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Cleanup svitlo-power-sse-back-end
-        uses: ./.github/actions/cleanup-old-images
-        with:
-          image-name: svitlo-power-sse-back-end
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Cleanup svitlo-power-grid-reporter
-        uses: ./.github/actions/cleanup-old-images
-        with:
-          image-name: svitlo-power-grid-reporter
+          image-name: ${{ matrix.image }}
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
