@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: back-end/Dockerfile
-    image: svitlo-power-back-end:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-back-end:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
@@ -47,7 +47,7 @@ services:
     stop_grace_period: 15s
 
   svitlo-power-migrate:
-    image: svitlo-power-back-end:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-back-end:${TAG:-latest}
     container_name: svitlo-power-migrate
     env_file: .env
     command:
@@ -64,7 +64,7 @@ services:
     restart: "no"
 
   svitlo-power-tests:
-    image: svitlo-power-back-end
+    image: ${REGISTRY_URL}/svitlo-power-back-end:${TAG:-latest}
     profiles: ["tests"]
     environment:
       - PYTHONDONTWRITEBYTECODE=1
@@ -83,7 +83,7 @@ services:
     build:
       context: .
       dockerfile: sse-back-end/Dockerfile
-    image: svitlo-power-sse-back-end:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-sse-back-end:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
@@ -111,7 +111,7 @@ services:
       context: grid-reporter
       additional_contexts:
         shared: ./shared
-    image: svitlo-power-grid-reporter:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
@@ -129,7 +129,7 @@ services:
       context: front-end
       additional_contexts:
         shared: ./shared
-    image: svitlo-power-front-end:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-front-end:${TAG:-latest}
     restart: always
     ports:
       - "${OUTPUT_PORT:-5005}:80"
