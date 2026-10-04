@@ -59,7 +59,7 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
   return <AppShell
       header={{ height: 60 }}
       layout="default"
-    footer={{ height: 58 }}
+    footer={{ height: { base: 112, md: 58 } }}
     >
       <AppShell.Header
           onMouseEnter={() => setIsHovering(true)}
@@ -138,14 +138,17 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
         </Box>
       </AppShell.Main>
       <AppShell.Footer>
-        <SimpleGrid h="100%" verticalSpacing={0} spacing={0} p={0} ta="center" cols={{ xs: 1, md: isMobile ? 2 : 4 }} style={{ alignItems: "center" }}>
+        <SimpleGrid h="100%" verticalSpacing={0} spacing={0} p={0} ta="center" cols={{ base: 1, md: 3 }} style={{ alignItems: "center" }}>
           <Authors />
           <Stack gap={0} align="center" justify="center">
-            <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
-            <Box fz="xs">© Svitlo Power {currentYear}</Box>
+            <Group gap={6} justify="center" align="center">
+              <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
+              <Box fz="xs">|</Box>
+              <Box fz="xs">© Svitlo Power {currentYear}</Box>
+            </Group>
+            <VersionDisplay compact />
           </Stack>
-          <VisitTracker/>
-          { !isMobile && <VersionDisplay /> }
+          <VisitTracker />
         </SimpleGrid>
       </AppShell.Footer>
     </AppShell>;
