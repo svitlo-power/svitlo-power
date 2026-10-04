@@ -63,7 +63,7 @@ jobs:
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           {
-            echo "## Selected backend images"
+            echo "## 🐳 Selected backend images"
             echo ""
             echo "**Trigger:** \`${{ github.event_name }}\`"
             echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
