@@ -60,6 +60,8 @@ jobs:
     name: Tests (docker)
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 30
+    env:
+      REGISTRY_URL: ${{ env.REGISTRY }}
     if: >
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
