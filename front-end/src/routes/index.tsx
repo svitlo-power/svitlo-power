@@ -124,7 +124,7 @@ const Routes: FC = () => {
     element: <PublicLayout><PrivacyPolicyPage /></PublicLayout>,
   };
 
-  const routesForAuthenticatedOnly: RouteObject[] = [
+  const publicRoutes: RouteObject[] = [
     changePasswordRoute,
     loginRoute,
     privacyPolicyRoute,
@@ -132,6 +132,10 @@ const Routes: FC = () => {
       path: "/app",
       element: <AppLandingPage />,
     },
+  ];
+
+  const routesForAuthenticatedOnly: RouteObject[] = [
+    ...publicRoutes,
     {
       path: "/",
       element: (<ProtectedRoute />),
@@ -140,13 +144,7 @@ const Routes: FC = () => {
   ];
 
   const routesForNotAuthenticated: RouteObject[] = [
-    changePasswordRoute,
-    loginRoute,
-    privacyPolicyRoute,
-    {
-      path: "/app",
-      element: <AppLandingPage />,
-    },
+    ...publicRoutes,
     {
       path: "/",
       element: <PublicLayout>

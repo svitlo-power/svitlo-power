@@ -12,6 +12,7 @@ import { useSubscribeEvent } from "../hooks";
 import { EventType } from "../types";
 import { VersionDisplay } from "./components/versionDisplay";
 import { useMediaQuery } from "@mantine/hooks";
+import { useTranslation } from "react-i18next";
 
 type PublicLayoutProps = {
   children: ReactNode;
@@ -52,6 +53,7 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
   });
 
   const t = usePageTranslation('common');
+  const { t: privacyPolicyT } = useTranslation('privacyPolicy');
 
   return <AppShell
       header={{ height: 60 }}
@@ -135,6 +137,7 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
       <AppShell.Footer>
         <SimpleGrid pt={2} verticalSpacing={0} spacing={0} p={0} ta={'center'} cols={{ xs: 1, md: isMobile ? 2 : 3}}>
           <Authors />
+          <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
           <VisitTracker/>
           { !isMobile && <VersionDisplay /> }
         </SimpleGrid>
