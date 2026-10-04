@@ -8,10 +8,7 @@ export const Authors: FC = () => {
   const isMobile = useMediaQuery(`(max-width: ${em(750)})`);
 
   return (
-    <Box
-      fz="xs"
-      style={{ lineHeight: isMobile ? 0 : "var(--app-shell-footer-height)" }}
-    >
+    <Box fz="xs">
       <Trans
         i18nKey="authors.label"
         components={[
