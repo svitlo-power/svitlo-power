@@ -24,8 +24,6 @@ services:
     env_file: .env
     environment:
       - DEBUG=False
-    volumes:
-      - ./back-end/db.sqlite3:/svitlo-power-back-end/db.sqlite3
     expose:
       - "5005"
     networks:
