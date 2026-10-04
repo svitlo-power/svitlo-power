@@ -59,9 +59,15 @@ jobs:
       - name: Publish selected images
         env:
           MATRIX: ${{ steps.detect.outputs.matrix }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           {
             echo "## Selected backend images"
+            echo ""
+            echo "**Trigger:** \`${{ github.event_name }}\`"
+            echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
+            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 3 images"
             echo ""
             echo "| Image | Dockerfile |"
             echo "|---|---|"
