@@ -115,8 +115,9 @@ docker compose down || { echo "Failed to stop containers"; exit 1; }
 
 # --- Start containers with pulled images ----------------------------------
 echo "Starting containers with registry images (tag: $TAG)..."
-# Export TAG so docker-compose can use it if needed
+# Export TAG and REGISTRY_URL so docker-compose can use them
 export TAG
+export REGISTRY_URL
 # Read SSE_SCALE from .env, fallback to 3
 SSE_SCALE="${SSE_SCALE:-3}"
 docker compose up -d --scale svitlo-power-sse-back-end="${SSE_SCALE}" || { echo "Failed to start containers"; exit 1; }
