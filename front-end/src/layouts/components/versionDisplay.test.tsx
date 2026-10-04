@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { describe, expect, it } from "vitest";
 import { VersionDisplay } from "./versionDisplay";
 import { Provider } from "react-redux";
 import { MantineProvider } from "@mantine/core";
