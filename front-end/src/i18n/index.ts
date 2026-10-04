@@ -21,6 +21,8 @@ import enMessages from './en/messages.json';
 import ukMessages from './uk/messages.json';
 import enDevices from './en/devices.json';
 import ukDevices from './uk/devices.json';
+import enPrivacyPolicy from './en/privacyPolicy.json';
+import ukPrivacyPolicy from './uk/privacyPolicy.json';
 
 export const AVAILABLE_LANGUAGES = ['en', 'uk'];
 
@@ -46,6 +48,7 @@ i18n
         home: enHome,
         messages: enMessages,
         devices: enDevices,
+        privacyPolicy: enPrivacyPolicy,
       },
       uk: {
         common: ukCommon,
@@ -58,6 +61,7 @@ i18n
         home: ukHome,
         messages: ukMessages,
         devices: ukDevices,
+        privacyPolicy: ukPrivacyPolicy,
       },
     },
 

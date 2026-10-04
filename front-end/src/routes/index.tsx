@@ -4,7 +4,7 @@ import {
   LoginPage, HomePage, StationsPage, StationDetailsPage, BotsPage,
   ChatsPage, MessagesPage, MessageEditPage, UsersPage,
   BuildingsPage, ExtDataPage, NotFoundPage,
-  ChangePasswordPage, AppLandingPage, ExtDevicesPage
+  ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage
 } from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
@@ -119,13 +119,23 @@ const Routes: FC = () => {
     </AnonymousLayout>),
   } as RouteObject;
 
-  const routesForAuthenticatedOnly: RouteObject[] = [
+  const privacyPolicyRoute: RouteObject = {
+    path: "/privacy-policy",
+    element: <PublicLayout><PrivacyPolicyPage /></PublicLayout>,
+  };
+
+  const publicRoutes: RouteObject[] = [
     changePasswordRoute,
     loginRoute,
+    privacyPolicyRoute,
     {
       path: "/app",
       element: <AppLandingPage />,
     },
+  ];
+
+  const routesForAuthenticatedOnly: RouteObject[] = [
+    ...publicRoutes,
     {
       path: "/",
       element: (<ProtectedRoute />),
@@ -134,12 +144,7 @@ const Routes: FC = () => {
   ];
 
   const routesForNotAuthenticated: RouteObject[] = [
-    changePasswordRoute,
-    loginRoute,
-    {
-      path: "/app",
-      element: <AppLandingPage />,
-    },
+    ...publicRoutes,
     {
       path: "/",
       element: <PublicLayout>
