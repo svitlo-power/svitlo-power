@@ -1,21 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import List
+from abc import abstractmethod
 
 from beanie import PydanticObjectId
 
-from shared.models.station import Station
 from app.models.deye import DeyeStation
+from shared.repositories import IStationsReadRepository
 
 
-class IStationsRepository(ABC):
-
-    @abstractmethod
-    async def get_station(self, station_id: str) -> Station | None:
-        ...
-
-    @abstractmethod
-    async def get_station_by_station_id(self, station_id: int) -> Station | None:
-        ...
+class IStationsRepository(IStationsReadRepository):
 
     @abstractmethod
     async def edit_station(
@@ -26,10 +17,6 @@ class IStationsRepository(ABC):
         battery_capacity: float,
         station_alias: str,
     ):
-        ...
-
-    @abstractmethod
-    async def get_stations(self, all: bool = False) -> List[Station]:
         ...
 
     @abstractmethod

@@ -4,21 +4,10 @@ from beanie import PydanticObjectId
 
 from shared.models.building import Building
 from shared.models.dashboard_config import DashboardConfig
+from shared.repositories import DashboardReadRepository
 from ..interfaces.dashboard import IDashboardRepository
 
-class DashboardRepository(IDashboardRepository):
-
-    async def get_building(self, id: PydanticObjectId) -> Building:
-        return await Building.get(id, fetch_links=True)
-
-    async def get_building_by_station_id(
-        self,
-        station_id: int,
-    ) -> Optional[Building]:
-        return await Building.find_one(
-            Building.station.id == station_id,
-            fetch_links=True,
-        )
+class DashboardRepository(DashboardReadRepository, IDashboardRepository):
 
     async def edit_building(self, building: Building):
         await building.save()
@@ -34,27 +23,6 @@ class DashboardRepository(IDashboardRepository):
         for index, building in enumerate(buildings, start=1):
             building.order = index
         await asyncio.gather(*(building.save() for building in buildings))
-
-    async def get_buildings(
-        self,
-        ids: Optional[List[PydanticObjectId]] = None,
-        all: bool = False,
-    ) -> List[Building]:
-        query = {}
-
-        if ids is not None:
-            query["_id"] = {"$in": ids}
-        elif not all:
-            query["enabled"] = True
-
-        return (
-            await Building.find(query, fetch_links=True)
-            .sort(Building.order)
-            .to_list()
-        )
-
-    async def get_config(self) -> DashboardConfig:
-        return await DashboardConfig.find_one()
 
     async def save_config(self, config: DashboardConfig):
         existing_config = await DashboardConfig.find_one()

@@ -4,6 +4,7 @@ from typing import List
 from beanie import PydanticObjectId
 from injector import inject
 
+from shared.models.assumed_station_status import AssumedStationStatus
 from shared.models.building import Building
 from shared.models.dashboard_config import DashboardConfig
 from shared.models.ext_data import ExtData
@@ -16,7 +17,6 @@ from app.repositories import (
     IStationsDataRepository,
     IUsersRepository,
 )
-from app.models import AssumedStationStatus
 from app.models.api import (
     BuildingResponse,
     BuildingSummaryResponse,

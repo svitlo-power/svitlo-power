@@ -3,11 +3,11 @@ import os
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from shared.settings.base import BaseAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings
+from shared.settings.base import BaseAppSettings, BaseDeyeAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings
 from shared.utils import generate_secret_key
 
 
-class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings):
+class Settings(BaseSettings, BaseAppSettings, BaseDeyeAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings):
     model_config = SettingsConfigDict(
         env_file="../.env",
         env_file_encoding="utf-8",
@@ -20,21 +20,6 @@ class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings
     # -------------------------
 
     SECRET_KEY: str = Field(default_factory=lambda: generate_secret_key(32))
-
-    # -------------------------
-    # Deye
-    # -------------------------
-    DEYE_BASE_URL: str | None = None
-    DEYE_APP_ID: str | None = None
-    DEYE_APP_SECRET: str | None = None
-    DEYE_EMAIL: str | None = None
-    DEYE_PASSWORD: str | None = None
-
-    DEYE_FETCH_INTERVAL: int = Field(default=120)
-    DEYE_SYNC_STATIONS_ON_POLL: bool = Field(default=False)
-
-    DEYE_REPORT_INTERVAL: int = Field(default=300)
-    DEYE_ASSUMED_OFFLINE_REPORTS: int = Field(default=2)
 
     # -------------------------
     # Telegram

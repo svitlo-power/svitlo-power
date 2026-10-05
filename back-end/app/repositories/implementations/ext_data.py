@@ -1,8 +1,9 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List, Literal
+from typing import List
 from beanie import PydanticObjectId
 from pymongo import ASCENDING, DESCENDING
+from shared.repositories import ExtDataReadRepository
 
 from .base import BaseReadRepository
 from shared.models.ext_data import ExtData
@@ -14,7 +15,7 @@ from ..interfaces.ext_data import IExtDataRepository
 logger = logging.getLogger(__name__)
 
 
-class ExtDataRepository(IExtDataRepository, BaseReadRepository[ExtData]):
+class ExtDataRepository(ExtDataReadRepository, IExtDataRepository, BaseReadRepository[ExtData]):
     model = ExtData
 
     def build_reference_joins(self, sorting: SortingConfig | None) -> list[dict]:
@@ -31,7 +32,6 @@ class ExtDataRepository(IExtDataRepository, BaseReadRepository[ExtData]):
                 {"$unwind": "$user"},
             ]
         return []
-
 
     def build_sort_stage(self, sorting: SortingConfig | None) -> dict:
         if not sorting:
@@ -51,15 +51,6 @@ class ExtDataRepository(IExtDataRepository, BaseReadRepository[ExtData]):
 
     async def get_ext_data_by_id(self, ext_data_id: PydanticObjectId) -> ExtData:
         return await ExtData.get(ext_data_id)
-
-    async def get_last_ext_data_by_user_id(self, user_id: PydanticObjectId) -> ExtData:
-        documents = await ExtData.find(
-            ExtData.user_id == user_id,
-            fetch_links = True
-        ).sort(
-            -ExtData.received_at
-        ).to_list()
-        return documents[0] if documents else None
 
     async def add_ext_data(
         self,
@@ -81,35 +72,6 @@ class ExtDataRepository(IExtDataRepository, BaseReadRepository[ExtData]):
             await ext_data.delete()
             return True
         return False
-
-    async def get_ext_data_statistics(
-        self,
-        user_id: PydanticObjectId,
-        start_date: datetime,
-        end_date: datetime,
-    ):
-        ext_data = await ExtData.find(
-            ExtData.user_id == user_id,
-            ExtData.received_at >= start_date,
-            ExtData.received_at <= end_date
-        ).sort(
-            ExtData.received_at
-        ).to_list()
-
-        return ext_data
-
-    async def get_last_ext_data_before_date(self, user_id: int, before_date: datetime):
-        try:
-            docs = await ExtData.find(
-                ExtData.user_id == user_id,
-                ExtData.received_at < before_date
-            ).sort(
-                -ExtData.received_at
-            ).limit(1).to_list()
-            return docs[0] if docs else None
-        except Exception as e:
-            logger.error(f'Error getting last ext data before date: {e}')
-            return None
 
     async def delete_old_data(self, keep_days: int):
         timeout = datetime.now(timezone.utc) - timedelta(days = keep_days)
