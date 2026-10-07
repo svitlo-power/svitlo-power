@@ -12,6 +12,6 @@ COPY shared/python /shared/python
 RUN pip install --upgrade pip --root-user-action=ignore
 RUN pip install --no-cache-dir -r requirements.txt --root-user-action=ignore
 
-COPY . /svitlo-power-grid-reporter/
+COPY grid-reporter/ /svitlo-power-grid-reporter/
 
 CMD ["python", "/svitlo-power-grid-reporter/run.py"]
