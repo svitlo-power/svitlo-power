@@ -106,9 +106,8 @@ services:
 
   svitlo-power-grid-reporter:
     build:
-      context: grid-reporter
-      additional_contexts:
-        shared: ./shared
+      context: .
+      dockerfile: grid-reporter/Dockerfile
     image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
     restart: always
     env_file: .env

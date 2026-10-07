@@ -6,6 +6,7 @@ on:
     paths:
       - "front-end/**"
       - "shared/i18n/**"
+      - "docker-compose.yml"
       - ".github/workflows/frontend-build.yml"
       - ".github/actions/compute-image-version/**"
       - ".github/actions/cleanup-old-images/**"
@@ -14,6 +15,7 @@ on:
     paths:
       - "front-end/**"
       - "shared/i18n/**"
+      - "docker-compose.yml"
       - ".github/workflows/frontend-build.yml"
       - ".github/actions/compute-image-version/**"
       - ".github/actions/cleanup-old-images/**"
