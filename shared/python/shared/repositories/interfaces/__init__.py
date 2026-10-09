@@ -3,6 +3,7 @@ from .ext_data_read import IExtDataReadRepository
 from .stations_read import IStationsReadRepository
 from .stations_data_read import IStationsDataReadRepository
 from .users_read import IUsersReadRepository
+from .outages_schedule import IOutagesScheduleRepository
 
 __all__ = [
     IDashboardReadRepository,
@@ -10,4 +11,5 @@ __all__ = [
     IStationsReadRepository,
     IStationsDataReadRepository,
     IUsersReadRepository,
+    IOutagesScheduleRepository,
 ]

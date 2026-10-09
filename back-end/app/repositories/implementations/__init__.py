@@ -11,9 +11,10 @@ from .ext_data import ExtDataRepository
 from .ext_device import ExtDeviceRepository
 from .dashboard import DashboardRepository
 from .login_history import LoginHistoryRepository
+from .outages_schedule import InMemoryOutagesScheduleRepository
 
 
 __all__ = [UsersRepository, MessagesRepository, BotsRepository, StationsRepository,
            StationsDataRepository, VisitsCounterRepository, LookupsRepository,
            ChatsRepository, ExtDataRepository, ExtDeviceRepository, DashboardRepository,
-           StationConnectionsRepository, LoginHistoryRepository]
+           StationConnectionsRepository, LoginHistoryRepository, InMemoryOutagesScheduleRepository]

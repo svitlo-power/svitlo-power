@@ -3,7 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from injector import Injector
 
 from app.settings import Settings
-from app.services import OutagesScheduleService
+from shared.services import OutagesScheduleService
 
 
 def register(_: Settings, injector: Injector):

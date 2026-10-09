@@ -2,11 +2,10 @@ from injector import Binder, Module, singleton, noscope
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
-from shared.services import EventsService, EventsServiceConfig, TranslationService
+from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
 from .beanie_initializer import BeanieInitializer
 from .authorization import AuthorizationService
 from .bots import BotConfig, BotsService
-from .outages_schedule import OutagesScheduleService
 from .telegram import TelegramConfig, TelegramService
 from .station_connections import StationConnectionsService
 from .visit_counter import VisitCounterService
@@ -43,6 +42,7 @@ class ServicesContainer(Module):
         events_service_config = EventsServiceConfig(str(self._settings.REDIS_URI), self._settings.DEBUG)
         binder.bind(EventsServiceConfig, to=events_service_config, scope=noscope)
         binder.bind(EventsService, to=EventsService(events_service_config), scope=singleton)
+
         binder.bind(OutagesScheduleService, scope=singleton)
 
         binder.bind(TelegramConfig, scope=noscope)

@@ -12,10 +12,11 @@ from .ext_data import IExtDataRepository
 from .ext_device import IExtDeviceRepository
 from .dashboard import IDashboardRepository
 from .login_history import ILoginHistoryRepository
+from .outages_schedule import IOutagesScheduleRepository
 
 
 __all__ = [DataQuery, IBotsRepository, IUsersRepository, IMessagesRepository,
            ILookupsRepository, LookupDefinition, IStationsRepository,
            IStationsDataRepository, IVisitsCounterRepository, IChatsRepository,
            IExtDataRepository, IExtDeviceRepository, IDashboardRepository,
-           IStationConnectionsRepository, ILoginHistoryRepository]
+           IStationConnectionsRepository, ILoginHistoryRepository, IOutagesScheduleRepository]

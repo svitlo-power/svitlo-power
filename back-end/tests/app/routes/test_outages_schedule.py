@@ -24,7 +24,7 @@ class TestOutagesScheduleRoute:
         mock_schedule.model_dump.return_value = {"queue": "test", "schedule": []}
 
         mock_service = MagicMock()
-        mock_service.get_schedule.return_value = mock_schedule
+        mock_service.get_schedule_async = AsyncMock(return_value=mock_schedule)
 
         mock_injector = MagicMock()
         mock_injector.get = MagicMock(return_value=mock_service)
@@ -41,7 +41,7 @@ class TestOutagesScheduleRoute:
         register(app)
 
         mock_service = MagicMock()
-        mock_service.get_schedule.return_value = None
+        mock_service.get_schedule_async = AsyncMock(return_value=None)
 
         mock_injector = MagicMock()
         mock_injector.get = MagicMock(return_value=mock_service)
