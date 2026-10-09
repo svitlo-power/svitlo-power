@@ -21,9 +21,9 @@ class AppContainer(Module):
 
 def _create_containers(settings: Settings):
     app_container = AppContainer(settings)
-    services_container = ServicesContainer(settings)
     repositories_container = RepositoryContainer(settings)
-    return [app_container, services_container, repositories_container]
+    services_container = ServicesContainer(settings)
+    return [app_container, repositories_container, services_container]
 
 def init_container(app: FastAPI, settings: Settings) -> Injector:
     containers = _create_containers(settings)
