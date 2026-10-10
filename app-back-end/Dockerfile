@@ -17,9 +17,10 @@ RUN pip install --no-cache-dir -e ./shared/
 
 # Copy app code
 COPY app/ ./app/
+COPY run.py .
 
 # Expose port
 EXPOSE 8000
 
 # Run the application
-CMD ["python", "-m", "app.main"]
+CMD ["python", "run.py"]
