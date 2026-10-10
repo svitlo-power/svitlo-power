@@ -34,5 +34,6 @@ def create_app(settings: Settings) -> FastAPI:
     app.add_middleware(InjectorMiddleware, injector=injector)
     attach_injector(app, injector)
     app.state.settings = settings
+    app.state.injector = injector
     register_routes(app)
     return app

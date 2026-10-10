@@ -30,7 +30,7 @@ class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 days
 
     # Override MongoDB to be optional for local development
-    MONGO_URI: Optional[str] = Field(default="mongodb://localhost:27017", description="Mongo URI")
+    MONGO_URI: Optional[str] = Field(default="mongodb://localhost:27017/?directConnection=true", description="Mongo URI")
     MONGO_DB: str = "svitlo_power"
 
     # Override Redis to be optional for local development
