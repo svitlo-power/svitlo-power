@@ -44,6 +44,12 @@ class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings
     BOT_TIMEZONE: str = "utc"
 
     # -------------------------
+    # Push notifications (FCM)
+    # -------------------------
+    # Service account JSON or a path to the JSON file
+    FIREBASE_CREDENTIALS: str | None = None
+
+    # -------------------------
     # Auth / Admin
     # -------------------------
     ADMIN_USER: str | None = None

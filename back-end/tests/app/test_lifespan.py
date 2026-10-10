@@ -97,6 +97,7 @@ class TestLifespan:
              patch("app.lifespan.register_routes") as mock_register_routes, \
              patch("app.lifespan.setup_bots") as mock_setup_bots, \
              patch("app.lifespan.create_user") as mock_create_user, \
+             patch("app.lifespan.setup_push_topics") as mock_setup_push_topics, \
              patch("app.lifespan.register_chained_signal_handlers") as mock_register_signals:
 
             mock_injector = MagicMock()
@@ -137,4 +138,5 @@ class TestLifespan:
             mock_register_routes.assert_called_once()
             mock_setup_bots.assert_called_once()
             mock_create_user.assert_called_once()
+            mock_setup_push_topics.assert_called_once()
             mock_register_signals.assert_called_once()

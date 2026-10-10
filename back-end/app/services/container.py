@@ -20,6 +20,7 @@ from .dashboard import DashboardService
 from .maintenance import MaintenanceService
 from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
+from .push import FcmSender, PushService
 from .interfaces import IMessageGeneratorService, IExtDeviceService
 
 
@@ -66,6 +67,9 @@ class ServicesContainer(Module):
         binder.bind(IExtDeviceService, to=ExtDeviceService)
 
         binder.bind(DashboardService, scope=noscope)
+
+        binder.bind(FcmSender, scope=singleton)
+        binder.bind(PushService, scope=noscope)
 
         scheduler = AsyncIOScheduler()
         binder.bind(AsyncIOScheduler, to=scheduler, scope=singleton)
