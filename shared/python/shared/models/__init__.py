@@ -16,6 +16,20 @@ from .user import User, ReportMode
 from .visit_counter import VisitCounter, DailyVisitCounter
 from .login_history import LoginHistory
 from .beanie_filter import BeanieFilter
+from .api.dashboard import (
+    BuildingResponse,
+    ChargeSource,
+    BuildingSummaryResponse,
+    BuildingsSummaryRequest,
+    BuildingWithSummaryResponse,
+    DashboardConfigResponse,
+    PowerLogsRequest,
+    PeriodResponse,
+    PowerLogsResponse,
+    EditBuildingResponse,
+    SaveBuildingRequest,
+    SaveDashboardConfigRequest,
+)
 
 
 __all__ = [
@@ -24,6 +38,15 @@ __all__ = [
     StationData, ExtData, ExtDevice, DashboardConfig,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue, LoginHistory,
+    BuildingResponse,
+    ChargeSource,
+    BuildingSummaryResponse,
+    BuildingsSummaryRequest,
+    BuildingWithSummaryResponse,
+    DashboardConfigResponse,
+    PowerLogsRequest,
+    PeriodResponse,
+    PowerLogsResponse,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,

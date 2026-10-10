@@ -1,17 +1,15 @@
-"""Tests for app/services/dashboard/service.py."""
+"""Tests for shared/services/dashboard/service.py."""
 from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from beanie import PydanticObjectId
 
-from app.services.dashboard.service import DashboardService
+from shared.services.dashboard import ReadOnlyDashboardService
 from shared.models import (
     BuildingResponse,
     BuildingSummaryResponse,
     DashboardConfigResponse,
-    SaveBuildingRequest,
-    SaveDashboardConfigRequest,
     ChargeSource,
 )
 from shared.models.building import Building
@@ -23,7 +21,7 @@ from shared.models.ext_data import ExtData
 from shared.models.user import User
 
 
-class TestDashboardServiceInit:
+class TestReadOnlyDashboardServiceInit:
     def test_init_stores_dependencies(self):
         mock_events = MagicMock()
         mock_dashboard_repo = MagicMock()
@@ -32,7 +30,7 @@ class TestDashboardServiceInit:
         mock_stations_data_repo = MagicMock()
         mock_users_repo = MagicMock()
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -43,7 +41,7 @@ class TestDashboardServiceInit:
         assert service._users is mock_users_repo
 
 
-class TestDashboardServiceGetConfig:
+class TestReadOnlyDashboardServiceGetConfig:
     @pytest.mark.asyncio
     async def test_get_config_returns_response(self):
         mock_events = MagicMock()
@@ -60,7 +58,7 @@ class TestDashboardServiceGetConfig:
         )
         mock_dashboard_repo.get_config = AsyncMock(return_value=config)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -70,40 +68,7 @@ class TestDashboardServiceGetConfig:
         assert result.outages_schedule_queue == "queue1"
 
 
-class TestDashboardServiceSaveConfig:
-    @pytest.mark.asyncio
-    async def test_save_config_delegates_to_repository(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        mock_dashboard_repo.save_config = AsyncMock()
-        mock_dashboard_repo.get_config = AsyncMock(return_value=DashboardConfig(
-            title=LocalizableValue({"en": "Test"}),
-            enable_outages_schedule=False,
-            outages_schedule_queue=None,
-        ))
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        request = SaveDashboardConfigRequest(
-            title=LocalizableValue({"en": "Test"}),
-            enableOutagesSchedule=True,
-            outagesScheduleQueue="queue1",
-        )
-        result = await service.save_config(request)
-        assert isinstance(result, DashboardConfigResponse)
-        mock_dashboard_repo.save_config.assert_called_once()
-        mock_events.broadcast_public.assert_called_once_with("dashboard_config_updated", None)
-
-
-class TestDashboardServiceProcessBuilding:
+class TestReadOnlyDashboardServiceProcessBuilding:
     def test_process_building_returns_response(self):
         mock_events = MagicMock()
         mock_dashboard_repo = MagicMock()
@@ -112,7 +77,7 @@ class TestDashboardServiceProcessBuilding:
         mock_stations_data_repo = MagicMock()
         mock_users_repo = MagicMock()
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -131,7 +96,7 @@ class TestDashboardServiceProcessBuilding:
         assert result.order == 1
 
 
-class TestDashboardServiceGetBuildings:
+class TestReadOnlyDashboardServiceGetBuildings:
     @pytest.mark.asyncio
     async def test_get_buildings_returns_list(self):
         mock_events = MagicMock()
@@ -147,7 +112,7 @@ class TestDashboardServiceGetBuildings:
         ]
         mock_dashboard_repo.get_buildings = AsyncMock(return_value=buildings)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -157,7 +122,7 @@ class TestDashboardServiceGetBuildings:
         assert result[0].name.root == {"en": "B1"}
 
 
-class TestDashboardServiceGetBuilding:
+class TestReadOnlyDashboardServiceGetBuilding:
     @pytest.mark.asyncio
     async def test_get_building_returns_edit_response(self):
         mock_events = MagicMock()
@@ -175,7 +140,7 @@ class TestDashboardServiceGetBuilding:
         )
         mock_dashboard_repo.get_building = AsyncMock(return_value=building)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -194,7 +159,7 @@ class TestDashboardServiceGetBuilding:
 
         mock_dashboard_repo.get_building = AsyncMock(return_value=None)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -202,152 +167,7 @@ class TestDashboardServiceGetBuilding:
         assert result is None
 
 
-class TestDashboardServiceCreateBuilding:
-    @pytest.mark.asyncio
-    async def test_create_building_delegates_to_repository(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        mock_dashboard_repo.create_building = AsyncMock(return_value=PydanticObjectId())
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        request = SaveBuildingRequest(
-            name=LocalizableValue({"en": "New Building"}),
-            color="#FF0000",
-            stationId=None,
-            reportUserIds=[],
-            enabled=True,
-            order=1,
-        )
-        result = await service.create_building(request)
-        assert result is not None
-        mock_dashboard_repo.create_building.assert_called_once()
-        mock_events.broadcast_public.assert_called_once_with("buildings_updated", None)
-
-
-class TestDashboardServiceDeleteBuilding:
-    @pytest.mark.asyncio
-    async def test_delete_building_success(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        building = Building(name=LocalizableValue({"en": "Test"}), color="#FF0000", enabled=True, order=1)
-        mock_dashboard_repo.get_building = AsyncMock(return_value=building)
-        mock_dashboard_repo.delete_building = AsyncMock()
-        mock_dashboard_repo.get_buildings = AsyncMock(return_value=[])
-        mock_dashboard_repo.reorder_buildings = AsyncMock()
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        result = await service.delete_building(PydanticObjectId())
-        assert result is True
-        mock_dashboard_repo.delete_building.assert_called_once()
-        mock_events.broadcast_public.assert_called_once_with("buildings_updated", None)
-
-    @pytest.mark.asyncio
-    async def test_delete_building_not_found(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        mock_dashboard_repo.get_building = AsyncMock(return_value=None)
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        result = await service.delete_building(PydanticObjectId())
-        assert result is False
-        mock_dashboard_repo.delete_building.assert_not_called()
-
-
-class TestDashboardServiceEditBuilding:
-    @pytest.mark.asyncio
-    async def test_edit_building_with_empty_report_users(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        building = Building(
-            name=LocalizableValue({"en": "Building 1"}),
-            color="#FF0000",
-            enabled=True,
-            order=1,
-        )
-        mock_dashboard_repo.get_building = AsyncMock(return_value=building)
-        mock_dashboard_repo.edit_building = AsyncMock()
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        request = SaveBuildingRequest(
-            name=LocalizableValue({"en": "Updated Building"}),
-            color="#00FF00",
-            stationId=None,
-            reportUserIds=[],
-            enabled=True,
-            order=2,
-        )
-        result = await service.edit_building(PydanticObjectId(), request)
-        assert result is not None
-        mock_dashboard_repo.edit_building.assert_called_once()
-        mock_events.broadcast_public.assert_called_once_with("buildings_updated", None)
-
-    @pytest.mark.asyncio
-    async def test_edit_building_not_found(self):
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        mock_dashboard_repo.get_building = AsyncMock(return_value=None)
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        request = SaveBuildingRequest(
-            name=LocalizableValue({"en": "Updated Building"}),
-            color="#00FF00",
-            stationId=None,
-            reportUserIds=[],
-            enabled=True,
-            order=2,
-        )
-        result = await service.edit_building(PydanticObjectId(), request)
-        assert result is None
-        mock_dashboard_repo.edit_building.assert_not_called()
-        mock_events.broadcast_public.assert_not_called()
-
-
-class TestDashboardServiceGetBuildingsSummary:
+class TestReadOnlyDashboardServiceGetBuildingsSummary:
     @pytest.mark.asyncio
     async def test_get_buildings_summary(self):
         mock_events = MagicMock()
@@ -365,7 +185,7 @@ class TestDashboardServiceGetBuildingsSummary:
         )
         mock_dashboard_repo.get_buildings = AsyncMock(return_value=[building])
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -374,7 +194,7 @@ class TestDashboardServiceGetBuildingsSummary:
         assert isinstance(result[0], BuildingSummaryResponse)
 
 
-class TestDashboardServiceGetPowerLogs:
+class TestReadOnlyDashboardServiceGetPowerLogs:
     @pytest.mark.asyncio
     async def test_get_power_logs_building_not_found(self):
         mock_events = MagicMock()
@@ -386,7 +206,7 @@ class TestDashboardServiceGetPowerLogs:
 
         mock_dashboard_repo.get_building = AsyncMock(return_value=None)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -410,7 +230,7 @@ class TestDashboardServiceGetPowerLogs:
         )
         mock_dashboard_repo.get_building = AsyncMock(return_value=building)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -418,7 +238,7 @@ class TestDashboardServiceGetPowerLogs:
         assert result is None
 
 
-class TestDashboardServiceComputeTotalGeneratorTime:
+class TestReadOnlyDashboardServiceComputeTotalGeneratorTime:
     @pytest.mark.asyncio
     async def test_compute_total_generator_time_no_data(self):
         mock_events = MagicMock()
@@ -430,7 +250,7 @@ class TestDashboardServiceComputeTotalGeneratorTime:
 
         mock_stations_data_repo.get_full_station_data_range = AsyncMock(return_value=[])
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -466,7 +286,7 @@ class TestDashboardServiceComputeTotalGeneratorTime:
         ]
         mock_stations_data_repo.get_full_station_data_range = AsyncMock(return_value=data)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -474,7 +294,7 @@ class TestDashboardServiceComputeTotalGeneratorTime:
         assert result > 0
 
 
-class TestDashboardServiceProcessBuildingSummary:
+class TestReadOnlyDashboardServiceProcessBuildingSummary:
     @pytest.mark.asyncio
     async def test_process_building_summary_with_station(self):
         """Test _process_building_summary with station data."""
@@ -512,7 +332,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="ONLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -553,7 +373,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(side_effect=[ext_data1, ext_data2])
         mock_stations_data_repo.get_last_station_data = AsyncMock(return_value=None)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -578,7 +398,7 @@ class TestDashboardServiceProcessBuildingSummary:
         building.station = None
         building.report_users = []
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -621,7 +441,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="ONLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -665,7 +485,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="ONLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -709,7 +529,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="OFFLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -753,7 +573,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="ONLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -797,7 +617,7 @@ class TestDashboardServiceProcessBuildingSummary:
         mock_stations_data_repo.get_assumed_connection_status = AsyncMock(return_value="ONLINE")
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=50.0)
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -806,7 +626,7 @@ class TestDashboardServiceProcessBuildingSummary:
         assert result.charge_source == ChargeSource.RECUPERATION
 
 
-class TestDashboardServiceGetBuildingsWithSummary:
+class TestReadOnlyDashboardServiceGetBuildingsWithSummary:
     @pytest.mark.asyncio
     async def test_get_buildings_with_summary(self):
         """Test get_buildings_with_summary returns buildings with summary."""
@@ -827,7 +647,7 @@ class TestDashboardServiceGetBuildingsWithSummary:
 
         mock_dashboard_repo.get_buildings = AsyncMock(return_value=[building])
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -835,57 +655,7 @@ class TestDashboardServiceGetBuildingsWithSummary:
         assert len(result) == 1
 
 
-class TestDashboardServiceEditBuildingWithStation:
-    @pytest.mark.asyncio
-    async def test_edit_building_with_station_and_report_users(self):
-        """Test edit_building with station and report users."""
-        mock_events = MagicMock()
-        mock_events.broadcast_public = AsyncMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        building = MagicMock()
-        building.id = PydanticObjectId()
-        building.name = LocalizableValue({"en": "Building 1"})
-        building.color = "#FF0000"
-        building.enabled = True
-        building.order = 1
-        building.station = None
-        building.report_users = []
-
-        mock_dashboard_repo.get_building = AsyncMock(return_value=building)
-        mock_dashboard_repo.edit_building = AsyncMock()
-
-        station = MagicMock()
-        station.id = PydanticObjectId()
-        mock_stations_repo.get_station = AsyncMock(return_value=station)
-
-        user = MagicMock()
-        user.id = PydanticObjectId()
-        mock_users_repo.get_user_by_id = AsyncMock(return_value=user)
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        request = SaveBuildingRequest(
-            name=LocalizableValue({"en": "Updated Building"}),
-            color="#00FF00",
-            stationId=PydanticObjectId(),
-            reportUserIds=[PydanticObjectId()],
-            enabled=True,
-            order=2,
-        )
-        result = await service.edit_building(PydanticObjectId(), request)
-        assert result is not None
-        mock_dashboard_repo.edit_building.assert_called_once()
-        mock_events.broadcast_public.assert_called_once_with("buildings_updated", None)
-
-
-class TestDashboardServiceGetPowerLogsWithData:
+class TestReadOnlyDashboardServiceGetPowerLogsWithData:
     @pytest.mark.asyncio
     async def test_get_power_logs_with_events(self):
         """Test get_power_logs with actual events."""
@@ -918,7 +688,7 @@ class TestDashboardServiceGetPowerLogsWithData:
         mock_ext_data_repo.get_last_ext_data_before_date = AsyncMock(return_value=ext_data)
         mock_stations_data_repo.get_full_station_data_range = AsyncMock(return_value=[])
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
@@ -928,7 +698,7 @@ class TestDashboardServiceGetPowerLogsWithData:
 
     @pytest.mark.asyncio
     async def test_get_power_logs_no_events(self):
-        """Test get_power_logs with no events (uses initial state)."""
+        """Test get_power_logs with no events."""
         mock_events = MagicMock()
         mock_dashboard_repo = MagicMock()
         mock_ext_data_repo = MagicMock()
@@ -952,50 +722,14 @@ class TestDashboardServiceGetPowerLogsWithData:
         building.report_users = [user]
 
         mock_dashboard_repo.get_building = AsyncMock(return_value=building)
-
         mock_ext_data_repo.get_ext_data_statistics = AsyncMock(return_value=[])
         mock_ext_data_repo.get_last_ext_data_before_date = AsyncMock(return_value=None)
         mock_stations_data_repo.get_full_station_data_range = AsyncMock(return_value=[])
 
-        service = DashboardService(
+        service = ReadOnlyDashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo
         )
         result = await service.get_power_logs(PydanticObjectId(), start_date, end_date)
         assert result is not None
         assert len(result.periods) == 1
-
-    @pytest.mark.asyncio
-    async def test_get_power_logs_no_station(self):
-        """Test get_power_logs without station (total_generator_seconds=0)."""
-        mock_events = MagicMock()
-        mock_dashboard_repo = MagicMock()
-        mock_ext_data_repo = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-        mock_users_repo = MagicMock()
-
-        now = datetime.now(timezone.utc)
-        start_date = now - timedelta(hours=1)
-        end_date = now
-
-        user = MagicMock()
-        user.id = PydanticObjectId()
-
-        building = MagicMock()
-        building.id = PydanticObjectId()
-        building.station = None
-        building.report_users = [user]
-
-        mock_dashboard_repo.get_building = AsyncMock(return_value=building)
-
-        ext_data = ExtData(user_id=user.id, grid_state=True, received_at=now - timedelta(minutes=30))
-        mock_ext_data_repo.get_ext_data_statistics = AsyncMock(return_value=[ext_data])
-        mock_ext_data_repo.get_last_ext_data_before_date = AsyncMock(return_value=ext_data)
-
-        service = DashboardService(
-            mock_events, mock_dashboard_repo, mock_ext_data_repo,
-            mock_stations_repo, mock_stations_data_repo, mock_users_repo
-        )
-        result = await service.get_power_logs(PydanticObjectId(), start_date, end_date)
-        assert result is not None
