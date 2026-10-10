@@ -14,6 +14,8 @@ from .interfaces import (
     IExtDeviceRepository,
     IDashboardRepository,
     ILoginHistoryRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from .implementations import (
     MessagesRepository,
@@ -29,6 +31,8 @@ from .implementations import (
     ExtDeviceRepository,
     DashboardRepository,
     LoginHistoryRepository,
+    PushDevicesRepository,
+    PushTopicsRepository,
 )
 
 
@@ -48,3 +52,5 @@ class RepositoryContainer(Module):
         binder.bind(IExtDeviceRepository, to=ExtDeviceRepository, scope=noscope)
         binder.bind(IDashboardRepository, to=DashboardRepository, scope=noscope)
         binder.bind(ILoginHistoryRepository, to=LoginHistoryRepository, scope=noscope)
+        binder.bind(IPushDevicesRepository, to=PushDevicesRepository, scope=noscope)
+        binder.bind(IPushTopicsRepository, to=PushTopicsRepository, scope=noscope)
