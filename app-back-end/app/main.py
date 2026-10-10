@@ -2,10 +2,13 @@ import logging
 import sys
 from uvicorn.logging import DefaultFormatter
 from fastapi import FastAPI
+from fastapi_injector import InjectorMiddleware, attach_injector
+from injector import Injector
 
-from app.lifespan import create_app
-from app.settings import settings
+from app.container import AppModule
+from app.settings import get_settings, Settings
 from app.routes import register_routes
+from app.lifespan import lifespan
 
 
 handler = logging.StreamHandler(sys.stdout)
@@ -16,15 +19,21 @@ logging.basicConfig(
     handlers=[handler]
 )
 
-app = create_app()
-register_routes(app)
 
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
+def create_app(settings: Settings) -> FastAPI:
+    injector = Injector([AppModule()])
+    app = FastAPI(
+        title="SvitloPower App Backend",
+        version="1.0.0",
+        debug=settings.DEBUG,
+        lifespan=lifespan
     )
+    app.add_middleware(InjectorMiddleware, injector=injector)
+    attach_injector(app, injector)
+    app.state.settings = settings
+    register_routes(app)
+    return app
+
+
+settings: Settings = get_settings()
+app: FastAPI = create_app(settings)

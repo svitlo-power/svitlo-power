@@ -3,8 +3,9 @@ from injector import Module, provider, singleton
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 import redis.asyncio as redis
+from pydantic_core import MultiHostUrl
 
-from app.settings import settings
+from app.settings import get_settings
 from shared.repositories.implementations import (
     DashboardReadRepository,
     ExtDataReadRepository,
@@ -41,14 +42,19 @@ from shared.models import (
 class AppModule(Module):
     @singleton
     @provider
-    def provide_motor_client(self) -> AsyncIOMotorClient:
-        return AsyncIOMotorClient(settings.MONGODB_URI)
+    def provide_settings(self) -> object:
+        return get_settings()
 
     @singleton
     @provider
-    async def provide_beanie_init(self, client: AsyncIOMotorClient) -> None:
+    def provide_motor_client(self, settings) -> AsyncIOMotorClient:
+        return AsyncIOMotorClient(str(settings.MONGO_URI))
+
+    @singleton
+    @provider
+    async def provide_beanie_init(self, client: AsyncIOMotorClient, settings) -> None:
         await init_beanie(
-            database=client[settings.MONGODB_DB],
+            database=client[settings.MONGO_DB],
             document_models=[
                 Building,
                 DashboardConfig,
@@ -62,14 +68,11 @@ class AppModule(Module):
 
     @singleton
     @provider
-    def provide_redis_client(self) -> redis.Redis:
-        return redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            password=settings.REDIS_PASSWORD,
-            db=settings.REDIS_DB,
-            decode_responses=True,
-        )
+    def provide_redis_client(self, settings) -> redis.Redis:
+        # Parse REDIS_URI to extract host, port, password, db
+        redis_uri = str(settings.REDIS_URI) if settings.REDIS_URI else "redis://localhost:6379/0"
+        # redis://[:password]@host:port/db
+        return redis.Redis.from_url(redis_uri, decode_responses=True)
 
     @singleton
     @provider
