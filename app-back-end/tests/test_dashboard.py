@@ -3,6 +3,7 @@ import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
+from fastapi.testclient import TestClient
 
 from shared.models import (
     Building,
@@ -286,7 +287,7 @@ class TestOutagesScheduleService:
         assert result is None
 
 
-class TestRoutes:
+class TestAppRoutes:
     @pytest.mark.asyncio
     async def test_get_buildings_route(self):
         # This would require a full integration test setup

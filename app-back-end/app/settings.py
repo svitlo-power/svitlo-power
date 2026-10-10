@@ -4,11 +4,17 @@ from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from shared.settings.base import BaseAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings
+from shared.settings.base import (
+    BaseAppSettings,
+    BaseDeyeAppSettings,
+    BaseJWTSettings,
+    BaseMongoSettings,
+    BaseRedisSettings
+)
 from shared.utils import generate_secret_key
 
 
-class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings):
+class Settings(BaseSettings, BaseDeyeAppSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings, BaseRedisSettings):
     model_config = SettingsConfigDict(
         env_file="../.env",
         env_file_encoding="utf-8",
@@ -31,7 +37,7 @@ class Settings(BaseSettings, BaseAppSettings, BaseJWTSettings, BaseMongoSettings
 
     # Override MongoDB to be optional for local development
     MONGO_URI: Optional[str] = Field(default="mongodb://localhost:27017/?directConnection=true", description="Mongo URI")
-    MONGO_DB: str = "svitlo_power"
+    MONGO_DB: str = "svitlo-power"
 
     # Override Redis to be optional for local development
     REDIS_URI: Optional[str] = Field(default="redis://localhost:6379/0", description="Redis URI")
