@@ -118,6 +118,9 @@ services:
       - ./clients.json:/app/clients.json
       - ./grid-reporter/state.json:/app/state.json
     stop_grace_period: 10s
+    depends_on:
+      svitlo-power-front-end:
+        condition: service_healthy
     networks:
       - web_network
 
