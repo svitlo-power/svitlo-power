@@ -14,7 +14,7 @@ on:
      - ".github/scripts/detect-backend-images.sh"
      - ".github/actions/compute-image-version/**"
      - ".github/actions/cleanup-old-images/**"
-      pull_request:
+  pull_request:
    branches: [main]
    paths:
      - "shared/**"
