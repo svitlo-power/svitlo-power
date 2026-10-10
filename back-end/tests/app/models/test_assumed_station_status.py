@@ -1,5 +1,5 @@
 """Tests for app/models/assumed_station_status.py."""
-from app.models.assumed_station_status import AssumedStationStatus
+from shared.models import AssumedStationStatus
 
 
 class TestAssumedStationStatus:

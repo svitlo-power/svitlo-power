@@ -3,7 +3,7 @@ import asyncio
 from unittest.mock import MagicMock, patch, AsyncMock
 
 from app.jobs.outages_schedule import register
-from app.services import OutagesScheduleService
+from shared.services import OutagesScheduleService
 
 
 class TestRegister:

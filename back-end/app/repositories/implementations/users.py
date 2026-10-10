@@ -1,24 +1,12 @@
 from datetime import datetime
-from typing import List
 
 from beanie import PydanticObjectId
 from shared.models.user import User, ReportMode
+from shared.repositories.implementations.users_read import UsersReadRepository
 from ..interfaces.users import IUsersRepository
 
 
-class UsersRepository(IUsersRepository):
-    async def get_user(self, user_name: str):
-        return await User.find_one(User.is_active == True, User.name == user_name)
-
-    async def get_users(self, all: bool) -> List[User]:
-        query = {} if all else {"is_active": True}
-        return await User.find(query).to_list()
-
-    async def get_user_by_id(self, user_id: str) -> User:
-        return await User.find_one(User.id == PydanticObjectId(user_id), User.is_active == True)
-
-    async def get_user_by_reset_token(self, token: str):
-        return await User.find_one(User.password_reset_token == token, User.is_active == True)
+class UsersRepository(UsersReadRepository, IUsersRepository):
 
     async def rename_user(self, user_id: str, user_name: str):
         existing_user: User = await self.get_user_by_id(user_id)

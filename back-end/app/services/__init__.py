@@ -4,8 +4,7 @@ from .deye_api import DeyeConfig, DeyeApiService
 from .station_connections import StationConnectionsService
 from .telegram import TelegramConfig, TelegramService
 from .visit_counter import VisitCounterService
-from .outages_schedule import OutagesScheduleService
-from shared.services import EventsService, EventItem, TranslationService
+from shared.services import EventsService, EventItem, TranslationService, OutagesScheduleService
 from .users import UsersService
 from .container import ServicesContainer
 from .authorization import AuthorizationService

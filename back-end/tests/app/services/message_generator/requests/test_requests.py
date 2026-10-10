@@ -1,5 +1,5 @@
 """Tests for app/services/message_generator/requests/."""
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -12,8 +12,8 @@ from app.services.message_generator.requests import (
     EstimateDischargeTimeRequest,
     GetExtGridStateRequest,
 )
-from app.models import AssumedStationStatus
 from app.repositories import IStationsDataRepository, IExtDataRepository, IDashboardRepository
+from shared.models import AssumedStationStatus
 
 
 class TestAssumedStateRequest:
