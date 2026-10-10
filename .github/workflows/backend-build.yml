@@ -15,8 +15,8 @@ on:
      - ".github/actions/compute-image-version/**"
      - ".github/actions/cleanup-old-images/**"
   pull_request:
-   branches: [main]
-   paths:
+    branches: [main]
+    paths:
      - "shared/**"
      - "back-end/**"
      - "sse-back-end/**"
