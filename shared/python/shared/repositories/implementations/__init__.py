@@ -4,6 +4,7 @@ from .stations_read import StationsReadRepository
 from .stations_data_read import StationsDataReadRepository
 from .users_read import UsersReadRepository
 from .outages_schedule import RedisOutagesScheduleRepository
+from .outages_schedule_memory import InMemoryOutagesScheduleRepository
 
 __all__ = [
     DashboardReadRepository,
@@ -12,4 +13,5 @@ __all__ = [
     StationsDataReadRepository,
     UsersReadRepository,
     RedisOutagesScheduleRepository,
+    InMemoryOutagesScheduleRepository,
 ]

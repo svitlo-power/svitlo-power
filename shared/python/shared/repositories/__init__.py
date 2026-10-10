@@ -3,19 +3,23 @@ from .interfaces import (
     IExtDataReadRepository,
     IStationsReadRepository,
     IStationsDataReadRepository,
-    IUsersReadRepository
+    IUsersReadRepository,
+    IOutagesScheduleRepository,
 )
 from .implementations import (
     DashboardReadRepository,
     ExtDataReadRepository,
     StationsReadRepository,
     StationsDataReadRepository,
-    UsersReadRepository
+    UsersReadRepository,
+    RedisOutagesScheduleRepository,
+    InMemoryOutagesScheduleRepository
 )
 
 __all__ = [
     IDashboardReadRepository, IExtDataReadRepository, IStationsReadRepository, 
-    IStationsDataReadRepository, IUsersReadRepository, DashboardReadRepository,
-    ExtDataReadRepository, StationsReadRepository, StationsDataReadRepository,
-    UsersReadRepository,
+    IStationsDataReadRepository, IUsersReadRepository, IOutagesScheduleRepository,
+    DashboardReadRepository, ExtDataReadRepository, StationsReadRepository,
+    StationsDataReadRepository, UsersReadRepository, RedisOutagesScheduleRepository,
+    InMemoryOutagesScheduleRepository
 ]
