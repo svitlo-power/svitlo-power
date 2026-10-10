@@ -8,21 +8,23 @@ on:
       - "back-end/**"
       - "sse-back-end/**"
       - "grid-reporter/**"
-      - "app-back-end/**"
-      - ".github/workflows/backend-build.yml"
-      - ".github/actions/compute-image-version/**"
-      - ".github/actions/cleanup-old-images/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - "shared/**"
-      - "back-end/**"
-      - "sse-back-end/**"
-      - "grid-reporter/**"
-      - "app-back-end/**"
-      - ".github/workflows/backend-build.yml"
-      - ".github/actions/compute-image-version/**"
-      - ".github/actions/cleanup-old-images/**"
+          - "app-back-end/**"
+          - ".github/workflows/backend-build.yml"
+          - ".github/scripts/detect-backend-images.sh"
+          - ".github/actions/compute-image-version/**"
+          - ".github/actions/cleanup-old-images/**"
+      pull_request:
+        branches: [main]
+        paths:
+          - "shared/**"
+          - "back-end/**"
+          - "sse-back-end/**"
+          - "grid-reporter/**"
+          - "app-back-end/**"
+          - ".github/workflows/backend-build.yml"
+          - ".github/scripts/detect-backend-images.sh"
+          - ".github/actions/compute-image-version/**"
+          - ".github/actions/cleanup-old-images/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,10 +38,50 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
+  detect-images:
+    name: Detect changed images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect affected images
+        id: detect
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: bash .github/scripts/detect-backend-images.sh "$BASE_SHA" "$HEAD_SHA" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Publish selected images
+        env:
+          MATRIX: ${{ steps.detect.outputs.matrix }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          {
+            echo "## 🐳 Selected backend images"
+            echo ""
+            echo "**Trigger:** \`${{ github.event_name }}\`"
+            echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
+            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 3 images"
+            echo ""
+            echo "| Image | Dockerfile |"
+            echo "|---|---|"
+            jq -r '.include[] | "| \(.image) | \(.dockerfile) |"' <<<"$MATRIX"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test-docker:
     name: Tests (docker)
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 30
+    env:
+      REGISTRY_URL: ${{ vars.REGISTRY_URL || secrets.REGISTRY_URL }}
     if: >
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -52,113 +94,113 @@ jobs:
       - name: Build back-end image
         run: docker compose build svitlo-power-back-end
 
-      - name: Build app-back-end image
-        run: docker compose build svitlo-power-app-back-end
+        - name: Build app-back-end image
+          run: docker compose build svitlo-power-app-back-end
 
-      - name: Run back-end tests in docker
-        id: tests-backend
-        run: |
-          set -euo pipefail
-          rm -f test_output.txt
-          docker compose --profile tests run --rm --no-TTY svitlo-power-tests \
-            | tee test_output.txt
+        - name: Run back-end tests in docker
+          id: tests-backend
+          run: |
+            set -euo pipefail
+            rm -f test_output.txt
+            docker compose --profile tests run --rm --no-TTY svitlo-power-tests \
+              | tee test_output.txt
 
-      - name: Run app-back-end tests in docker
-        id: tests-app-backend
-        run: |
-          set -euo pipefail
-          rm -f test_output_app_backend.txt
-          docker compose --profile tests run --rm --no-TTY svitlo-power-app-back-end-tests \
-            | tee test_output_app_backend.txt
+        - name: Run app-back-end tests in docker
+          id: tests-app-backend
+          run: |
+            set -euo pipefail
+            rm -f test_output_app_backend.txt
+            docker compose --profile tests run --rm --no-TTY svitlo-power-app-back-end-tests \
+              | tee test_output_app_backend.txt
 
-      - name: Generate Docker Test Summary
-        if: always()
-        shell: bash
-        run: |
-          set +e
+        - name: Generate Docker Test Summary
+          if: always()
+          shell: bash
+          run: |
+            set +e
 
-          {
-            echo "## 🧪 Docker Test Summary"
-            echo ""
+            {
+              echo "## 🧪 Docker Test Summary"
+              echo ""
 
-                  # Process back-end tests
-                  if [ -s test_output.txt ]; then
-                    echo "### Back-end Tests"
-                    echo ""
-                    sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
+              # Process back-end tests
+              if [ -s test_output.txt ]; then
+                echo "### Back-end Tests"
+                echo ""
+                sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
 
-                    SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
-                                    test_output.clean.txt | tail -1)
+                SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
+                                test_output.clean.txt | tail -1)
 
-                    PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+                PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
 
-                    echo "| Result | Count |"
-                    echo "|--------|-------|"
-                    echo "| ✅ Passed   | ${PASSED:-0} |"
-                    echo "| ❌ Failed   | ${FAILED:-0} |"
-                    echo "| 🔥 Errors   | ${ERRORS:-0} |"
-                    echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
-                    echo "| ⏱️ Duration | ${DURATION:-n/a} |"
-                    echo ""
+                echo "| Result | Count |"
+                echo "|--------|-------|"
+                echo "| ✅ Passed   | ${PASSED:-0} |"
+                echo "| ❌ Failed   | ${FAILED:-0} |"
+                echo "| 🔥 Errors   | ${ERRORS:-0} |"
+                echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+                echo "| ⏱️ Duration | ${DURATION:-n/a} |"
+                echo ""
 
-                    if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
-                      echo "<details><summary>Failed / errored tests</summary>"
-                      echo ""
-                      echo "```"
-                      grep -E "^(FAILED|ERROR)" test_output.clean.txt | sort -u \
-                        || echo "(not parsed, see full log)"
-                      echo "```"
-                      echo "</details>"
-                    fi
-                    echo ""
-                  fi
+                if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
+                  echo "<details><summary>Failed / errored tests</summary>"
+                  echo ""
+                  echo "```"
+                  grep -E "^(FAILED|ERROR)" test_output.clean.txt | sort -u \
+                    || echo "(not parsed, see full log)"
+                  echo "```"
+                  echo "</details>"
+                fi
+                echo ""
+              fi
 
-                  # Process app-back-end tests
-                  if [ -s test_output_app_backend.txt ]; then
-                    echo "### App Back-end Tests"
-                    echo ""
-                    sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_app_backend.txt > test_output_app_backend.clean.txt
+              # Process app-back-end tests
+              if [ -s test_output_app_backend.txt ]; then
+                echo "### App Back-end Tests"
+                echo ""
+                sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_app_backend.txt > test_output_app_backend.clean.txt
 
-                    SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
-                                    test_output_app_backend.clean.txt | tail -1)
+                SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
+                                test_output_app_backend.clean.txt | tail -1)
 
-                    PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                    DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+                PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
 
-                    echo "| Result | Count |"
-                    echo "|--------|-------|"
-                    echo "| ✅ Passed   | ${PASSED:-0} |"
-                    echo "| ❌ Failed   | ${FAILED:-0} |"
-                    echo "| 🔥 Errors   | ${ERRORS:-0} |"
-                    echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
-                    echo "| ⏱️ Duration | ${DURATION:-n/a} |"
-                    echo ""
+                echo "| Result | Count |"
+                echo "|--------|-------|"
+                echo "| ✅ Passed   | ${PASSED:-0} |"
+                echo "| ❌ Failed   | ${FAILED:-0} |"
+                echo "| 🔥 Errors   | ${ERRORS:-0} |"
+                echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+                echo "| ⏱️ Duration | ${DURATION:-n/a} |"
+                echo ""
 
-                    if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
-                      echo "<details><summary>Failed / errored tests</summary>"
-                      echo ""
-                      echo "```"
-                      grep -E "^(FAILED|ERROR)" test_output_app_backend.clean.txt | sort -u \
-                        || echo "(not parsed, see full log)"
-                      echo "```"
-                      echo "</details>"
-                    fi
-                    echo ""
-                  fi
+                if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
+                  echo "<details><summary>Failed / errored tests</summary>"
+                  echo ""
+                  echo "```"
+                  grep -E "^(FAILED|ERROR)" test_output_app_backend.clean.txt | sort -u \
+                    || echo "(not parsed, see full log)"
+                  echo "```"
+                  echo "</details>"
+                fi
+                echo ""
+              fi
 
-                  if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ]; then
-                    echo "⚠️ No test output found."
-                  fi
-                } >> "$GITHUB_STEP_SUMMARY"
+              if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ]; then
+                              echo "⚠️ No test output found."
+                            fi
+                          } >> "$GITHUB_STEP_SUMMARY"
 
-                exit 0
+                          exit 0
 
       - name: Upload test log
         if: always()
@@ -175,58 +217,15 @@ jobs:
         if: always()
         run: docker compose --profile tests down --remove-orphans --volumes || true
 
-  compute-version:
-    name: Compute image version
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: svitlo-power-back-end
-          - image: svitlo-power-sse-back-end
-          - image: svitlo-power-grid-reporter
-            - image: svitlo-power-app-back-end
-    outputs:
-      versions: ${{ steps.set-output.outputs.versions }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Compute version
-        id: compute
-        uses: ./.github/actions/compute-image-version
-        with:
-          image-name: ${{ matrix.image }}
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-
-      - name: Set matrix output
-        id: set-output
-        run: |
-          echo "versions={\"${{ matrix.image }}\":\"${{ steps.compute.outputs.version }}\"}" >> $GITHUB_OUTPUT
-
   build-and-push:
     name: Build ${{ matrix.image }}
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 45
-    needs: [test-docker, compute-version]
+    needs: [detect-images, test-docker]
     strategy:
       fail-fast: false
       max-parallel: 2
-      matrix:
-        include:
-          - image: svitlo-power-back-end
-            dockerfile: back-end/Dockerfile
-          - image: svitlo-power-sse-back-end
-            dockerfile: sse-back-end/Dockerfile
-          - image: svitlo-power-grid-reporter
-            dockerfile: grid-reporter/Dockerfile
-            - image: svitlo-power-app-back-end
-              dockerfile: app-back-end/Dockerfile
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -244,6 +243,15 @@ jobs:
           username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
+      - name: Compute version
+        id: compute
+        uses: ./.github/actions/compute-image-version
+        with:
+          image-name: ${{ matrix.image }}
+          registry-url: ${{ env.REGISTRY }}
+          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
+          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6.2.0
@@ -254,7 +262,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }},enable={{is_default_branch}}
+            type=raw,value=${{ steps.compute.outputs.version }},enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v7.3.0
@@ -267,7 +275,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
-            VERSION=${{ fromJson(needs.compute-version.outputs.versions)[matrix.image] }}
+            VERSION=${{ steps.compute.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
@@ -276,37 +284,19 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build-and-push]
+    needs: [build-and-push, detect-images]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Cleanup svitlo-power-back-end
+      - name: Cleanup old image versions
         uses: ./.github/actions/cleanup-old-images
         with:
-          image-name: svitlo-power-back-end
+          image-name: ${{ matrix.image }}
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Cleanup svitlo-power-sse-back-end
-        uses: ./.github/actions/cleanup-old-images
-        with:
-          image-name: svitlo-power-sse-back-end
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Cleanup svitlo-power-grid-reporter
-        uses: ./.github/actions/cleanup-old-images
-        with:
-          image-name: svitlo-power-grid-reporter
-          registry-url: ${{ env.REGISTRY }}
-          registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-          registry-password: ${{ secrets.REGISTRY_PASSWORD }}
-        - name: Cleanup svitlo-power-app-back-end
-          uses: ./.github/actions/cleanup-old-images
-          with:
-            image-name: svitlo-power-app-back-end
-            registry-url: ${{ env.REGISTRY }}
-            registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
-            registry-password: ${{ secrets.REGISTRY_PASSWORD }}
