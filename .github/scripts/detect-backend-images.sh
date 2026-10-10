@@ -14,7 +14,7 @@ fi
 
 changed_paths=$(git diff --name-only "$base_sha" "$head_sha")
 
-if grep -Eq '^(shared/|\.github/workflows/backend-build\.yml$|\.github/scripts/detect-backend-images\.sh$|\.github/actions/(compute-image-version|cleanup-old-images)/)' <<<"$changed_paths"; then
+if grep -Eq '^(shared/|docker-compose|\.github/workflows/backend-build\.yml$|\.github/scripts/detect-backend-images\.sh$|\.github/actions/(compute-image-version|cleanup-old-images)/)' <<<"$changed_paths"; then
   echo "matrix={\"include\":${all_images}}"
   exit 0
 fi

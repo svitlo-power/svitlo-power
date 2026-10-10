@@ -4,27 +4,29 @@ on:
   push:
     branches: [main]
     paths:
-      - "shared/**"
-      - "back-end/**"
-      - "sse-back-end/**"
-      - "grid-reporter/**"
-          - "app-back-end/**"
-          - ".github/workflows/backend-build.yml"
-          - ".github/scripts/detect-backend-images.sh"
-          - ".github/actions/compute-image-version/**"
-          - ".github/actions/cleanup-old-images/**"
+     - "shared/**"
+     - "back-end/**"
+     - "sse-back-end/**"
+     - "grid-reporter/**"
+     - "app-back-end/**"
+     - "docker-compose.yml"
+     - ".github/workflows/backend-build.yml"
+     - ".github/scripts/detect-backend-images.sh"
+     - ".github/actions/compute-image-version/**"
+     - ".github/actions/cleanup-old-images/**"
       pull_request:
-        branches: [main]
-        paths:
-          - "shared/**"
-          - "back-end/**"
-          - "sse-back-end/**"
-          - "grid-reporter/**"
-          - "app-back-end/**"
-          - ".github/workflows/backend-build.yml"
-          - ".github/scripts/detect-backend-images.sh"
-          - ".github/actions/compute-image-version/**"
-          - ".github/actions/cleanup-old-images/**"
+   branches: [main]
+   paths:
+     - "shared/**"
+     - "back-end/**"
+     - "sse-back-end/**"
+     - "grid-reporter/**"
+     - "app-back-end/**"
+     - "docker-compose.yml"
+     - ".github/workflows/backend-build.yml"
+     - ".github/scripts/detect-backend-images.sh"
+     - ".github/actions/compute-image-version/**"
+     - ".github/actions/cleanup-old-images/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
