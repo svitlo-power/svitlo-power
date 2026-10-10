@@ -6,7 +6,7 @@ from fastapi_injector import InjectorMiddleware, attach_injector
 from injector import Injector
 
 from app.container import AppModule
-from app.settings import get_settings, Settings
+from app.settings import Settings
 from app.routes import register_routes
 from app.lifespan import lifespan
 
@@ -26,14 +26,13 @@ def create_app(settings: Settings) -> FastAPI:
         title="SvitloPower App Backend",
         version="1.0.0",
         debug=settings.DEBUG,
-        lifespan=lifespan
+        lifespan=lifespan,
+        docs_url="/docs" if settings.DEBUG else None,
+        redoc_url="/redoc" if settings.DEBUG else None,
+        openapi_url="/openapi.json" if settings.DEBUG else None,
     )
     app.add_middleware(InjectorMiddleware, injector=injector)
     attach_injector(app, injector)
     app.state.settings = settings
     register_routes(app)
     return app
-
-
-settings: Settings = get_settings()
-app: FastAPI = create_app(settings)
