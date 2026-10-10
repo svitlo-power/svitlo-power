@@ -122,6 +122,49 @@ services:
     networks:
       - web_network
 
+    svitlo-power-app-back-end:
+      build:
+        context: .
+        dockerfile: app-back-end/Dockerfile
+      image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
+      restart: always
+      env_file: .env
+      environment:
+        - DEBUG=False
+      expose:
+        - "8000"
+      networks:
+        - web_network
+      labels:
+        io.hass.type: "addon"
+      healthcheck:
+        test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 8000)); s.close(); exit(0 if result==0 else 1)"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 30s
+      depends_on:
+        svitlo-power-rds:
+          condition: service_healthy
+      stop_signal: SIGINT
+      stop_grace_period: 15s
+
+    svitlo-power-app-back-end-tests:
+      image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
+      profiles: ["tests"]
+      environment:
+        - PYTHONDONTWRITEBYTECODE=1
+      command:
+        [
+          "sh",
+          "-c",
+          "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && python -m pytest tests -v"
+        ]
+      working_dir: /app
+      networks:
+        - web_network
+      restart: "no"
+
   svitlo-power-front-end:
     build:
       context: front-end
