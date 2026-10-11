@@ -71,7 +71,7 @@ jobs:
             echo ""
             echo "**Trigger:** \`${{ github.event_name }}\`"
             echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
-            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 3 images"
+            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 4 images"
             echo ""
             echo "| Image | Dockerfile |"
             echo "|---|---|"
@@ -96,124 +96,124 @@ jobs:
       - name: Build back-end image
         run: docker compose build svitlo-power-back-end
 
-        - name: Build app-back-end image
-          run: docker compose build svitlo-power-app-back-end
+      - name: Build app-back-end image
+        run: docker compose build svitlo-power-app-back-end
 
-        - name: Run back-end tests in docker
-          id: tests-backend
-          run: |
-            set -euo pipefail
-            rm -f test_output.txt
-            docker compose --profile tests run --rm --no-TTY svitlo-power-tests \
-              | tee test_output.txt
+      - name: Run back-end tests in docker
+        id: tests-backend
+        run: |
+          set -euo pipefail
+          rm -f test_output.txt
+          docker compose --profile tests run --rm --no-TTY svitlo-power-tests \
+            | tee test_output.txt
 
-        - name: Run app-back-end tests in docker
-          id: tests-app-backend
-          run: |
-            set -euo pipefail
-            rm -f test_output_app_backend.txt
-            docker compose --profile tests run --rm --no-TTY svitlo-power-app-back-end-tests \
-              | tee test_output_app_backend.txt
+      - name: Run app-back-end tests in docker
+        id: tests-app-backend
+        run: |
+          set -euo pipefail
+          rm -f test_output_app_backend.txt
+          docker compose --profile tests run --rm --no-TTY svitlo-power-app-back-end-tests \
+            | tee test_output_app_backend.txt
 
-        - name: Generate Docker Test Summary
-          if: always()
-          shell: bash
-          run: |
-            set +e
+      - name: Generate Docker Test Summary
+        if: always()
+        shell: bash
+        run: |
+          set +e
 
-            {
-              echo "## 🧪 Docker Test Summary"
+          {
+            echo "## 🧪 Docker Test Summary"
+            echo ""
+
+            # Process back-end tests
+            if [ -s test_output.txt ]; then
+              echo "### Back-end Tests"
+              echo ""
+              sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
+
+              SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
+                              test_output.clean.txt | tail -1)
+
+              PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+
+              echo "| Result | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed   | ${PASSED:-0} |"
+              echo "| ❌ Failed   | ${FAILED:-0} |"
+              echo "| 🔥 Errors   | ${ERRORS:-0} |"
+              echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+              echo "| ⏱️ Duration | ${DURATION:-n/a} |"
               echo ""
 
-              # Process back-end tests
-              if [ -s test_output.txt ]; then
-                echo "### Back-end Tests"
+              if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
+                echo "<details><summary>Failed / errored tests</summary>"
                 echo ""
-                sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output.txt > test_output.clean.txt
-
-                SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
-                                test_output.clean.txt | tail -1)
-
-                PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
-
-                echo "| Result | Count |"
-                echo "|--------|-------|"
-                echo "| ✅ Passed   | ${PASSED:-0} |"
-                echo "| ❌ Failed   | ${FAILED:-0} |"
-                echo "| 🔥 Errors   | ${ERRORS:-0} |"
-                echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
-                echo "| ⏱️ Duration | ${DURATION:-n/a} |"
-                echo ""
-
-                if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
-                  echo "<details><summary>Failed / errored tests</summary>"
-                  echo ""
-                  echo "```"
-                  grep -E "^(FAILED|ERROR)" test_output.clean.txt | sort -u \
-                    || echo "(not parsed, see full log)"
-                  echo "```"
-                  echo "</details>"
-                fi
-                echo ""
+                echo "```"
+                grep -E "^(FAILED|ERROR)" test_output.clean.txt | sort -u \
+                  || echo "(not parsed, see full log)"
+                echo "```"
+                echo "</details>"
               fi
+              echo ""
+            fi
 
-              # Process app-back-end tests
-              if [ -s test_output_app_backend.txt ]; then
-                echo "### App Back-end Tests"
+            # Process app-back-end tests
+            if [ -s test_output_app_backend.txt ]; then
+              echo "### App Back-end Tests"
+              echo ""
+              sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_app_backend.txt > test_output_app_backend.clean.txt
+
+              SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
+                              test_output_app_backend.clean.txt | tail -1)
+
+              PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+              DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+
+              echo "| Result | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed   | ${PASSED:-0} |"
+              echo "| ❌ Failed   | ${FAILED:-0} |"
+              echo "| 🔥 Errors   | ${ERRORS:-0} |"
+              echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+              echo "| ⏱️ Duration | ${DURATION:-n/a} |"
+              echo ""
+
+              if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
+                echo "<details><summary>Failed / errored tests</summary>"
                 echo ""
-                sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_app_backend.txt > test_output_app_backend.clean.txt
-
-                SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
-                                test_output_app_backend.clean.txt | tail -1)
-
-                PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-                DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
-
-                echo "| Result | Count |"
-                echo "|--------|-------|"
-                echo "| ✅ Passed   | ${PASSED:-0} |"
-                echo "| ❌ Failed   | ${FAILED:-0} |"
-                echo "| 🔥 Errors   | ${ERRORS:-0} |"
-                echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
-                echo "| ⏱️ Duration | ${DURATION:-n/a} |"
-                echo ""
-
-                if [ "${FAILED:-0}" -gt 0 ] || [ "${ERRORS:-0}" -gt 0 ]; then
-                  echo "<details><summary>Failed / errored tests</summary>"
-                  echo ""
-                  echo "```"
-                  grep -E "^(FAILED|ERROR)" test_output_app_backend.clean.txt | sort -u \
-                    || echo "(not parsed, see full log)"
-                  echo "```"
-                  echo "</details>"
-                fi
-                echo ""
+                echo "```"
+                grep -E "^(FAILED|ERROR)" test_output_app_backend.clean.txt | sort -u \
+                  || echo "(not parsed, see full log)"
+                echo "```"
+                echo "</details>"
               fi
+              echo ""
+            fi
 
-              if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ]; then
-                              echo "⚠️ No test output found."
-                            fi
-                          } >> "$GITHUB_STEP_SUMMARY"
+            if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ]; then
+              echo "⚠️ No test output found."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
-                          exit 0
+          exit 0
 
       - name: Upload test log
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
           name: docker-test-log
-                path: |
-                  test_output.txt
-                  test_output_app_backend.txt
-                if-no-files-found: warn
-                retention-days: 7
+          path: |
+            test_output.txt
+            test_output_app_backend.txt
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Cleanup compose stack
         if: always()
