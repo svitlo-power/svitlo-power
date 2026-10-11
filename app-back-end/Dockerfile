@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared package
-COPY ../shared/python/ ./shared/
+COPY shared/python/ ./shared/
 RUN pip install --no-cache-dir -e ./shared/
 
 # Copy app code
