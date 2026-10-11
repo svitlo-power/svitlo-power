@@ -126,8 +126,8 @@ services:
 
   svitlo-power-app-back-end:
     build:
-      context: .
-      dockerfile: app-back-end/Dockerfile
+        context: ./app-back-end
+        dockerfile: Dockerfile
     image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
     restart: always
     env_file: .env
