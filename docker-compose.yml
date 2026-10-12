@@ -160,7 +160,7 @@ services:
       [
         "sh",
         "-c",
-        "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && python -m pytest tests -v"
+          "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && pip install --no-cache-dir -e /shared/python && python -m pytest tests -v"
       ]
     working_dir: /app
     networks:
