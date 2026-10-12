@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy shared package first
-COPY shared/python/ ./shared/python/
-RUN pip install --no-cache-dir -e ./shared/python/
+COPY shared/python /shared/python
+RUN pip install --no-cache-dir -e /shared/python
 
 # Copy requirements
 COPY app-back-end/requirements.txt .

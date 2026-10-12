@@ -18,7 +18,7 @@ tzdata==2025.2
 tzlocal==5.3.1
 
 # Shared package (local)
--e shared/python/
+-e ../shared/python/
 
 # Testing
 pytest==8.3.5
