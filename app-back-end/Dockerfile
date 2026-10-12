@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code
 COPY app-back-end/app/ ./app/
+COPY app-back-end/tests/ ./tests/
 COPY app-back-end/run.py .
 
 # Final stage
@@ -36,6 +37,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy app code
 COPY app-back-end/app/ ./app/
+COPY app-back-end/tests/ ./tests/
 COPY app-back-end/run.py .
 
 # Expose port
