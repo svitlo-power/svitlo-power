@@ -8,13 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Copy shared package first
+COPY shared/python/ ./shared/python/
+RUN pip install --no-cache-dir -e ./shared/python/
+
+# Copy requirements
 COPY app-back-end/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy shared package
-COPY shared/python/ ./shared/
-RUN pip install --no-cache-dir -e ./shared/
 
 # Copy app code
 COPY app-back-end/app/ ./app/
