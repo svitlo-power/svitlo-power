@@ -35,6 +35,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+# Copy shared python for test service
+COPY --from=builder /shared/python /shared/python
+
 # Copy app code
 COPY app-back-end/app/ ./app/
 COPY app-back-end/tests/ ./tests/
