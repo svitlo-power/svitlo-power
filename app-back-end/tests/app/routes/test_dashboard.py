@@ -1,28 +1,15 @@
 import pytest
-import pytest_asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
-from fastapi.testclient import TestClient
 
-from shared.models import (
-    Building,
-    DashboardConfig,
-    ExtData,
-    Station,
-    StationData,
-    User,
-)
 from shared.models.api.dashboard import (
     BuildingResponse,
     BuildingSummaryResponse,
     BuildingWithSummaryResponse,
     DashboardConfigResponse,
     EditBuildingResponse,
-    PowerLogsResponse,
-    PeriodResponse,
 )
-from shared.models.api.dashboard import PowerLogsRequest, BuildingsSummaryRequest
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.events import EventsService
