@@ -63,6 +63,7 @@ runs:
         TAGS_JSON=""
         CURL_EXIT_CODE=0
         MATCHING_TAGS=""
+        REGISTRY_QUERY_SUCCESS=false
         
         for attempt in $(seq 1 ${MAX_RETRIES}); do
           echo "Querying registry (attempt ${attempt}/${MAX_RETRIES})..."
@@ -75,6 +76,7 @@ runs:
               # Check if registry returned an error
               if ! echo "${TAGS_JSON}" | jq -e '.errors' >/dev/null 2>&1; then
                 echo "Registry query successful"
+                REGISTRY_QUERY_SUCCESS=true
                 break
               else
                 ERROR_CODE=$(echo "${TAGS_JSON}" | jq -r '.errors[0].code // "UNKNOWN"')
@@ -84,6 +86,7 @@ runs:
                 if [[ "${ERROR_CODE}" == "NAME_UNKNOWN" ]]; then
                   echo "Image ${IMAGE_NAME} not found in registry (first build), starting at version 00"
                   MATCHING_TAGS=""
+                  REGISTRY_QUERY_SUCCESS=true
                   break
                 else
                   echo "Registry returned error: code=${ERROR_CODE}, message=${ERROR_MESSAGE}"
@@ -109,10 +112,8 @@ runs:
           exit 1
         fi
         
-        # If MATCHING_TAGS is not set (NAME_UNKNOWN case), it's already empty
-        if [[ -z "${MATCHING_TAGS:-}" ]]; then
-          MATCHING_TAGS=""
-        else
+        # If registry query succeeded (not NAME_UNKNOWN), extract matching tags
+        if [[ "${REGISTRY_QUERY_SUCCESS}" == "true" && -z "${MATCHING_TAGS}" ]]; then
           # Extract tags matching yyyy.mm.nn pattern for current month
           # Use jq --arg to safely pass the prefix variable (avoids quoting issues)
           MATCHING_TAGS=$(echo "${TAGS_JSON}" | jq -r --arg prefix "${PREFIX}" '.tags[]? | select(. | startswith($prefix))' 2>/dev/null | sort -V || true)
