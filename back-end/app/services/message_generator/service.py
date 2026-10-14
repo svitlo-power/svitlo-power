@@ -166,8 +166,14 @@ class MessageGeneratorService(IMessageGeneratorService):
             logger.info(f"The station for message '{message.name}' is disabled")
             return None
 
-        context = TemplateRequestContext(collect_data=include_data)
-        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, context)
+        control_context = TemplateRequestContext(collect_data=include_data)
+        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, control_context)
+
+        _ = await get_send_timeout(message.timeout_template, template_data, message.template_macros)
+        _ = await get_should_send(message.should_send_template, template_data, message.template_macros)
+
+        await control_context.resolve_requests(self._injector)
+        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, control_context)
 
         timeout = await get_send_timeout(message.timeout_template, template_data, message.template_macros)
         template_data['timeout'] = timeout
@@ -176,16 +182,19 @@ class MessageGeneratorService(IMessageGeneratorService):
             (message.last_sent_time or datetime.min) + timedelta(seconds=timeout)
         ).replace(tzinfo=timezone.utc)
 
+        content_context = TemplateRequestContext(collect_data=include_data)
+        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Collect, content_context)
         _ = await generate_message(message.message_template, template_data, message.template_macros)
-        await context.resolve_requests(self._injector)
-        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, context)
+        await content_context.resolve_requests(self._injector)
+        self._add_methods(template_data, message.last_sent_time, TemplateMethodMode.Resolve, content_context)
         message_content = await generate_message(message.message_template, template_data, message.template_macros)
 
         data = None
         if include_data:
+            combined_requests = control_context.collected_data + content_context.collected_data
             data = {
                 **template_data,
-                'requests': context.collected_data,
+                'requests': combined_requests,
             }
             data = _strip_methods(json.loads(json.dumps(data, default=str)))
 
