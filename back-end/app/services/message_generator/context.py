@@ -43,6 +43,7 @@ class ResolvedValue:
     def __int__(self): return int(self.value)
     def __str__(self): return str(self.value)
     def __repr__(self): return repr(self.value)
+    def __bool__(self): return bool(self.value)
 
     # ---- comparisons ----
     def __eq__(self, other): return self.value == other
