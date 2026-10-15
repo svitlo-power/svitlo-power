@@ -11,8 +11,6 @@ beanie==2.0.0
 redis==7.1.0
 aiohttp==3.13.2
 python-dotenv==1.2.1
-python-jose==3.5.0
-PyJWT==1.7.1
 typing_extensions==4.15.0
 tzdata==2025.2
 tzlocal==5.3.1

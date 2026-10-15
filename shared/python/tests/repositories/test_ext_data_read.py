@@ -32,7 +32,7 @@ class TestExtDataReadRepository:
         user_id = PydanticObjectId("507f1f77bcf86cd799439011")
         mock_data = MagicMock(spec=ExtData)
         with patch.object(ExtData, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.to_list = AsyncMock(return_value=[mock_data])
+            mock_find.return_value.sort.return_value.limit.return_value.first_or_none = AsyncMock(return_value=mock_data)
             repo = ExtDataReadRepository()
             result = await repo.get_last_ext_data_by_user_id(user_id)
             assert result == mock_data
@@ -43,7 +43,7 @@ class TestExtDataReadRepository:
         """Test get_last_ext_data_by_user_id when no data."""
         user_id = PydanticObjectId("507f1f77bcf86cd799439011")
         with patch.object(ExtData, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.to_list = AsyncMock(return_value=[])
+            mock_find.return_value.sort.return_value.limit.return_value.first_or_none = AsyncMock(return_value=None)
             repo = ExtDataReadRepository()
             result = await repo.get_last_ext_data_by_user_id(user_id)
             assert result is None

@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 class ExtDataReadRepository(IExtDataReadRepository):
 
     async def get_last_ext_data_by_user_id(self, user_id: PydanticObjectId) -> ExtData:
-        documents = await ExtData.find(
+        document = await ExtData.find(
             ExtData.user_id == user_id,
-            fetch_links = True
+            fetch_links=True
         ).sort(
             -ExtData.received_at
-        ).to_list()
-        return documents[0] if documents else None
+        ).limit(1).first_or_none()
+        return document
 
     async def get_ext_data_statistics(
         self,
@@ -36,7 +36,7 @@ class ExtDataReadRepository(IExtDataReadRepository):
 
         return ext_data
 
-    async def get_last_ext_data_before_date(self, user_id: int, before_date: datetime):
+    async def get_last_ext_data_before_date(self, user_id: PydanticObjectId, before_date: datetime):
         try:
             docs = await ExtData.find(
                 ExtData.user_id == user_id,

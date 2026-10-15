@@ -43,6 +43,10 @@ COPY app-back-end/app/ ./app/
 COPY app-back-end/tests/ ./tests/
 COPY app-back-end/run.py .
 
+# Embed version
+ARG VERSION=0000.00.00
+RUN echo "${VERSION}" > /app/VERSION
+
 # Expose port
 EXPOSE 8000
 
