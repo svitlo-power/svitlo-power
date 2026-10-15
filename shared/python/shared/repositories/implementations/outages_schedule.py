@@ -19,7 +19,10 @@ class RedisOutagesScheduleRepository(IOutagesScheduleRepository):
         data = await self._redis.hget(self.REDIS_KEY, queue)
         if data is None:
             return None
-        return SchedulesResponse.model_validate_json(data)
+        # Each hash field stores a single UnitSchedule JSON, wrap it in a dict for SchedulesResponse
+        from shared.services.outages_schedule.models import UnitSchedule
+        unit_schedule = UnitSchedule.model_validate_json(data)
+        return SchedulesResponse({queue: unit_schedule})
 
     async def set_schedule(self, schedule: SchedulesResponse) -> None:
         """Set the entire schedule data."""

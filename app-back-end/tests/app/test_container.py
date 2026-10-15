@@ -192,13 +192,13 @@ class TestAppModule:
     def test_provide_outages_schedule_repository_production(self, mock_settings):
         mock_settings.DEBUG = False
         module = AppModule()
-        with patch('app.container.RedisOutagesScheduleRepository') as mock_repo_class:
+        with patch('app.container.RedisOutagesScheduleRepository', autospec=True) as mock_repo_class:
             mock_repo = MagicMock()
             mock_repo_class.return_value = mock_repo
             
             result = module.provide_outages_schedule_repository(mock_settings)
             
-            mock_repo_class.assert_called_once()
+            mock_repo_class.assert_called_once_with(str(mock_settings.REDIS_URI))
             assert result == mock_repo
 
     def test_provide_dashboard_service(self):

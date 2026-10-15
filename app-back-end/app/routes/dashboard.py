@@ -65,6 +65,8 @@ def register(app: FastAPI):
 
             if start_date >= end_date:
                 raise HTTPException(status_code=400, detail="startDate must be before endDate")
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid date format: {str(e)}")
 

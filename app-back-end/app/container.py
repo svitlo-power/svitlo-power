@@ -127,7 +127,7 @@ class AppModule(Module):
         if settings.DEBUG:
             return InMemoryOutagesScheduleRepository()
         else:
-            return RedisOutagesScheduleRepository()
+            return RedisOutagesScheduleRepository(str(settings.REDIS_URI))
 
     @singleton
     @provider

@@ -133,8 +133,8 @@ services:
     env_file: .env
     environment:
       - DEBUG=False
-    expose:
-      - "8000"
+    ports:
+      - "${APP_BACKEND_PORT:-8000}:8000"
     networks:
       - web_network
     labels:
@@ -146,6 +146,8 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
+      svitlo-power-migrate:
+        condition: service_completed_successfully
       svitlo-power-rds:
         condition: service_healthy
     stop_signal: SIGINT
