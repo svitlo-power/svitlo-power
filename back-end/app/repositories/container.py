@@ -30,9 +30,11 @@ from .implementations import (
     ExtDeviceRepository,
     DashboardRepository,
     LoginHistoryRepository,
+)
+from shared.repositories.implementations import (
+    RedisOutagesScheduleRepository,
     InMemoryOutagesScheduleRepository,
 )
-from shared.repositories.implementations import RedisOutagesScheduleRepository
 from app.settings import Settings
 
 
