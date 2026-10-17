@@ -13,10 +13,13 @@ from .ext_device import IExtDeviceRepository
 from .dashboard import IDashboardRepository
 from .login_history import ILoginHistoryRepository
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
+from .push_devices import IPushDevicesRepository
+from .push_topics import IPushTopicsRepository
 
 
 __all__ = [DataQuery, IBotsRepository, IUsersRepository, IMessagesRepository,
            ILookupsRepository, LookupDefinition, IStationsRepository,
            IStationsDataRepository, IVisitsCounterRepository, IChatsRepository,
            IExtDataRepository, IExtDeviceRepository, IDashboardRepository,
-           IStationConnectionsRepository, ILoginHistoryRepository, IOutagesScheduleRepository]
+           IStationConnectionsRepository, ILoginHistoryRepository, IOutagesScheduleRepository,
+           IPushDevicesRepository, IPushTopicsRepository]

@@ -9,7 +9,7 @@ from app.app_container import bind_client_session, init_container
 from app.settings import Settings
 from app.jobs import register_jobs
 from app.routes import register_routes
-from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService
+from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService, PushService
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from shared.services.events.service import EventsService
@@ -28,6 +28,9 @@ async def setup_bots(injector: Injector):
     bots = await bots_service.get_enabled_bots()
     for bot in bots:
         await telegram_service.add_bot(bot.id, bot.token, bot.hook_enabled)
+
+async def setup_push_topics(injector: Injector):
+    await injector.get(PushService).ensure_default_topics()
 
 async def make_shutdown_handler(events: EventsService):
     async def shutdown(signum: int):
@@ -60,6 +63,7 @@ async def lifespan(app: FastAPI):
 
     await setup_bots(injector)
     await create_user(settings, injector)
+    await setup_push_topics(injector)
 
     register_chained_signal_handlers(
         handler=await make_shutdown_handler(events)

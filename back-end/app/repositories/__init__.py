@@ -14,6 +14,8 @@ from .interfaces import (
     IDashboardRepository,
     ILoginHistoryRepository,
     IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from .container import RepositoryContainer
 
@@ -22,4 +24,5 @@ __all__ = [IMessagesRepository, IBotsRepository, IStationsRepository,
            IStationsDataRepository, IStationConnectionsRepository, ILookupsRepository,
            IChatsRepository, IUsersRepository, IVisitsCounterRepository,
            RepositoryContainer, DataQuery, IExtDataRepository, IExtDeviceRepository,
-           IDashboardRepository, ILoginHistoryRepository, IOutagesScheduleRepository]
+           IDashboardRepository, ILoginHistoryRepository, IOutagesScheduleRepository,
+           IPushDevicesRepository, IPushTopicsRepository]

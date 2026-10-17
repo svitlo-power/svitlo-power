@@ -15,6 +15,8 @@ from .interfaces import (
     IDashboardRepository,
     ILoginHistoryRepository,
     IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from .implementations import (
     MessagesRepository,
@@ -30,6 +32,8 @@ from .implementations import (
     ExtDeviceRepository,
     DashboardRepository,
     LoginHistoryRepository,
+    PushDevicesRepository,
+    PushTopicsRepository,
 )
 from shared.repositories.implementations import (
     RedisOutagesScheduleRepository,
@@ -64,3 +68,5 @@ class RepositoryContainer(Module):
         else:
             redis_repo = RedisOutagesScheduleRepository(str(self._settings.REDIS_URI))
             binder.bind(IOutagesScheduleRepository, to=redis_repo, scope=singleton)
+        binder.bind(IPushDevicesRepository, to=PushDevicesRepository, scope=noscope)
+        binder.bind(IPushTopicsRepository, to=PushTopicsRepository, scope=noscope)

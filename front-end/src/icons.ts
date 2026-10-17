@@ -61,6 +61,9 @@ import {
   faMicrochip,
   faRightLong,
   faHistory,
+  faBell,
+  faPaperPlane,
+  faGlobe,
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add([
@@ -127,6 +130,9 @@ library.add([
   faMicrochip,
   faRightLong,
   faHistory,
+  faBell,
+  faPaperPlane,
+  faGlobe,
 ]);
 
 export default library;

@@ -15,6 +15,8 @@ from .station_data import StationData
 from .user import User, ReportMode
 from .visit_counter import VisitCounter, DailyVisitCounter
 from .login_history import LoginHistory
+from .push_device import PushDevice, PushPlatform
+from .push_topic import PushTopic
 from .beanie_filter import BeanieFilter
 from .outages_schedule import OutagesSchedule
 from .api.dashboard import (
@@ -38,7 +40,7 @@ __all__ = [
     User, ReportMode, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
-    LocalizableValue, LoginHistory, OutagesSchedule,
+    LocalizableValue, LoginHistory, OutagesSchedule, PushDevice, PushPlatform, PushTopic,
     BuildingResponse,
     ChargeSource,
     BuildingSummaryResponse,
@@ -53,4 +55,5 @@ __all__ = [
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
-    StationConnection, VisitCounter, DailyVisitCounter, LoginHistory, OutagesSchedule]
+    StationConnection, VisitCounter, DailyVisitCounter, LoginHistory, OutagesSchedule,
+    PushDevice, PushTopic]
