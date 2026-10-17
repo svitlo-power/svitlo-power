@@ -75,3 +75,28 @@ class TestFcmSender:
 
         assert sizes == [fcm_sender.FCM_BATCH_SIZE, 3]
         assert result.success_count == len(tokens)
+
+    @pytest.mark.asyncio
+    async def test_failed_batch_is_counted_and_others_still_sent(self):
+        sender = _sender()
+        sender._get_app = MagicMock()
+        calls = []
+
+        def fake_send(message, app=None):
+            calls.append(len(message.tokens))
+            if len(calls) == 1:
+                raise ConnectionError("FCM unreachable")
+            batch = MagicMock()
+            batch.success_count = len(message.tokens)
+            batch.failure_count = 0
+            batch.responses = [_response(True)] * len(message.tokens)
+            return batch
+
+        tokens = [f"t{i}" for i in range(fcm_sender.FCM_BATCH_SIZE + 3)]
+        with patch.object(messaging, "send_each_for_multicast", side_effect=fake_send):
+            result = await sender.send(tokens, PushMessage(title="t", body="b"))
+
+        assert calls == [fcm_sender.FCM_BATCH_SIZE, 3]
+        assert result.failure_count == fcm_sender.FCM_BATCH_SIZE
+        assert result.success_count == 3
+        assert result.invalid_tokens == []

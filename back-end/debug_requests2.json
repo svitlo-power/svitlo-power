@@ -1,0 +1,22 @@
+{
+  "requests": [
+    {
+      "request": "get_average(station_id=1, column=consumption_power, start_date=2026-10-17 17:11:21.167202+00:00)",
+      "value": "<AsyncMock name='mock.get_station_data_average_column()' id='2541117678192'>"
+    }
+  ],
+  "station_keys": [
+    "current",
+    "name",
+    "grid_interconnection_type",
+    "connection_status",
+    "battery_capacity"
+  ],
+  "stations_0_keys": [
+    "current",
+    "name",
+    "grid_interconnection_type",
+    "connection_status",
+    "battery_capacity"
+  ]
+}

@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from beanie import PydanticObjectId
+from pymongo.errors import DuplicateKeyError
 
 from app.services.push.service import PushService
 from app.services.push.fcm_sender import FcmSendResult, PushMessage
@@ -24,9 +25,9 @@ def _repo(device=None, devices=None):
     repo.save_device = AsyncMock(side_effect=lambda d: d)
     repo.delete_device = AsyncMock(return_value=True)
     repo.delete_devices = AsyncMock(side_effect=lambda tokens: len(tokens))
-    repo.get_enabled_devices = AsyncMock(return_value=devices or [])
+    repo.get_enabled_tokens = AsyncMock(return_value=[d.token for d in devices or []])
     repo.get_all_devices = AsyncMock(return_value=devices or [])
-    repo.get_topic_devices = AsyncMock(return_value=devices or [])
+    repo.get_topic_tokens = AsyncMock(return_value=[d.token for d in devices or []])
     repo.count_topic_devices = AsyncMock(return_value=len(devices or []))
     return repo
 
@@ -81,6 +82,39 @@ class TestPushServiceRegister:
 
         assert result.disabled_topics == ["schedule"]
         assert repo.save_device.call_args.args[0] is existing
+
+    @pytest.mark.asyncio
+    async def test_register_concurrent_insert_updates_existing(self):
+        # Another request inserted the token between our lookup and insert
+        existing = _device(disabled_topics=["schedule"])
+        repo = _repo()
+        repo.get_device = AsyncMock(side_effect=[None, existing])
+
+        async def save(device):
+            if device.id is None:
+                raise DuplicateKeyError("E11000 duplicate key error")
+            return device
+        repo.save_device = AsyncMock(side_effect=save)
+        service = PushService(repo, _topics(), MagicMock())
+
+        result = await service.register_device(PushDeviceRegisterRequest(
+            token="tok-1", platform="android", language="en", appVersion="2.1.1",
+        ))
+
+        assert repo.save_device.call_count == 2
+        assert repo.save_device.call_args.args[0] is existing
+        assert result.id == existing.id
+        assert result.language == "en"
+        assert result.disabled_topics == ["schedule"]
+
+    @pytest.mark.asyncio
+    async def test_register_duplicate_without_existing_device_reraises(self):
+        repo = _repo(device=None)
+        repo.save_device = AsyncMock(side_effect=DuplicateKeyError("E11000 duplicate key error"))
+        service = PushService(repo, _topics(), MagicMock())
+
+        with pytest.raises(DuplicateKeyError):
+            await service.register_device(PushDeviceRegisterRequest(token="tok-1", platform="android"))
 
 
 class TestPushServiceSubscriptions:
@@ -147,7 +181,7 @@ class TestPushServiceTopics:
 
         result = await service.send_to_topic("schedule_changes", PushMessage(title="t", body="b"))
 
-        repo.get_topic_devices.assert_called_once_with("schedule_changes")
+        repo.get_topic_tokens.assert_called_once_with("schedule_changes")
         assert sender.send.call_args.args[1].data["topic"] == "schedule_changes"
         assert result.success_count == 1
 

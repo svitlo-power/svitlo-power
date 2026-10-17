@@ -30,11 +30,11 @@ class IPushDevicesRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_enabled_devices(self) -> list[PushDevice]:
+    async def get_enabled_tokens(self) -> list[str]:
         ...
 
     @abstractmethod
-    async def get_topic_devices(self, topic: str) -> list[PushDevice]:
+    async def get_topic_tokens(self, topic: str) -> list[str]:
         ...
 
     @abstractmethod

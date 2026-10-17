@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from injector import inject
+from pymongo.errors import DuplicateKeyError
 
 from shared.models.push_device import PushDevice
 from shared.models.api.push import (
@@ -39,13 +40,29 @@ class PushDevicesService:
                 created_at  = now,
             )
 
+        try:
+            device = await self._save_registration(device, request, now)
+        except DuplicateKeyError:
+            # A concurrent request inserted the same token first; update that record instead
+            device = await self._devices.get_device(request.token)
+            if not device:
+                raise
+            device = await self._save_registration(device, request, now)
+
+        return PushDeviceResponse.model_validate(device)
+
+
+    async def _save_registration(
+        self,
+        device: PushDevice,
+        request: PushDeviceRegisterRequest,
+        now: datetime,
+    ) -> PushDevice:
         device.platform = request.platform
         device.language = request.language
         device.app_version = request.app_version
         device.last_seen = now
-
-        device = await self._devices.save_device(device)
-        return PushDeviceResponse.model_validate(device)
+        return await self._devices.save_device(device)
 
 
     async def update_subscriptions(

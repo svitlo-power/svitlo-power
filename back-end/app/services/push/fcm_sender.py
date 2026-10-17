@@ -106,8 +106,14 @@ class FcmSender:
 
         for i in range(0, len(tokens), FCM_BATCH_SIZE):
             batch = tokens[i:i + FCM_BATCH_SIZE]
-            # firebase-admin is synchronous, keep it off the event loop
-            result = await asyncio.to_thread(self._send_batch, batch, message)
+            try:
+                # firebase-admin is synchronous, keep it off the event loop
+                result = await asyncio.to_thread(self._send_batch, batch, message)
+            except Exception as e:
+                # FCM unreachable or credentials rejected: count the batch as failed instead of failing the caller
+                logger.error(f"FCM batch of {len(batch)} tokens failed: {e}")
+                total.failure_count += len(batch)
+                continue
             total.success_count += result.success_count
             total.failure_count += result.failure_count
             total.invalid_tokens.extend(result.invalid_tokens)

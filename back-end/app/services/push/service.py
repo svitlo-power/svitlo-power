@@ -61,8 +61,8 @@ class PushService(PushDevicesService):
 
 
     async def send_to_all(self, message: PushMessage) -> PushSendResult:
-        devices = await self._devices.get_enabled_devices()
-        return await self.send_to_tokens([d.token for d in devices], message)
+        tokens = await self._devices.get_enabled_tokens()
+        return await self.send_to_tokens(tokens, message)
 
 
     async def send_to_topic(self, key: str, message: PushMessage) -> PushSendResult | None:
@@ -73,9 +73,9 @@ class PushService(PushDevicesService):
         if not topic.enabled:
             return PushSendResult(success_count=0, failure_count=0, removed_count=0)
 
-        devices = await self._devices.get_topic_devices(key)
+        tokens = await self._devices.get_topic_tokens(key)
         message.data = { **message.data, "topic": key }
-        return await self.send_to_tokens([d.token for d in devices], message)
+        return await self.send_to_tokens(tokens, message)
 
 
     # -------------------------
