@@ -6,7 +6,7 @@ import pytest
 from beanie import PydanticObjectId
 
 from app.services.dashboard.service import DashboardService
-from app.models.api import (
+from shared.models import (
     BuildingResponse,
     BuildingSummaryResponse,
     DashboardConfigResponse,

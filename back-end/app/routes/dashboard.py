@@ -7,7 +7,7 @@ from fastapi_injector import Injected
 from app.services import DashboardService
 from app.utils.jwt_dependencies import get_current_jwt_optional, jwt_required
 from app.models.api import SaveBuildingRequest, PowerLogsRequest, PowerLogsResponse
-from app.models.api.dashboard import (
+from shared.models.api.dashboard import (
     BuildingResponse,
     BuildingSummaryResponse,
     BuildingWithSummaryResponse,

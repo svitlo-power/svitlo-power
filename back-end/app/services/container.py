@@ -2,11 +2,10 @@ from injector import Binder, Module, singleton, noscope
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
-from shared.services import EventsService, EventsServiceConfig, TranslationService
+from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
 from .beanie_initializer import BeanieInitializer
 from .authorization import AuthorizationService
 from .bots import BotConfig, BotsService
-from .outages_schedule import OutagesScheduleService
 from .telegram import TelegramConfig, TelegramService
 from .station_connections import StationConnectionsService
 from .visit_counter import VisitCounterService
@@ -20,6 +19,7 @@ from .dashboard import DashboardService
 from .maintenance import MaintenanceService
 from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
+from .push import FcmSender, PushService
 from .interfaces import IMessageGeneratorService, IExtDeviceService
 
 
@@ -43,6 +43,7 @@ class ServicesContainer(Module):
         events_service_config = EventsServiceConfig(str(self._settings.REDIS_URI), self._settings.DEBUG)
         binder.bind(EventsServiceConfig, to=events_service_config, scope=noscope)
         binder.bind(EventsService, to=EventsService(events_service_config), scope=singleton)
+
         binder.bind(OutagesScheduleService, scope=singleton)
 
         binder.bind(TelegramConfig, scope=noscope)
@@ -66,6 +67,9 @@ class ServicesContainer(Module):
         binder.bind(IExtDeviceService, to=ExtDeviceService)
 
         binder.bind(DashboardService, scope=noscope)
+
+        binder.bind(FcmSender, scope=singleton)
+        binder.bind(PushService, scope=noscope)
 
         scheduler = AsyncIOScheduler()
         binder.bind(AsyncIOScheduler, to=scheduler, scope=singleton)

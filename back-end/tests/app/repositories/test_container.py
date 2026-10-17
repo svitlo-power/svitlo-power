@@ -2,11 +2,14 @@
 from unittest.mock import MagicMock
 
 from app.repositories.container import RepositoryContainer
+from app.settings import Settings
 
 
 class TestRepositoryContainer:
     def test_configure_binds_all_interfaces(self):
-        container = RepositoryContainer()
+        settings = MagicMock(spec=Settings)
+        settings.DEBUG = True
+        container = RepositoryContainer(settings)
         binder = MagicMock()
         container.configure(binder)
 
@@ -30,6 +33,7 @@ class TestRepositoryContainer:
             IExtDeviceRepository,
             IDashboardRepository,
             ILoginHistoryRepository,
+            IOutagesScheduleRepository,
         )
 
         expected_interfaces = [
@@ -46,6 +50,7 @@ class TestRepositoryContainer:
             IExtDeviceRepository,
             IDashboardRepository,
             ILoginHistoryRepository,
+            IOutagesScheduleRepository,
         ]
 
         for interface in expected_interfaces:

@@ -5,23 +5,57 @@ from pydantic import ValidationError
 from datetime import datetime, timezone
 import aiohttp
 
-from app.services.base import BaseService
 from shared.services.events.service import EventsService
+from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
 from .models import SchedulesResponse, DayStatus
 
 
 logger = logging.getLogger(__name__)
 
 
+class BaseService:
+    """Base service class for shared services."""
+    def __init__(self, events: EventsService):
+        self._events = events
+
+    async def broadcast_public(self, type: str, data: dict = None):
+        await self._events.broadcast_public(type, data)
+
+    async def broadcast_private(self, type: str, data: dict = None):
+        await self._events.broadcast_private(type, data)
+
+
 @inject
 class OutagesScheduleService(BaseService):
-    def __init__(self, events: EventsService, session: aiohttp.ClientSession):
+    def __init__(
+        self, 
+        events: EventsService, 
+        session: aiohttp.ClientSession,
+        repository: IOutagesScheduleRepository
+    ):
         super().__init__(events)
         self._session = session
-        self._cache = SchedulesResponse({})
+        self._repository = repository
 
     def get_schedule(self, queue: str):
-        return self._cache.root.get(queue)
+        # This is a synchronous method for backward compatibility
+        # We'll need to handle this differently - maybe cache locally
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're in an async context, we can't block
+                # Return cached data or None
+                return None
+            else:
+                return loop.run_until_complete(self._repository.get_schedule(queue))
+        except RuntimeError:
+            # No event loop
+            return None
+
+    async def get_schedule_async(self, queue: str):
+        """Async version of get_schedule."""
+        return await self._repository.get_schedule(queue)
 
     async def update(self, region: int, dso: int):
         yasno_url = (
@@ -70,7 +104,7 @@ class OutagesScheduleService(BaseService):
                     if abs((day_date.date() - now.date()).days) > 2:
                         day.status = DayStatus.WaitingForSchedule
 
-            self._cache = parsed
+            await self._repository.set_schedule(parsed)
             await self.broadcast_public("outages_updated")
 
         except aiohttp.ClientConnectionError as e:

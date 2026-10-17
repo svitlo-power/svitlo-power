@@ -1,4 +1,6 @@
-"""Tests for app/repositories/implementations/dashboard.py."""
+"""Tests for app/repositories/implementations/dashboard.py - write methods only.
+Read methods are tested in shared/python/tests/repositories/test_dashboard_read.py
+"""
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 from beanie import PydanticObjectId
@@ -14,40 +16,7 @@ Building.station.id = MagicMock()
 
 
 class TestDashboardRepository:
-    """Tests for DashboardRepository."""
-
-    @pytest.mark.asyncio
-    async def test_get_building(self):
-        """Test get_building."""
-        building_id = PydanticObjectId("507f1f77bcf86cd799439011")
-        mock_building = MagicMock(spec=Building)
-        
-        with patch.object(Building, 'get', new_callable=AsyncMock) as mock_get:
-            mock_get.return_value = mock_building
-            
-            repo = DashboardRepository()
-            result = await repo.get_building(building_id)
-            
-            assert result == mock_building
-            mock_get.assert_called_once_with(building_id, fetch_links=True)
-
-    @pytest.mark.asyncio
-    async def test_get_building_by_station_id(self):
-        """Test get_building_by_station_id."""
-        station_id = 1
-        mock_building = MagicMock(spec=Building)
-        
-        with patch.object(Building, 'find_one', new_callable=AsyncMock) as mock_find_one:
-            mock_find_one.return_value = mock_building
-            
-            repo = DashboardRepository()
-            result = await repo.get_building_by_station_id(station_id)
-            
-            assert result == mock_building
-            mock_find_one.assert_called_once()
-            # Verify the query was built correctly
-            call_args = mock_find_one.call_args
-            assert call_args[1]['fetch_links'] is True
+    """Tests for DashboardRepository write methods."""
 
     @pytest.mark.asyncio
     async def test_edit_building(self):
@@ -99,63 +68,6 @@ class TestDashboardRepository:
         assert b2.order == 2
         b1.save.assert_called_once()
         b2.save.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_get_buildings_by_ids(self):
-        """Test get_buildings with ids parameter."""
-        ids = [PydanticObjectId("507f1f77bcf86cd799439011")]
-        mock_buildings = [MagicMock(spec=Building)]
-        
-        with patch.object(Building, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.to_list = AsyncMock(return_value=mock_buildings)
-            
-            repo = DashboardRepository()
-            result = await repo.get_buildings(ids=ids)
-            
-            assert result == mock_buildings
-            mock_find.assert_called_once_with({"_id": {"$in": ids}}, fetch_links=True)
-
-    @pytest.mark.asyncio
-    async def test_get_buildings_enabled_only(self):
-        """Test get_buildings enabled only."""
-        mock_buildings = [MagicMock(spec=Building)]
-        
-        with patch.object(Building, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.to_list = AsyncMock(return_value=mock_buildings)
-            
-            repo = DashboardRepository()
-            result = await repo.get_buildings(all=False)
-            
-            assert result == mock_buildings
-            mock_find.assert_called_once_with({"enabled": True}, fetch_links=True)
-
-    @pytest.mark.asyncio
-    async def test_get_buildings_all(self):
-        """Test get_buildings all."""
-        mock_buildings = [MagicMock(spec=Building)]
-        
-        with patch.object(Building, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.to_list = AsyncMock(return_value=mock_buildings)
-            
-            repo = DashboardRepository()
-            result = await repo.get_buildings(all=True)
-            
-            assert result == mock_buildings
-            mock_find.assert_called_once_with({}, fetch_links=True)
-
-    @pytest.mark.asyncio
-    async def test_get_config(self):
-        """Test get_config."""
-        mock_config = MagicMock(spec=DashboardConfig)
-        
-        with patch.object(DashboardConfig, 'find_one', new_callable=AsyncMock) as mock_find:
-            mock_find.return_value = mock_config
-            
-            repo = DashboardRepository()
-            result = await repo.get_config()
-            
-            assert result == mock_config
-            mock_find.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_save_config_existing(self):

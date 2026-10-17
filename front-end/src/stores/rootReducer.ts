@@ -17,6 +17,8 @@ import {
   buildingsSummaryReducer,
   extDevicesReducer,
   loginHistoryReducer,
+  pushDevicesReducer,
+  pushTopicsReducer,
   appReducer,
 } from "./slices";
 import { logout } from "./slices";
@@ -41,6 +43,8 @@ const combinedReducers = combineReducers({
   ["visitCounter"]: visitCounterReducer,
   ["extDevices"]: extDevicesReducer,
   ["loginHistory"]: loginHistoryReducer,
+  ["pushDevices"]: pushDevicesReducer,
+  ["pushTopics"]: pushTopicsReducer,
   ["app"]: appReducer,
 });
 

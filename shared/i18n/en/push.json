@@ -1,0 +1,66 @@
+{
+    "title": "Push notifications",
+    "button": {
+        "sendToAll": "Send test to all",
+        "send": "Send",
+        "sendAgain": "Send again"
+    },
+    "stats": {
+        "total": "Devices",
+        "android": "Android",
+        "web": "Web",
+        "enabled": "Notifications on"
+    },
+    "table": {
+        "platform": "Platform",
+        "language": "Language",
+        "appVersion": "App version",
+        "enabled": "Enabled",
+        "subscriptions": "Subscriptions",
+        "createdAt": "Registered",
+        "lastSeen": "Last seen"
+    },
+    "subscriptions": "All topics",
+    "platform": {
+        "android": "Android",
+        "web": "Web"
+    },
+    "actions": {
+        "sendTest": "Send test",
+        "sendTestTopic": "Send test to topic"
+    },
+    "test": {
+        "titleAll": "Test notification to all devices",
+        "titleDevice": "Test notification to a device",
+        "targetAll": "The notification will be sent to {{count}} devices with notifications on.",
+        "targetDevice": "The notification will be sent only to this device ({{platform}}, {{language}}).",
+        "fieldTitle": "Title",
+        "fieldBody": "Text",
+        "fieldRoute": "Screen to open",
+        "fieldRouteDescription": "App path opened on tap, e.g. /schedule",
+        "routeInvalid": "The path must start with /",
+        "required": "Required",
+        "resultTitle": "Sent",
+        "result": "Delivered: {{success}} · Failed: {{failure}} · Removed stale devices: {{removed}}",
+        "errorTitle": "Sending failed",
+        "titleTopic": "Test notification to topic “{{name}}”",
+        "targetTopic": "The notification will be sent to {{count}} devices subscribed to this topic."
+    },
+    "modal": {
+        "deleteTitle": "Delete device",
+        "deleteConfirm": "The device will stop receiving notifications until the app registers it again. Continue?"
+    },
+    "tabs": {
+        "topics": "Topics",
+        "devices": "Devices"
+    },
+    "topics": {
+        "hint": "An inactive topic is not sent to anyone and is hidden in the app. Users choose topics in the app; by default they get all active topics.",
+        "name": "Topic",
+        "key": "Key",
+        "description": "Description",
+        "subscribers": "Subscribers",
+        "enabled": "Active"
+    },
+    "subscriptionsPartial": "{{count}} topics off"
+}

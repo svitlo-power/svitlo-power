@@ -1,4 +1,4 @@
-from injector import Binder, Module, noscope
+from injector import Binder, Module, noscope, singleton
 
 from .interfaces import (
     IMessagesRepository,
@@ -14,6 +14,9 @@ from .interfaces import (
     IExtDeviceRepository,
     IDashboardRepository,
     ILoginHistoryRepository,
+    IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from .implementations import (
     MessagesRepository,
@@ -29,10 +32,20 @@ from .implementations import (
     ExtDeviceRepository,
     DashboardRepository,
     LoginHistoryRepository,
+    PushDevicesRepository,
+    PushTopicsRepository,
 )
+from shared.repositories.implementations import (
+    RedisOutagesScheduleRepository,
+    InMemoryOutagesScheduleRepository,
+)
+from app.settings import Settings
 
 
 class RepositoryContainer(Module):
+
+    def __init__(self, settings: Settings):
+        self._settings = settings
 
     def configure(self, binder: Binder):
         binder.bind(IMessagesRepository, to=MessagesRepository, scope=noscope)
@@ -48,3 +61,12 @@ class RepositoryContainer(Module):
         binder.bind(IExtDeviceRepository, to=ExtDeviceRepository, scope=noscope)
         binder.bind(IDashboardRepository, to=DashboardRepository, scope=noscope)
         binder.bind(ILoginHistoryRepository, to=LoginHistoryRepository, scope=noscope)
+
+        # Bind outages schedule repository based on DEBUG flag
+        if self._settings.DEBUG:
+            binder.bind(IOutagesScheduleRepository, to=InMemoryOutagesScheduleRepository, scope=singleton)
+        else:
+            redis_repo = RedisOutagesScheduleRepository(str(self._settings.REDIS_URI))
+            binder.bind(IOutagesScheduleRepository, to=redis_repo, scope=singleton)
+        binder.bind(IPushDevicesRepository, to=PushDevicesRepository, scope=noscope)
+        binder.bind(IPushTopicsRepository, to=PushTopicsRepository, scope=noscope)

@@ -1,13 +1,13 @@
 """Tests for app/repositories/implementations/stations_data.py."""
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch, call
+from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import datetime, timezone, timedelta
 from beanie import PydanticObjectId
 
 from app.repositories.implementations.stations_data import StationsDataRepository
 from shared.models.station import Station
 from shared.models import StationData
-from app.models import AssumedStationStatus
+from shared.models import AssumedStationStatus
 from app.settings import Settings
 
 # Mock Beanie class-level query attributes that are used as query expressions
@@ -23,8 +23,6 @@ _lut_mock.__le__ = MagicMock(return_value=MagicMock())
 _lut_mock.__gt__ = MagicMock(return_value=MagicMock())
 _lut_mock.__ge__ = MagicMock(return_value=MagicMock())
 StationData.last_update_time = _lut_mock
-
-
 
 
 def make_repo():
@@ -132,110 +130,6 @@ class TestStationsDataRepository:
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_full_station_data_range_with_tz(self):
-        """Test get_full_station_data_range with tz-aware dates."""
-        repo, _ = make_repo()
-        station_id = "station1"
-        start = datetime.now(timezone.utc)
-        end = start + timedelta(hours=1)
-        mock_list = [MagicMock()]
-
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            _configure_sd_mock_comparisons(MockSD)
-            chain = MockSD.find.return_value.sort.return_value
-            chain.to_list = AsyncMock(return_value=mock_list)
-            result = await repo.get_full_station_data_range(station_id, start, end)
-            assert result == mock_list
-
-    @pytest.mark.asyncio
-    async def test_get_full_station_data_range_without_tz(self):
-        """Test get_full_station_data_range with tz-naive dates."""
-        repo, _ = make_repo()
-        station_id = "station1"
-        start = datetime.now()  # tz-naive
-        end = start + timedelta(hours=1)  # tz-naive
-        mock_list = [MagicMock()]
-
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            _configure_sd_mock_comparisons(MockSD)
-            chain = MockSD.find.return_value.sort.return_value
-            chain.to_list = AsyncMock(return_value=mock_list)
-            result = await repo.get_full_station_data_range(station_id, start, end)
-            assert result == mock_list
-
-    @pytest.mark.asyncio
-    async def test_get_full_station_data_range_exception(self):
-        """Test get_full_station_data_range exception returns empty list."""
-        repo, _ = make_repo()
-        station_id = "station1"
-        start = datetime.now(timezone.utc)
-        end = start + timedelta(hours=1)
-
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.find.side_effect = Exception("DB error")
-            result = await repo.get_full_station_data_range(station_id, start, end)
-            assert result == []
-
-    @pytest.mark.asyncio
-    async def test_get_last_station_data(self):
-        """Test get_last_station_data."""
-        repo, _ = make_repo()
-        station_id = PydanticObjectId("507f1f77bcf86cd799439011")
-        mock_data = MagicMock(spec=StationData)
-
-        with patch.object(StationData, 'find') as mock_find:
-            mock_find.return_value.sort.return_value.first_or_none = AsyncMock(return_value=mock_data)
-            result = await repo.get_last_station_data(station_id)
-            assert result == mock_data
-
-    @pytest.mark.asyncio
-    async def test_get_station_data_average_column_invalid_field(self):
-        """Test get_station_data_average_column with invalid field raises ValueError."""
-        repo, _ = make_repo()
-        with pytest.raises(ValueError):
-            await repo.get_station_data_average_column(None, None, 1, "nonexistent_field")
-
-    @pytest.mark.asyncio
-    async def test_get_station_data_average_column_non_numeric(self):
-        """Test get_station_data_average_column with non-numeric field raises TypeError."""
-        repo, _ = make_repo()
-        # 'request_id' is a string field in StationData
-        with pytest.raises(TypeError):
-            await repo.get_station_data_average_column(None, None, 1, "request_id")
-
-    @pytest.mark.asyncio
-    async def test_get_station_data_average_column_no_result(self):
-        """Test get_station_data_average_column with no result returns 0.0."""
-        repo, _ = make_repo()
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.model_fields = StationData.model_fields  # Use real fields for validation
-            MockSD.aggregate.return_value.to_list = AsyncMock(return_value=[])
-            result = await repo.get_station_data_average_column(None, None, 1, "battery_soc")
-            assert result == 0.0
-
-    @pytest.mark.asyncio
-    async def test_get_station_data_average_column_with_result(self):
-        """Test get_station_data_average_column returns the average value."""
-        repo, _ = make_repo()
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.model_fields = StationData.model_fields
-            MockSD.aggregate.return_value.to_list = AsyncMock(return_value=[{"avg_value": 75.5}])
-            result = await repo.get_station_data_average_column(None, None, 1, "battery_soc")
-            assert result == 75.5
-
-    @pytest.mark.asyncio
-    async def test_get_station_data_average_column_with_dates(self):
-        """Test get_station_data_average_column with date filters."""
-        repo, _ = make_repo()
-        start = datetime.now(timezone.utc)
-        end = start + timedelta(hours=1)
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.model_fields = StationData.model_fields
-            MockSD.aggregate.return_value.to_list = AsyncMock(return_value=[{"avg_value": 42.0}])
-            result = await repo.get_station_data_average_column(start, end, 1, "battery_soc")
-            assert result == 42.0
-
-    @pytest.mark.asyncio
     async def test_get_station_data_tuple_station_not_found(self):
         """Test get_station_data_tuple when station not found."""
         repo, _ = make_repo()
@@ -293,39 +187,3 @@ class TestStationsDataRepository:
             await repo.delete_old_data(5)
             MockSD.find.assert_called_once()
             MockSD.find.return_value.delete.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_get_assumed_connection_status_no_data(self):
-        """Test get_assumed_connection_status with no data returns OFFLINE."""
-        repo, _ = make_repo()
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.find.return_value.sort.return_value.limit.return_value.to_list = AsyncMock(return_value=[])
-            result = await repo.get_assumed_connection_status(1)
-            assert result == AssumedStationStatus.OFFLINE
-
-    @pytest.mark.asyncio
-    async def test_get_assumed_connection_status_normal(self):
-        """Test get_assumed_connection_status with recent data returns NORMAL."""
-        repo, _ = make_repo()
-        mock_record = MagicMock()
-        # Very recent update
-        mock_record.last_update_time = datetime.now(timezone.utc).replace(tzinfo=None)
-
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.find.return_value.sort.return_value.limit.return_value.to_list = AsyncMock(return_value=[mock_record])
-            result = await repo.get_assumed_connection_status(1)
-            assert result == AssumedStationStatus.NORMAL
-
-    @pytest.mark.asyncio
-    async def test_get_assumed_connection_status_offline(self):
-        """Test get_assumed_connection_status with old data returns OFFLINE."""
-        repo, _ = make_repo()
-        mock_record = MagicMock()
-        # Very old update (more than 300*2=600 seconds ago)
-        old_time = datetime.now(timezone.utc) - timedelta(seconds=700)
-        mock_record.last_update_time = old_time.replace(tzinfo=None)
-
-        with patch('app.repositories.implementations.stations_data.StationData') as MockSD:
-            MockSD.find.return_value.sort.return_value.limit.return_value.to_list = AsyncMock(return_value=[mock_record])
-            result = await repo.get_assumed_connection_status(1)
-            assert result == AssumedStationStatus.OFFLINE

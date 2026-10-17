@@ -1,9 +1,17 @@
-"""Tests for app/services/message_generator/service.py."""
+import json
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import os
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def cleanup_debug_requests():
+    yield
+    for file in Path(".").glob("debug_requests*.json"):
+        file.unlink(missing_ok=True)
 
 from app.services.message_generator.service import MessageGeneratorService
 from app.services.message_generator.models import MessageGeneratorConfig
@@ -146,16 +154,17 @@ class TestMessageGeneratorServiceGenerateMessage:
         assert result.data is not None
         assert "stations" in result.data
         # Debug: write collected requests to file
-        import json
-        with open("debug_requests.json", "w") as f:
-            json.dump({
-                "keys": list(result.data.keys()),
-                "requests": result.data.get("requests", []),
-                "stations": result.data.get("stations", []),
-                "station": result.data.get("station", None)
-            }, f, default=str, indent=2)
-        if os.path.exists("debug_requests.json"):
-            os.remove("debug_requests.json")
+        debug_file = Path("debug_requests.json")
+        try:
+            with open(debug_file, "w") as f:
+                json.dump({
+                    "keys": list(result.data.keys()),
+                    "requests": result.data.get("requests", []),
+                    "stations": result.data.get("stations", []),
+                    "station": result.data.get("station", None)
+                }, f, default=str, indent=2)
+        finally:
+            debug_file.unlink(missing_ok=True)
 
     @pytest.mark.asyncio
     async def test_generate_message_with_station_alias(self):
@@ -554,26 +563,26 @@ class TestMessageGeneratorServiceAddMethods:
         assert "requests" in result.data
         
         # Debug: print all requests
-        import json
-        with open("debug_requests2.json", "w") as f:
-            json.dump({
-                "requests": result.data.get("requests", []),
-                "station_keys": list(result.data.get("station", {}).keys()) if result.data.get("station") else None,
-                "stations_0_keys": list(result.data.get("stations", [{}])[0].keys()) if result.data.get("stations") else None,
-            }, f, default=str, indent=2)
-        
-        # Find the get_average request and verify it has the correct start_date
-        avg_requests = [r for r in result.data["requests"] if "get_average(" in r["request"]]
-        assert len(avg_requests) >= 1
-        
-        # The request description should contain the start_date (last_sent_time)
-        # Note: exact format depends on describe() implementation
-        avg_desc = avg_requests[0]["request"]
-        assert "get_average" in avg_desc
-        assert "station_id=1" in avg_desc
-
-        if os.path.exists("debug_requests2.json"):
-            os.remove("debug_requests2.json")
+        debug_file = Path("debug_requests2.json")
+        try:
+            with open(debug_file, "w") as f:
+                json.dump({
+                    "requests": result.data.get("requests", []),
+                    "station_keys": list(result.data.get("station", {}).keys()) if result.data.get("station") else None,
+                    "stations_0_keys": list(result.data.get("stations", [{}])[0].keys()) if result.data.get("stations") else None,
+                }, f, default=str, indent=2)
+            
+            # Find the get_average request and verify it has the correct start_date
+            avg_requests = [r for r in result.data["requests"] if "get_average(" in r["request"]]
+            assert len(avg_requests) >= 1
+            
+            # The request description should contain the start_date (last_sent_time)
+            # Note: exact format depends on describe() implementation
+            avg_desc = avg_requests[0]["request"]
+            assert "get_average" in avg_desc
+            assert "station_id=1" in avg_desc
+        finally:
+            debug_file.unlink(missing_ok=True)
 
 
 class TestMessageGeneratorServiceTemplateRequestsInShouldSendAndTimeout:

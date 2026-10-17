@@ -76,14 +76,13 @@ class TestBaseMongoSettings:
 
 class TestMongoDsn:
     def test_valid_mongodb_scheme(self):
-        dsn = MongoDsn("mongodb://localhost:27017")
-        assert str(dsn) == "mongodb://localhost:27017"
+        settings = BaseMongoSettings(MONGO_URI="mongodb://localhost:27017")
+        assert str(settings.MONGO_URI) == "mongodb://localhost:27017"
 
     def test_valid_mongodb_srv_scheme(self):
-        dsn = MongoDsn("mongodb+srv://localhost:27017")
-        assert str(dsn) == "mongodb+srv://localhost:27017"
+        settings = BaseMongoSettings(MONGO_URI="mongodb+srv://localhost:27017")
+        assert str(settings.MONGO_URI) == "mongodb+srv://localhost:27017"
 
     def test_invalid_scheme_raises_error(self):
-        # MongoDsn is a type alias, validation happens when used in a model
         with pytest.raises(ValidationError):
             BaseMongoSettings(MONGO_URI="redis://localhost:6379")

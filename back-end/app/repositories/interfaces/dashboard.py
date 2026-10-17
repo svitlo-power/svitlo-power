@@ -5,17 +5,10 @@ from beanie import PydanticObjectId
 
 from shared.models.building import Building
 from shared.models.dashboard_config import DashboardConfig
+from shared.repositories import IDashboardReadRepository
 
 
-class IDashboardRepository(ABC):
-
-    @abstractmethod
-    async def get_building(self, id: PydanticObjectId) -> Building:
-        ...
-
-    @abstractmethod
-    async def get_building_by_station_id(self, station_id: int) -> Optional[Building]:
-        ...
+class IDashboardRepository(IDashboardReadRepository, ABC):
 
     @abstractmethod
     async def edit_building(self, building: Building):
@@ -31,18 +24,6 @@ class IDashboardRepository(ABC):
 
     @abstractmethod
     async def reorder_buildings(self, buildings: List[Building]):
-        ...
-    
-    @abstractmethod
-    async def get_buildings(
-        self,
-        ids: Optional[List[PydanticObjectId]] = None,
-        all: bool = False
-    ) -> List[Building]:
-        ...
-
-    @abstractmethod
-    async def get_config(self) -> DashboardConfig:
         ...
 
     @abstractmethod

@@ -20,11 +20,15 @@ class TestOutagesScheduleRoute:
         app = FastAPI()
         register(app)
 
+        # Create a mock SchedulesResponse with root containing the queue
+        mock_unit_schedule = MagicMock()
+        mock_unit_schedule.model_dump.return_value = {"days": [{"start": 0, "end": 120, "type": "Definite"}]}
+
         mock_schedule = MagicMock()
-        mock_schedule.model_dump.return_value = {"queue": "test", "schedule": []}
+        mock_schedule.root = {"test_queue": mock_unit_schedule}
 
         mock_service = MagicMock()
-        mock_service.get_schedule.return_value = mock_schedule
+        mock_service.get_schedule_async = AsyncMock(return_value=mock_schedule)
 
         mock_injector = MagicMock()
         mock_injector.get = MagicMock(return_value=mock_service)
@@ -33,7 +37,7 @@ class TestOutagesScheduleRoute:
         client = TestClient(app)
         response = client.get("/api/outagesSchedule/outagesSchedule/test_queue")
         assert response.status_code == 200
-        assert response.json() == {"queue": "test", "schedule": []}
+        assert response.json() == {"days": [{"start": 0, "end": 120, "type": "Definite"}]}
 
     def test_get_outages_schedule_not_found(self):
         """Test that get_outages_schedule raises 404 when schedule not found."""
@@ -41,7 +45,7 @@ class TestOutagesScheduleRoute:
         register(app)
 
         mock_service = MagicMock()
-        mock_service.get_schedule.return_value = None
+        mock_service.get_schedule_async = AsyncMock(return_value=None)
 
         mock_injector = MagicMock()
         mock_injector.get = MagicMock(return_value=mock_service)

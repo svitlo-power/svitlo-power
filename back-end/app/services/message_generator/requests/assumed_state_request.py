@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import ClassVar
 from injector import Injector
+from shared.models import AssumedStationStatus
 
 from ..models import TemplateRequest
-from app.models import AssumedStationStatus
 from app.repositories import IStationsDataRepository
 
 

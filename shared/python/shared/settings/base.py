@@ -7,7 +7,7 @@ from pydantic_core import MultiHostUrl
 from shared.utils import generate_secret_key
 
 
-MongoDsn = Annotated[
+type MongoDsn = Annotated[
     MultiHostUrl,
     UrlConstraints(allowed_schemes=["mongodb", "mongodb+srv"])
 ]
@@ -20,6 +20,20 @@ class BaseAppSettings(BaseModel):
     @property
     def I18N_PATH(self) -> str:
         return "../shared/i18n"
+
+
+class BaseDeyeAppSettings(BaseModel):
+    DEYE_BASE_URL: str | None = None
+    DEYE_APP_ID: str | None = None
+    DEYE_APP_SECRET: str | None = None
+    DEYE_EMAIL: str | None = None
+    DEYE_PASSWORD: str | None = None
+
+    DEYE_FETCH_INTERVAL: int = Field(default=120)
+    DEYE_SYNC_STATIONS_ON_POLL: bool = Field(default=False)
+
+    DEYE_REPORT_INTERVAL: int = Field(default=300)
+    DEYE_ASSUMED_OFFLINE_REPORTS: int = Field(default=2)
 
 
 class BaseJWTSettings(BaseModel):
