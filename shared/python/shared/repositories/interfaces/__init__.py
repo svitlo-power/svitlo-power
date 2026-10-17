@@ -4,6 +4,8 @@ from .stations_read import IStationsReadRepository
 from .stations_data_read import IStationsDataReadRepository
 from .users_read import IUsersReadRepository
 from .outages_schedule import IOutagesScheduleRepository
+from .push_devices import IPushDevicesRepository
+from .push_topics import IPushTopicsRepository
 
 __all__ = [
     IDashboardReadRepository,
@@ -12,4 +14,6 @@ __all__ = [
     IStationsDataReadRepository,
     IUsersReadRepository,
     IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 ]

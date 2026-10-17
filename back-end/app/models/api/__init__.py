@@ -9,7 +9,7 @@ from .stations_data import *
 from .api import *
 from .users import *
 from .login_history import *
-from .push import *
+from shared.models.api.push import *
 
 from .bots import __all__ as _bots_all
 from .dashboard import __all__ as _dashboard_all
@@ -22,7 +22,7 @@ from .stations_data import __all__ as _stations_data_all
 from .api import __all__ as _api_all
 from .users import __all__ as _users_all
 from .login_history import __all__ as _login_history_all
-from .push import __all__ as _push_all
+from shared.models.api.push import __all__ as _push_all
 
 __all__ = []
 __all__.extend(_bots_all)

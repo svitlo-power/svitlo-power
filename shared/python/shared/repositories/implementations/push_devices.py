@@ -1,7 +1,7 @@
 from beanie import PydanticObjectId
 from beanie.operators import In
 from shared.models.push_device import PushDevice
-from ..interfaces.push_devices import IPushDevicesRepository
+from shared.repositories.interfaces.push_devices import IPushDevicesRepository
 
 
 class PushDevicesRepository(IPushDevicesRepository):

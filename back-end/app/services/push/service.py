@@ -1,18 +1,14 @@
-from datetime import datetime, timezone
 import logging
 from beanie import PydanticObjectId
 from injector import inject
 
 from shared.models.localizable_value import LocalizableValue
-from shared.models.push_device import PushDevice
 from shared.models.push_topic import PushTopic
+from shared.services.push import PushDevicesService
 from app.repositories import IPushDevicesRepository, IPushTopicsRepository
 from app.models.api import (
-    PushDeviceRegisterRequest,
-    PushDeviceSubscriptionsRequest,
     PushDeviceResponse,
     PushSendResult,
-    PushTopicResponse,
     PushTopicAdminResponse,
 )
 from .fcm_sender import FcmSender, PushMessage
@@ -23,62 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 @inject
-class PushService:
+class PushService(PushDevicesService):
     def __init__(
         self,
         devices: IPushDevicesRepository,
         topics: IPushTopicsRepository,
         sender: FcmSender,
     ):
-        self._devices = devices
-        self._topics = topics
+        super().__init__(devices, topics)
         self._sender = sender
-
-
-    async def register_device(self, request: PushDeviceRegisterRequest) -> PushDeviceResponse:
-        now = datetime.now(timezone.utc)
-        device = await self._devices.get_device(request.token)
-
-        if not device:
-            device = PushDevice(
-                token       = request.token,
-                platform    = request.platform,
-                created_at  = now,
-            )
-
-        device.platform = request.platform
-        device.language = request.language
-        device.app_version = request.app_version
-        device.last_seen = now
-
-        device = await self._devices.save_device(device)
-        return PushDeviceResponse.model_validate(device)
-
-
-    async def update_subscriptions(
-        self,
-        request: PushDeviceSubscriptionsRequest,
-    ) -> PushDeviceResponse | None:
-        device = await self._devices.get_device(request.token)
-        if not device:
-            return None
-
-        device.enabled = request.enabled
-        device.disabled_topics = list(dict.fromkeys(request.disabled_topics))
-        device.buildings = list(dict.fromkeys(request.buildings))
-        device.last_seen = datetime.now(timezone.utc)
-
-        device = await self._devices.save_device(device)
-        return PushDeviceResponse.model_validate(device)
-
-
-    async def get_device(self, token: str) -> PushDeviceResponse | None:
-        device = await self._devices.get_device(token)
-        return PushDeviceResponse.model_validate(device) if device else None
-
-
-    async def unregister_device(self, token: str) -> bool:
-        return await self._devices.delete_device(token)
 
 
     async def delete_device(self, device_id: PydanticObjectId) -> bool:
@@ -146,14 +95,6 @@ class PushService:
                 order       = order,
             ))
             logger.info(f"Created push topic {definition.key}")
-
-
-    async def get_enabled_topics(self) -> list[PushTopicResponse]:
-        topics = await self._topics.get_enabled_topics()
-        return [
-            PushTopicResponse(key=t.key, name=t.name.root, description=t.description.root)
-            for t in topics
-        ]
 
 
     async def get_all_topics(self) -> list[PushTopicAdminResponse]:

@@ -13,6 +13,8 @@ from shared.repositories.interfaces import (
     IStationsDataReadRepository,
     IUsersReadRepository,
     IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from shared.services import EventsService
 from shared.services.events import EventsServiceConfig
@@ -250,6 +252,42 @@ class TestAppModule:
             )
             assert result == mock_service
 
+
+    def test_provide_push_devices_repository(self):
+        module = AppModule()
+        with patch('app.container.PushDevicesRepository') as mock_repo_class:
+            mock_repo = MagicMock()
+            mock_repo_class.return_value = mock_repo
+
+            result = module.provide_push_devices_repository()
+
+            mock_repo_class.assert_called_once()
+            assert result == mock_repo
+
+    def test_provide_push_topics_repository(self):
+        module = AppModule()
+        with patch('app.container.PushTopicsRepository') as mock_repo_class:
+            mock_repo = MagicMock()
+            mock_repo_class.return_value = mock_repo
+
+            result = module.provide_push_topics_repository()
+
+            mock_repo_class.assert_called_once()
+            assert result == mock_repo
+
+    def test_provide_push_devices_service(self):
+        module = AppModule()
+        mock_devices = MagicMock(spec=IPushDevicesRepository)
+        mock_topics = MagicMock(spec=IPushTopicsRepository)
+
+        with patch('app.container.PushDevicesService') as mock_service_class:
+            mock_service = MagicMock()
+            mock_service_class.return_value = mock_service
+
+            result = module.provide_push_devices_service(mock_devices, mock_topics)
+
+            mock_service_class.assert_called_once_with(devices=mock_devices, topics=mock_topics)
+            assert result == mock_service
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

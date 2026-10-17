@@ -11,8 +11,8 @@ from .ext_data import ExtDataRepository
 from .ext_device import ExtDeviceRepository
 from .dashboard import DashboardRepository
 from .login_history import LoginHistoryRepository
-from .push_devices import PushDevicesRepository
-from .push_topics import PushTopicsRepository
+from shared.repositories.implementations.push_devices import PushDevicesRepository
+from shared.repositories.implementations.push_topics import PushTopicsRepository
 
 
 __all__ = [UsersRepository, MessagesRepository, BotsRepository, StationsRepository,

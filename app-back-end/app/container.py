@@ -13,6 +13,8 @@ from shared.repositories.implementations import (
     UsersReadRepository,
     RedisOutagesScheduleRepository,
     InMemoryOutagesScheduleRepository,
+    PushDevicesRepository,
+    PushTopicsRepository,
 )
 from shared.repositories.interfaces import (
     IDashboardReadRepository,
@@ -21,11 +23,14 @@ from shared.repositories.interfaces import (
     IStationsDataReadRepository,
     IUsersReadRepository,
     IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
 )
 from shared.services import (
     EventsService,
     ReadOnlyDashboardService,
     OutagesScheduleService,
+    PushDevicesService,
 )
 from shared.services.events import EventsServiceConfig
 from shared.models import (
@@ -36,6 +41,8 @@ from shared.models import (
     StationData,
     User,
     OutagesSchedule,
+    PushDevice,
+    PushTopic,
 )
 
 
@@ -57,6 +64,8 @@ class BeanieInitializer:
                 StationData,
                 User,
                 OutagesSchedule,
+                PushDevice,
+                PushTopic,
             ],
         )
 
@@ -128,6 +137,25 @@ class AppModule(Module):
             return InMemoryOutagesScheduleRepository()
         else:
             return RedisOutagesScheduleRepository(str(settings.REDIS_URI))
+
+    @singleton
+    @provider
+    def provide_push_devices_repository(self) -> IPushDevicesRepository:
+        return PushDevicesRepository()
+
+    @singleton
+    @provider
+    def provide_push_topics_repository(self) -> IPushTopicsRepository:
+        return PushTopicsRepository()
+
+    @singleton
+    @provider
+    def provide_push_devices_service(
+        self,
+        devices: IPushDevicesRepository,
+        topics: IPushTopicsRepository,
+    ) -> PushDevicesService:
+        return PushDevicesService(devices=devices, topics=topics)
 
     @singleton
     @provider

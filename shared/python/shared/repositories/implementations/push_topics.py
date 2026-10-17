@@ -1,6 +1,6 @@
 from beanie.operators import Set
 from shared.models.push_topic import PushTopic
-from ..interfaces.push_topics import IPushTopicsRepository
+from shared.repositories.interfaces.push_topics import IPushTopicsRepository
 
 
 class PushTopicsRepository(IPushTopicsRepository):
