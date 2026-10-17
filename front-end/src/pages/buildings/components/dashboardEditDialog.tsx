@@ -27,21 +27,22 @@ export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboar
     const t = usePageTranslation('dashboard');
 
     const outageScheduleQueueOptions = useMemo(() => ([
-      { value: '', label: 'No queue' },
-      { value: '1.1', label: '1.1' },
-      { value: '1.2', label: '1.2' },
-      { value: '2.1', label: '2.1' },
-      { value: '2.2', label: '2.2' },
-      { value: '3.1', label: '3.1' },
-      { value: '3.2', label: '3.2' },
-      { value: '4.1', label: '4.1' },
-      { value: '4.2', label: '4.2' },
-      { value: '5.1', label: '5.1' },
-      { value: '5.2', label: '5.2' },
-      { value: '6.1', label: '6.1' },
-      { value: '6.2', label: '6.2' },
-      { value: '7.1', label: '7.1' },
+      { value: '',     label: 'No queue' },
+      { value: '1.1',  label: '1.1' },
+      { value: '1.2',  label: '1.2' },
+      { value: '2.1',  label: '2.1' },
+      { value: '2.2',  label: '2.2' },
+      { value: '3.1',  label: '3.1' },
+      { value: '3.2',  label: '3.2' },
+      { value: '4.1',  label: '4.1' },
+      { value: '4.2',  label: '4.2' },
+      { value: '5.1',  label: '5.1' },
+      { value: '5.2',  label: '5.2' },
+      { value: '6.1',  label: '6.1' },
+      { value: '6.2',  label: '6.2' },
+      { value: '7.1',  label: '7.1' },
       { value: '25.1', label: '25.1' },
+      { value: '48.1', label: '48.1'}
     ]), []);
 
     const getTitleError = (

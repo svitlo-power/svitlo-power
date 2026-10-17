@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import os
 import pytest
 
 
@@ -14,20 +15,10 @@ def cleanup_debug_requests():
 
 from app.services.message_generator.service import MessageGeneratorService
 from app.services.message_generator.models import MessageGeneratorConfig
-from app.services.message_generator.requests import (
-    AssumedStateRequest,
-    AverageRequest,
-    AverageAllRequest,
-    AverageMinutesRequest,
-    GetExtGridStateRequest,
-)
-from app.services.message_generator.template_method import TemplateMethod, TemplateMethodMode
-from app.services.message_generator.context import TemplateRequestContext
 from app.services.interfaces import MessageItem
 from app.repositories import IMessagesRepository, IStationsDataRepository
 from shared.models.message import Message
 from shared.models.station import Station
-from shared.models.station_data import StationData
 from shared.models.localizable_value import LocalizableValue
 
 
@@ -592,3 +583,279 @@ class TestMessageGeneratorServiceAddMethods:
             assert "station_id=1" in avg_desc
         finally:
             debug_file.unlink(missing_ok=True)
+
+
+class TestMessageGeneratorServiceTemplateRequestsInShouldSendAndTimeout:
+    """Tests for template requests in should_send_template and timeout_template."""
+
+    @pytest.mark.asyncio
+    async def test_should_send_template_with_get_ext_grid_state(self):
+        """Test that should_send_template can use get_ext_grid_state() request."""
+        mock_config = MagicMock(spec=MessageGeneratorConfig)
+        mock_config.timezone = "utc"
+        mock_messages_repo = MagicMock(spec=IMessagesRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+        mock_injector = MagicMock()
+
+        # Mock the injector.get to return the right repositories for requests
+        from app.repositories import IExtDataRepository, IDashboardRepository
+        mock_ext_data_repo = MagicMock(spec=IExtDataRepository)
+        mock_dashboard_repo = MagicMock(spec=IDashboardRepository)
+
+        def injector_get(cls):
+            if cls == IStationsDataRepository:
+                return mock_stations_data_repo
+            elif cls == IExtDataRepository:
+                return mock_ext_data_repo
+            elif cls == IDashboardRepository:
+                return mock_dashboard_repo
+            return MagicMock()
+
+        mock_injector.get = injector_get
+
+        # Mock ext data repo for GetExtGridStateRequest - return True (grid is ON)
+        mock_building = MagicMock()
+        mock_building.report_users = [MagicMock(id=1)]
+        mock_dashboard_repo.get_building_by_station_id = AsyncMock(return_value=mock_building)
+
+        # Mock the ext data repo to return grid state
+        mock_reporter_state = MagicMock()
+        mock_reporter_state.grid_state = True
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=mock_reporter_state)
+
+        service = MessageGeneratorService(mock_config, mock_messages_repo, mock_stations_data_repo, mock_injector)
+
+        station = Station(station_id=1, station_name="Test", enabled=True, order=1)
+        # should_send_template uses get_ext_grid_state() - only send if grid is ON
+        message = Message(name="Test", channel_id="ch", enabled=True, language="en",
+                            message_template="Hello",
+                            should_send_template="{{ station.get_ext_grid_state() == true }}",
+                            timeout_template="300",
+                            stations=[station])
+
+        mock_station_data = MagicMock()
+        mock_station_data.to_dict = MagicMock(return_value={"current": {"station_id": 1}})
+        mock_stations_data_repo.get_station_data_tuple = AsyncMock(return_value=mock_station_data)
+
+        result = await service.generate_message(message)
+
+        assert result is not None
+        assert result.should_send is True  # Grid is ON, so should_send should be True
+
+    @pytest.mark.asyncio
+    async def test_should_send_template_with_get_ext_grid_state_false(self):
+        """Test that should_send_template returns False when grid is OFF."""
+        mock_config = MagicMock(spec=MessageGeneratorConfig)
+        mock_config.timezone = "utc"
+        mock_messages_repo = MagicMock(spec=IMessagesRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+        mock_injector = MagicMock()
+
+        # Mock the injector.get to return the right repositories for requests
+        from app.repositories import IExtDataRepository, IDashboardRepository
+        mock_ext_data_repo = MagicMock(spec=IExtDataRepository)
+        mock_dashboard_repo = MagicMock(spec=IDashboardRepository)
+
+        def injector_get(cls):
+            if cls == IStationsDataRepository:
+                return mock_stations_data_repo
+            elif cls == IExtDataRepository:
+                return mock_ext_data_repo
+            elif cls == IDashboardRepository:
+                return mock_dashboard_repo
+            return MagicMock()
+
+        mock_injector.get = injector_get
+
+        # Mock ext data repo for GetExtGridStateRequest - return False (grid is OFF)
+        mock_building = MagicMock()
+        mock_building.report_users = []
+        mock_dashboard_repo.get_building_by_station_id = AsyncMock(return_value=mock_building)
+
+        # Mock the ext data repo to return grid state
+        mock_ext_data = MagicMock()
+        mock_ext_data.get_grid_state = AsyncMock(return_value=False)
+        mock_ext_data_repo.get_ext_data = AsyncMock(return_value=mock_ext_data)
+
+        service = MessageGeneratorService(mock_config, mock_messages_repo, mock_stations_data_repo, mock_injector)
+
+        station = Station(station_id=1, station_name="Test", enabled=True, order=1)
+        # should_send_template uses get_ext_grid_state() - only send if grid is ON
+        message = Message(name="Test", channel_id="ch", enabled=True, language="en",
+                            message_template="Hello",
+                            should_send_template="{{ station.get_ext_grid_state() == true }}",
+                            timeout_template="300",
+                            stations=[station])
+
+        mock_station_data = MagicMock()
+        mock_station_data.to_dict = MagicMock(return_value={"current": {"station_id": 1}})
+        mock_stations_data_repo.get_station_data_tuple = AsyncMock(return_value=mock_station_data)
+
+        result = await service.generate_message(message)
+
+        assert result is not None
+        assert result.should_send is False  # Grid is OFF, so should_send should be False
+
+    @pytest.mark.asyncio
+    async def test_timeout_template_with_get_ext_grid_state(self):
+        """Test that timeout_template can use get_ext_grid_state() request for dynamic timeout."""
+        mock_config = MagicMock(spec=MessageGeneratorConfig)
+        mock_config.timezone = "utc"
+        mock_messages_repo = MagicMock(spec=IMessagesRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+        mock_injector = MagicMock()
+
+        # Mock the injector.get to return the right repositories for requests
+        from app.repositories import IExtDataRepository, IDashboardRepository
+        mock_ext_data_repo = MagicMock(spec=IExtDataRepository)
+        mock_dashboard_repo = MagicMock(spec=IDashboardRepository)
+
+        def injector_get(cls):
+            if cls == IStationsDataRepository:
+                return mock_stations_data_repo
+            elif cls == IExtDataRepository:
+                return mock_ext_data_repo
+            elif cls == IDashboardRepository:
+                return mock_dashboard_repo
+            return MagicMock()
+
+        mock_injector.get = injector_get
+
+        # Mock ext data repo for GetExtGridStateRequest - return True (grid is ON)
+        mock_building = MagicMock()
+        mock_building.report_users = [MagicMock(id=1)]
+        mock_dashboard_repo.get_building_by_station_id = AsyncMock(return_value=mock_building)
+
+        # Mock the ext data repo to return grid state
+        mock_reporter_state = MagicMock()
+        mock_reporter_state.grid_state = True
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=mock_reporter_state)
+
+        service = MessageGeneratorService(mock_config, mock_messages_repo, mock_stations_data_repo, mock_injector)
+
+        station = Station(station_id=1, station_name="Test", enabled=True, order=1)
+        # timeout_template uses get_ext_grid_state() - longer timeout when grid is OFF
+        message = Message(name="Test", channel_id="ch", enabled=True, language="en",
+                            message_template="Hello",
+                            should_send_template="True",
+                            timeout_template="{% if station.get_ext_grid_state() %}300{% else %}60{% endif %}",
+                            stations=[station])
+
+        mock_station_data = MagicMock()
+        mock_station_data.to_dict = MagicMock(return_value={"current": {"station_id": 1}})
+        mock_stations_data_repo.get_station_data_tuple = AsyncMock(return_value=mock_station_data)
+
+        result = await service.generate_message(message)
+
+        assert result is not None
+        assert result.timeout == 300  # Grid is ON, so timeout should be 300
+
+    @pytest.mark.asyncio
+    async def test_timeout_template_with_get_ext_grid_state_off(self):
+        """Test that timeout_template returns shorter timeout when grid is OFF."""
+        mock_config = MagicMock(spec=MessageGeneratorConfig)
+        mock_config.timezone = "utc"
+        mock_messages_repo = MagicMock(spec=IMessagesRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+        mock_injector = MagicMock()
+
+        # Mock the injector.get to return the right repositories for requests
+        from app.repositories import IExtDataRepository, IDashboardRepository
+        mock_ext_data_repo = MagicMock(spec=IExtDataRepository)
+        mock_dashboard_repo = MagicMock(spec=IDashboardRepository)
+
+        def injector_get(cls):
+            if cls == IStationsDataRepository:
+                return mock_stations_data_repo
+            elif cls == IExtDataRepository:
+                return mock_ext_data_repo
+            elif cls == IDashboardRepository:
+                return mock_dashboard_repo
+            return MagicMock()
+
+        mock_injector.get = injector_get
+
+        # Mock ext data repo for GetExtGridStateRequest - return False (grid is OFF)
+        mock_building = MagicMock()
+        mock_building.report_users = [MagicMock(id=1)]
+        mock_dashboard_repo.get_building_by_station_id = AsyncMock(return_value=mock_building)
+
+        # Mock the ext data repo to return grid state
+        mock_reporter_state = MagicMock()
+        mock_reporter_state.grid_state = False
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=mock_reporter_state)
+
+        service = MessageGeneratorService(mock_config, mock_messages_repo, mock_stations_data_repo, mock_injector)
+
+        station = Station(station_id=1, station_name="Test", enabled=True, order=1)
+        # timeout_template uses get_ext_grid_state() - longer timeout when grid is OFF
+        message = Message(name="Test", channel_id="ch", enabled=True, language="en",
+                            message_template="Hello",
+                            should_send_template="True",
+                            timeout_template="{% if station.get_ext_grid_state() %}300{% else %}60{% endif %}",
+                            stations=[station])
+
+        mock_station_data = MagicMock()
+        mock_station_data.to_dict = MagicMock(return_value={"current": {"station_id": 1}})
+        mock_stations_data_repo.get_station_data_tuple = AsyncMock(return_value=mock_station_data)
+
+        result = await service.generate_message(message)
+
+        assert result is not None
+        assert result.timeout == 60  # Grid is OFF, so timeout should be 60
+
+    @pytest.mark.asyncio
+    async def test_should_send_and_timeout_both_use_requests(self):
+        """Test that both should_send_template and timeout_template can use requests simultaneously."""
+        mock_config = MagicMock(spec=MessageGeneratorConfig)
+        mock_config.timezone = "utc"
+        mock_messages_repo = MagicMock(spec=IMessagesRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+        mock_injector = MagicMock()
+
+        # Mock the injector.get to return the right repositories for requests
+        from app.repositories import IExtDataRepository, IDashboardRepository
+        mock_ext_data_repo = MagicMock(spec=IExtDataRepository)
+        mock_dashboard_repo = MagicMock(spec=IDashboardRepository)
+
+        def injector_get(cls):
+            if cls == IStationsDataRepository:
+                return mock_stations_data_repo
+            elif cls == IExtDataRepository:
+                return mock_ext_data_repo
+            elif cls == IDashboardRepository:
+                return mock_dashboard_repo
+            return MagicMock()
+
+        mock_injector.get = injector_get
+
+        # Mock ext data repo for GetExtGridStateRequest - return True (grid is ON)
+        mock_building = MagicMock()
+        mock_building.report_users = [MagicMock(id=1)]
+        mock_dashboard_repo.get_building_by_station_id = AsyncMock(return_value=mock_building)
+
+        # Mock the ext data repo to return grid state
+        mock_reporter_state = MagicMock()
+        mock_reporter_state.grid_state = True
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=mock_reporter_state)
+
+        service = MessageGeneratorService(mock_config, mock_messages_repo, mock_stations_data_repo, mock_injector)
+
+        station = Station(station_id=1, station_name="Test", enabled=True, order=1)
+        # Both templates use get_ext_grid_state()
+        message = Message(name="Test", channel_id="ch", enabled=True, language="en",
+                            message_template="Grid state: {{ station.get_ext_grid_state() }}",
+                            should_send_template="{{ station.get_ext_grid_state() == true }}",
+                            timeout_template="{% if station.get_ext_grid_state() %}300{% else %}60{% endif %}",
+                            stations=[station])
+
+        mock_station_data = MagicMock()
+        mock_station_data.to_dict = MagicMock(return_value={"current": {"station_id": 1}})
+        mock_stations_data_repo.get_station_data_tuple = AsyncMock(return_value=mock_station_data)
+
+        result = await service.generate_message(message)
+
+        assert result is not None
+        assert result.should_send is True
+        assert result.timeout == 300
+        assert "Grid state: True" in result.message
