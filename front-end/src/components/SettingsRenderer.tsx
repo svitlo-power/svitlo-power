@@ -88,11 +88,11 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     setIsSaving(true);
 
     try {
-      if (onChange) {
-        await onChange(setting.key, newValue);
-      } else {
+          if (onChange) {
+            await onChange(setting.key, newValue);
+          } else {
             // @ts-expect-error - dispatch thunk action
-            await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
+            await (dispatch as AppDispatch)(updateSetting({ key: setting.key, value: newValue })).unwrap();
           }
         } catch (err: unknown) {
           setError(t("settings.error.saveFailed"));
