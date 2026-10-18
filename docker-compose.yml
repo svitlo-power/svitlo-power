@@ -136,13 +136,13 @@ services:
     environment:
       - DEBUG=False
     ports:
-      - "${APP_BACKEND_PORT:-8000}:8000"
+      - "${APP_BACKEND_PORT:-8000}:5005"
     networks:
       - web_network
     labels:
       io.hass.type: "addon"
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 8000)); s.close(); exit(0 if result==0 else 1)"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 5005)); s.close(); exit(0 if result==0 else 1)"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -185,6 +185,12 @@ services:
     labels:
       io.hass.type: "addon"
     stop_signal: SIGQUIT
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
       svitlo-power-back-end:
         condition: service_healthy
