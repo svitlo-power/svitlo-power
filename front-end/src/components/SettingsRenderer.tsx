@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "../stores/store";
 import { updateSetting } from "../stores/slices/settings";
 import { SystemSettingValue } from "../stores/types/settings";
 
@@ -35,8 +35,8 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   showLabel = true,
 }) => {
   const { t } = useTranslation();
-  const dispatch = useDispatch();
-  const [localValue, setLocalValue] = useState<any>(setting.value ?? setting.default_value);
+  const dispatch = useAppDispatch();
+  const [localValue, setLocalValue] = useState<SystemSettingValue>(setting.value ?? setting.default_value);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
