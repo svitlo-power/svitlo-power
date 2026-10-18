@@ -76,7 +76,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     return null;
   };
 
-  const handleChange = async (newValue: any) => {
+  const handleChange = async (newValue: SystemSettingValue) => {
     setError(null);
     const validationError = validate(newValue);
     if (validationError) {
@@ -93,7 +93,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       } else {
             await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
       }
-    } catch {
+        } catch (err: unknown) {
       setError(t("settings.error.saveFailed"));
     } finally {
       setIsSaving(false);
