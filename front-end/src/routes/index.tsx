@@ -105,7 +105,7 @@ export const RootRoutes: MenuItem[] = [
       path: '/settings',
       name: "routes.settings",
       icon: "gear",
-      Component: SystemSettings,
+        Component: SystemSettingsPage,
   },
     {
       path: "*",
