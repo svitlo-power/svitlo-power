@@ -91,7 +91,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       if (onChange) {
         await onChange(setting.key, newValue);
       } else {
-            await dispatch(updateSetting({ key: setting.key, value: newValue } as { key: string; value: SystemSettingValue })).unwrap();
+            await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
       }
     } catch {
       setError(t("settings.error.saveFailed"));
@@ -104,7 +104,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     <input
       type="number"
       className="form-control"
-      value={localValue}
+        value={localValue ?? 0}
       onChange={(e) => handleChange(Number(e.target.value) || 0)}
       min={setting.validation?.min}
       max={setting.validation?.max}
@@ -117,7 +117,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     <input
       type="text"
       className="form-control"
-      value={localValue}
+        value={localValue ?? ""}
       onChange={(e) => handleChange(e.target.value)}
       disabled={disabled || isSaving}
       pattern={setting.validation?.regex}
@@ -160,12 +160,12 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   const renderSelectInput = () => (
     <select
       className="form-select"
-      value={localValue}
+        value={localValue ?? ""}
       onChange={(e) => handleChange(e.target.value)}
       disabled={disabled || isSaving}
     >
       {setting.validation?.options?.map((option) => (
-        <option key={option.value} value={option.value}>
+          <option key={String(option.value)} value={String(option.value)}>
           {option.label}
         </option>
       ))}
