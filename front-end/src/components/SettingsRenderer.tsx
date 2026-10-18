@@ -90,7 +90,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       if (onChange) {
         await onChange(setting.key, newValue);
       } else {
-        dispatch(updateSetting({ key: setting.key, value: newValue }));
+        await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
       }
     } catch (err) {
       setError(t("settings.error.saveFailed"));

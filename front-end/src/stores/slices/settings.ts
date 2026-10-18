@@ -107,7 +107,7 @@ export const settingsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(bulkUpdateSettings.fulfilled, (state, action: PayloadAction<Record<string, boolean>>) => {
+      .addCase(bulkUpdateSettings.fulfilled, (state) => {
         // Refresh settings after bulk update
         state.loading = false;
       })

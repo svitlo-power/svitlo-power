@@ -43,7 +43,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
         <h5 className="mb-0 d-flex justify-content-between align-items-center">
           <span>{categoryLabel}</span>
           <FontAwesomeIcon
-            icon={expanded ? "chevronUp" : "chevronDown"}
+            icon={expanded ? "chevron-up" : "chevron-down"}
             className="text-muted"
           />
         </h5>
@@ -124,7 +124,7 @@ const SystemSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <Page title={t("settings.title")}>
+        <Page>
         <div className="text-center py-5">
             <FontAwesomeIcon icon="spinner" className="fa-spin fa-2x" />
           <p className="mt-2">{t("settings.loading")}</p>
@@ -135,14 +135,14 @@ const SystemSettings: React.FC = () => {
 
   if (error) {
     return (
-      <Page title={t("settings.title")}>
+        <Page>
         <div className="alert alert-danger">{error}</div>
       </Page>
     );
   }
 
   return (
-    <Page title={t("settings.title")}>
+      <Page>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>{t("settings.title")}</h1>
         <div className="btn-group">
@@ -200,4 +200,4 @@ const SystemSettings: React.FC = () => {
   );
 };
 
-export default SystemSettings;
+export { SystemSettings as SystemSettingsPage };
