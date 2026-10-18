@@ -28,7 +28,7 @@ class TestAuthorizationServiceInit:
 
 class TestAuthorizationServiceGetCurrentUser:
     @pytest.mark.asyncio
-    async def test_valid_token_returns_username(self):
+    async def test_valid_token_returns_user(self):
         mock_users_repo = MagicMock()
         mock_login_history_repo = MagicMock()
         mock_settings = MagicMock()
@@ -36,7 +36,11 @@ class TestAuthorizationServiceGetCurrentUser:
         mock_settings.JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
         mock_settings.JWT_REFRESH_TOKEN_EXPIRES = timedelta(minutes=60 * 24 * 7)
 
+        mock_user = MagicMock()
+        mock_user.name = "testuser"
+
         service = AuthorizationService(mock_users_repo, mock_login_history_repo, mock_settings)
+        mock_users_repo.get_user = AsyncMock(return_value=mock_user)
 
         token = jwt.encode(
             {"sub": "testuser", "type": "access"},
@@ -45,7 +49,8 @@ class TestAuthorizationServiceGetCurrentUser:
         )
 
         result = await service.get_current_user(token)
-        assert result == "testuser"
+        assert result == mock_user
+        mock_users_repo.get_user.assert_called_once_with("testuser")
 
     @pytest.mark.asyncio
     async def test_invalid_token_raises_http_exception(self):

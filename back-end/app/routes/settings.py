@@ -5,8 +5,8 @@ from beanie import PydanticObjectId
 
 from shared.models.system_setting import SystemSetting
 from shared.services.settings.service import SettingsService
-from app.utils.jwt_dependencies import get_current_user
-from app.models.api.users import UserResponse
+from app.services.authorization import AuthorizationService
+from app.models.api.users import UserListResponseModel
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -54,7 +54,7 @@ class SettingsGroupedResponse(BaseModel):
 
 @router.get("", response_model=SettingsGroupedResponse)
 async def get_all_settings(
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserListResponseModel = Depends(AuthorizationService.get_current_user),
     settings_service: SettingsService = Depends(),
 ):
     """Get all settings grouped by category."""
@@ -75,7 +75,7 @@ async def get_all_settings(
 @router.get("/{key}", response_model=SettingResponse)
 async def get_setting(
     key: str,
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserListResponseModel = Depends(AuthorizationService.get_current_user),
     settings_service: SettingsService = Depends(),
 ):
     """Get a single setting by key."""
@@ -99,7 +99,7 @@ async def get_setting(
 async def update_setting(
     key: str,
     request: SettingUpdateRequest,
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserListResponseModel = Depends(AuthorizationService.get_current_user),
     settings_service: SettingsService = Depends(),
 ):
     """Update a setting value."""
@@ -122,7 +122,7 @@ async def update_setting(
 @router.post("/bulk", response_model=Dict[str, bool])
 async def bulk_update_settings(
     request: BulkUpdateRequest,
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserListResponseModel = Depends(AuthorizationService.get_current_user),
     settings_service: SettingsService = Depends(),
 ):
     """Bulk update multiple settings."""
@@ -138,7 +138,7 @@ async def bulk_update_settings(
 
 @router.post("/reset", response_model=Dict[str, int])
 async def reset_settings(
-    current_user: UserResponse = Depends(get_current_user),
+    current_user: UserListResponseModel = Depends(AuthorizationService.get_current_user),
     settings_service: SettingsService = Depends(),
 ):
     """Reset all settings to their default values."""

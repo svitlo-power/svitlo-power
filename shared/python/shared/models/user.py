@@ -17,6 +17,7 @@ class User(Document, LookupModel):
     password: Optional[str]
     is_active: bool = True
     is_reporter: bool = False
+    is_admin: bool = False
     api_key: Optional[str] = None
     password_reset_token: Optional[str] = None
     reset_token_expiration: Optional[datetime] = None

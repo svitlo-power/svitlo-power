@@ -30,7 +30,7 @@ class AuthorizationService:
         self._users_repository: IUsersRepository = users_repository
         self._login_history_repository: ILoginHistoryRepository = login_history_repository
 
-    async def get_current_user(self, token: str = Depends(oauth2_scheme)) -> str:
+    async def get_current_user(self, token: str = Depends(oauth2_scheme)) -> User:
         credentials_error = HTTPException(
             status_code = status.HTTP_401_UNAUTHORIZED,
             detail      = TranslationService.t("common.error.invalidToken"),
@@ -43,7 +43,11 @@ class AuthorizationService:
             if username is None:
                 raise credentials_error
 
-            return username
+            user = await self._users_repository.get_user(username)
+            if user is None:
+                raise credentials_error
+
+            return user
         except JWTError:
             raise credentials_error
 
