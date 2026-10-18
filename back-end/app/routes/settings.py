@@ -12,6 +12,10 @@ from app.models.api.users import UserListResponseModel
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
+def register(app):
+    app.include_router(router)
+
+
 class SettingResponse(BaseModel):
     key: str
     label: str
