@@ -101,77 +101,95 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         }
   };
 
-  const renderNumberInput = () => (
-    <input
-      type="number"
-      className="form-control"
-        value={localValue ?? 0}
-      onChange={(e) => handleChange(Number(e.target.value) || 0)}
-      min={setting.validation?.min}
-      max={setting.validation?.max}
-      disabled={disabled || isSaving}
-      step="any"
-    />
-  );
+  const renderNumberInput = () => {
+      const value = typeof localValue === "number" ? localValue : 0;
+      return (
+        <input
+          type="number"
+          className="form-control"
+          value={value}
+          onChange={(e) => handleChange(Number(e.target.value) || 0)}
+          min={setting.validation?.min}
+          max={setting.validation?.max}
+          disabled={disabled || isSaving}
+          step="any"
+        />
+      );
+    };
 
-  const renderTextInput = () => (
-    <input
-      type="text"
-      className="form-control"
-        value={localValue ?? ""}
-      onChange={(e) => handleChange(e.target.value)}
-      disabled={disabled || isSaving}
-      pattern={setting.validation?.regex}
-    />
-  );
+    const renderTextInput = () => {
+      const value = typeof localValue === "string" ? localValue : "";
+      return (
+        <input
+          type="text"
+          className="form-control"
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          disabled={disabled || isSaving}
+          pattern={setting.validation?.regex}
+        />
+      );
+    };
 
-  const renderDateTimeInput = () => (
-    <input
-      type="datetime-local"
-      className="form-control"
-      value={localValue ? new Date(localValue).toISOString().slice(0, 16) : ""}
-      onChange={(e) => handleChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
-      disabled={disabled || isSaving}
-    />
-  );
+    const renderDateTimeInput = () => {
+      const value = localValue instanceof Date ? localValue.toISOString().slice(0, 16) : "";
+      return (
+        <input
+          type="datetime-local"
+          className="form-control"
+          value={value}
+          onChange={(e) => handleChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+          disabled={disabled || isSaving}
+        />
+      );
+    };
 
-  const renderTimestampInput = () => (
-    <input
-      type="datetime-local"
-      className="form-control"
-      value={localValue ? new Date(localValue).toISOString().slice(0, 16) : ""}
-      onChange={(e) => handleChange(e.target.value ? new Date(e.target.value).getTime() : null)}
-      disabled={disabled || isSaving}
-    />
-  );
-
-  const renderBooleanInput = () => (
-    <div className="form-check form-switch">
+    const renderTimestampInput = () => {
+      const value = localValue instanceof Date ? localValue.toISOString().slice(0, 16) : "";
+      return (
       <input
-        type="checkbox"
-        className="form-check-input"
-        checked={Boolean(localValue)}
-        onChange={(e) => handleChange(e.target.checked)}
+          type="datetime-local"
+          className="form-control"
+          value={value}
+          onChange={(e) => handleChange(e.target.value ? new Date(e.target.value).getTime() : null)}
         disabled={disabled || isSaving}
-        role="switch"
-      />
-    </div>
-  );
+        />
+      );
+    };
 
-  const renderSelectInput = () => (
-    <select
-      className="form-select"
-        value={localValue ?? ""}
-      onChange={(e) => handleChange(e.target.value)}
-      disabled={disabled || isSaving}
-    >
-      {setting.validation?.options?.map((option) => (
-          <option key={String(option.value)} value={String(option.value)}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
+    const renderBooleanInput = () => {
+      const value = typeof localValue === "boolean" ? localValue : false;
+      return (
+        <div className="form-check form-switch">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={value}
+            onChange={(e) => handleChange(e.target.checked)}
+            disabled={disabled || isSaving}
+            role="switch"
+          />
+        </div>
+      );
+    };
+
+  const renderSelectInput = () => {
+      const value = typeof localValue === "string" ? localValue : "";
+      return (
+        <select
+          className="form-select"
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          disabled={disabled || isSaving}
+        >
+          {setting.validation?.options?.map((option) => (
+            <option key={String(option.value)} value={String(option.value)}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+    };
 
   const renderInput = () => {
     switch (setting.setting_type) {
