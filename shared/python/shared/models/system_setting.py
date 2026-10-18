@@ -1,7 +1,17 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, Field
 from beanie import Document
+
+
+SystemSettingValue = Union[
+    int,
+    float,
+    str,
+    bool,
+    datetime,
+    None,
+]
 
 
 class SystemSetting(Document):
@@ -11,8 +21,8 @@ class SystemSetting(Document):
     setting_type: Literal["number", "text", "datetime", "timestamp", "boolean", "select"] = Field(
         ..., description="Type of setting"
     )
-    default_value: Any = Field(..., description="Default value")
-    value: Optional[Any] = Field(None, description="Current value (overrides default)")
+    default_value: SystemSettingValue = Field(..., description="Default value")
+    value: Optional[SystemSettingValue] = Field(None, description="Current value (overrides default)")
     validation: Optional[dict] = Field(None, description="Validation rules (min/max for numbers, regex for text, options for select)")
     category: str = Field(..., description="Grouping (e.g., 'power_estimation', 'notifications')")
     created_at: datetime = Field(default_factory=datetime.utcnow)

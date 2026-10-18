@@ -3,26 +3,27 @@ import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useDispatch } from "react-redux";
 import { updateSetting } from "../stores/slices/settings";
+import { SystemSettingValue } from "../stores/types/settings";
 
 interface Setting {
   key: string;
   label: string;
   description: string;
   setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select";
-  default_value: any;
-  value: any;
+  default_value: SystemSettingValue;
+  value: SystemSettingValue;
   validation?: {
     min?: number;
     max?: number;
     regex?: string;
-    options?: Array<{ value: any; label: string }>;
+    options?: Array<{ value: SystemSettingValue; label: string }>;
   };
   category: string;
 }
 
 interface SettingsRendererProps {
   setting: Setting;
-  onChange?: (key: string, value: any) => void;
+  onChange?: (key: string, value: SystemSettingValue) => void;
   disabled?: boolean;
   showLabel?: boolean;
 }
@@ -90,9 +91,9 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       if (onChange) {
         await onChange(setting.key, newValue);
       } else {
-        await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
+            await dispatch(updateSetting({ key: setting.key, value: newValue } as { key: string; value: SystemSettingValue })).unwrap();
       }
-        } catch (err: unknown) {
+    } catch {
       setError(t("settings.error.saveFailed"));
     } finally {
       setIsSaving(false);

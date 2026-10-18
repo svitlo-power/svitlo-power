@@ -1,9 +1,9 @@
-from typing import Any, List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 from injector import inject, singleton
 from beanie import PydanticObjectId
 
-from shared.models.system_setting import SystemSetting
+from shared.models.system_setting import SystemSetting, SystemSettingValue
 
 
 @singleton
@@ -16,7 +16,7 @@ class SettingsService:
         """Get a setting by key."""
         return await SystemSetting.find_one(SystemSetting.key == key)
 
-    async def get_value(self, key: str, default: Any = None) -> Any:
+    async def get_value(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:
         """Get the current value of a setting (or default if not set)."""
         setting = await self.get_setting(key)
         if setting and setting.value is not None:
@@ -55,7 +55,7 @@ class SettingsService:
             return value.lower() in ("true", "1", "yes", "on")
         return bool(value)
 
-    async def get_datetime(self, key: str, default: Any = None) -> Any:
+            async def get_datetime(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:
         """Get a setting value as datetime."""
         value = await self.get_value(key, default)
         if isinstance(value, datetime):
@@ -67,15 +67,15 @@ class SettingsService:
                 return default
         return default
 
-    async def get_timestamp(self, key: str, default: Any = None) -> Any:
+            async def get_timestamp(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:
         """Get a setting value as timestamp."""
         return await self.get_datetime(key, default)
 
-    async def get_select(self, key: str, default: Any = None) -> Any:
+            async def get_select(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:
         """Get a setting value for select type."""
         return await self.get_value(key, default)
 
-    async def set_value(self, key: str, value: Any) -> Optional[SystemSetting]:
+            async def set_value(self, key: str, value: SystemSettingValue) -> Optional[SystemSetting]:
         """Set a setting value."""
         setting = await self.get_setting(key)
         if setting:
@@ -121,9 +121,9 @@ class SettingsService:
             grouped[setting.category].append(setting)
         return grouped
 
-    async def bulk_update(self, updates: dict) -> dict:
+    async def bulk_update(self, updates: dict[str, SystemSettingValue]) -> dict[str, bool]:
         """Bulk update settings."""
-        results = {}
+            results: dict[str, bool] = {}
         for key, value in updates.items():
             setting = await self.set_value(key, value)
             results[key] = setting is not None

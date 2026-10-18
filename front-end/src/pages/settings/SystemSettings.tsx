@@ -13,11 +13,12 @@ import {
 } from "../../stores/slices/settings";
 import SettingsRenderer from "../../components/SettingsRenderer";
 import { Page } from "../../components/page";
+import { SystemSettingValue } from "../../stores/types/settings";
 
 interface CategorySectionProps {
   category: string;
   settings: any[];
-  onUpdate: (key: string, value: any) => void;
+  onUpdate: (key: string, value: SystemSettingValue) => void;
   expanded: boolean;
   onToggle: () => void;
 }

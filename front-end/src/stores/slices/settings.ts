@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { SettingsState, Setting, SettingsGroupedByCategory, BulkUpdateRequest } from "../types/settings";
+import { SettingsState, Setting, SettingsGroupedByCategory, BulkUpdateRequest, SystemSettingValue } from "../types/settings";
 import apiClient from "../../utils/apiClient";
 
 const initialState: SettingsState = {
@@ -20,20 +20,22 @@ export const fetchSettings = createAsyncThunk<Setting[]>(
         flattened.push(...settings);
       });
       return flattened;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.detail || "Failed to fetch settings");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(error.response?.data?.detail || "Failed to fetch settings");
     }
   }
 );
 
-export const updateSetting = createAsyncThunk<Setting, { key: string; value: any }>(
+export const updateSetting = createAsyncThunk<Setting, { key: string; value: SystemSettingValue }>(
   "settings/update",
   async ({ key, value }, { rejectWithValue }) => {
     try {
       const response = await apiClient.put(`/settings/${key}`, { value });
       return response.data;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.detail || "Failed to update setting");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(error.response?.data?.detail || "Failed to update setting");
     }
   }
 );
@@ -44,8 +46,9 @@ export const bulkUpdateSettings = createAsyncThunk<Record<string, boolean>, Bulk
     try {
       const response = await apiClient.post("/settings/bulk", { updates });
       return response.data;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.detail || "Failed to bulk update settings");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(error.response?.data?.detail || "Failed to bulk update settings");
     }
   }
 );
@@ -56,8 +59,9 @@ export const resetSettings = createAsyncThunk<{ reset_count: number }>(
     try {
       const response = await apiClient.post("/settings/reset");
       return response.data;
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.detail || "Failed to reset settings");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      return rejectWithValue(error.response?.data?.detail || "Failed to reset settings");
     }
   }
 );
