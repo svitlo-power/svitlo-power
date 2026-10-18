@@ -102,17 +102,17 @@ export const RootRoutes: MenuItem[] = [
     Component: PushPage,
   },
   {
-      path: '/settings',
-      name: "routes.settings",
-      icon: "gear",
-        Component: SystemSettingsPage,
+    path: '/settings',
+    name: "routes.settings",
+    icon: "gear",
+    Component: SystemSettingsPage,
   },
-    {
-      path: "*",
-      name: "routes.notFound",
-      Component: NotFoundPage,
-      skipForMenu: true,
-    },
+  {
+    path: "*",
+    name: "routes.notFound",
+    Component: NotFoundPage,
+    skipForMenu: true,
+  },
 ];
 
 const Routes: FC = () => {

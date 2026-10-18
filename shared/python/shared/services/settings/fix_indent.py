@@ -1,0 +1,12 @@
+with open('service.py', 'r') as f:
+    content = f.read()
+
+# Fix the indentation for all methods
+content = content.replace(
+    '        return bool(value)\n\n            async def get_datetime(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value as datetime."""\n        value = await self.get_value(key, default)\n        if isinstance(value, datetime):\n            return value\n        if isinstance(value, str):\n            try:\n                return datetime.fromisoformat(value)\n            except ValueError:\n                return default\n        return default\n\n            async def get_timestamp(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value as timestamp."""\n        return await self.get_datetime(key, default)\n\n            async def get_select(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value for select type."""\n        return await self.get_value(key, default)\n\n            async def set_value(self, key: str, value: SystemSettingValue) -> Optional[SystemSetting]:\n        """Set a setting value."""\n        setting = await self.get_setting(key)',
+    '        return bool(value)\n\n    async def get_datetime(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value as datetime."""\n        value = await self.get_value(key, default)\n        if isinstance(value, datetime):\n            return value\n        if isinstance(value, str):\n            try:\n                return datetime.fromisoformat(value)\n            except ValueError:\n                return default\n        return default\n\n    async def get_timestamp(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value as timestamp."""\n        return await self.get_datetime(key, default)\n\n    async def get_select(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:\n        """Get a setting value for select type."""\n        return await self.get_value(key, default)\n\n    async def set_value(self, key: str, value: SystemSettingValue) -> Optional[SystemSetting]:\n        """Set a setting value."""\n        setting = await self.get_setting(key)'
+)
+
+with open('service.py', 'w') as f:
+    f.write(content)
+print('Fixed')
