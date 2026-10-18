@@ -30,6 +30,7 @@ from app.models.api import (
     SaveDashboardConfigRequest,
 )
 from app.utils import get_estimate_charge_time, get_estimate_discharge_time
+from shared.services.settings.service import SettingsService
 
 
 @inject
