@@ -4,26 +4,11 @@ from typing import List
 
 from beanie import PydanticObjectId
 
-from shared.models.user import User, ReportMode
+from shared.models.user import ReportMode
+from shared.repositories.interfaces.users_read import IUsersReadRepository
 
 
-class IUsersRepository(ABC):
-    
-    @abstractmethod
-    async def get_user(self, user_name: str) -> User:
-        ...
-
-    @abstractmethod
-    async def get_users(self, all: bool) -> List[User]:
-        ...
-
-    @abstractmethod
-    async def get_user_by_id(self, user_id: str) -> User:
-        ...
-
-    @abstractmethod
-    async def get_user_by_reset_token(self, token: str) -> User:
-        ...
+class IUsersRepository(IUsersReadRepository):
 
     @abstractmethod
     async def rename_user(self, user_id: str, user_name: str):

@@ -24,7 +24,7 @@ def mock_beanie_collection():
     """Mock Beanie Document collection access so models can be instantiated without a DB."""
     from beanie import Document
 
-    def mock_get_collection(self):
+    def mock_get_collection(cls):
         return MagicMock()
 
     def mock_get_settings(cls):
@@ -32,7 +32,7 @@ def mock_beanie_collection():
         settings.use_state_management = False
         return settings
 
-    with patch.object(Document, "get_pymongo_collection", mock_get_collection), \
+    with patch.object(Document, "get_pymongo_collection", classmethod(mock_get_collection)), \
          patch.object(Document, "get_settings", classmethod(mock_get_settings)):
         yield
 

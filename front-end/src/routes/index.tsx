@@ -4,7 +4,8 @@ import {
   LoginPage, HomePage, StationsPage, StationDetailsPage, BotsPage,
   ChatsPage, MessagesPage, MessageEditPage, UsersPage,
   BuildingsPage, ExtDataPage, NotFoundPage,
-  ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage
+  ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage,
+  PushPage,
 } from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
@@ -93,6 +94,12 @@ export const RootRoutes: MenuItem[] = [
     name: "routes.devices",
     icon: "microchip",
     Component: ExtDevicesPage,
+  },
+  {
+    path: '/push',
+    name: "routes.push",
+    icon: "bell",
+    Component: PushPage,
   },
   {
     path: "*",

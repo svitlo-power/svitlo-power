@@ -48,7 +48,7 @@ class TestDashboardRoute:
         mock_injector = MagicMock()
         mock_dashboard = MagicMock()
         # Create a proper mock response that matches DashboardConfigResponse
-        from app.models.api.dashboard import DashboardConfigResponse
+        from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title", "uk": "Тестовий заголовок"}),
             enable_outages_schedule=True,
@@ -128,7 +128,7 @@ class TestDashboardRoute:
         app = FastAPI()
         register(app)
 
-        from app.models.api.dashboard import BuildingSummaryResponse
+        from shared.models.api.dashboard import BuildingSummaryResponse
         from beanie import PydanticObjectId
         mock_summary = BuildingSummaryResponse(
             id=PydanticObjectId("507f1f77bcf86cd799439011"),
@@ -152,7 +152,7 @@ class TestDashboardRoute:
         app = FastAPI()
         register(app)
 
-        from app.models.api.dashboard import BuildingWithSummaryResponse
+        from shared.models.api.dashboard import BuildingWithSummaryResponse
         from beanie import PydanticObjectId
         mock_building = BuildingWithSummaryResponse(
             id=PydanticObjectId("507f1f77bcf86cd799439011"),
@@ -178,7 +178,7 @@ class TestDashboardRoute:
         app = FastAPI()
         register(app)
 
-        from app.models.api.dashboard import DashboardConfigResponse
+        from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
             enable_outages_schedule=True,
@@ -203,7 +203,7 @@ class TestDashboardRoute:
         app = FastAPI()
         register(app)
 
-        from app.models.api.dashboard import DashboardConfigResponse
+        from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
             enable_outages_schedule=True,
@@ -234,7 +234,7 @@ class TestDashboardRoute:
         app = FastAPI()
         register(app)
 
-        from app.models.api.dashboard import EditBuildingResponse
+        from shared.models.api.dashboard import EditBuildingResponse
         from beanie import PydanticObjectId
         mock_building = EditBuildingResponse(
             id=PydanticObjectId("507f1f77bcf86cd799439011"),

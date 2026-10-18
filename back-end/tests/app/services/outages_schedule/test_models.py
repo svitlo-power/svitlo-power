@@ -1,10 +1,10 @@
-"""Tests for app/services/outages_schedule/models.py."""
+"""Tests for shared/services/outages_schedule/models.py."""
 from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
 
-from app.services.outages_schedule.models import (
+from shared.services.outages_schedule.models import (
     SlotType,
     DayStatus,
     Slot,

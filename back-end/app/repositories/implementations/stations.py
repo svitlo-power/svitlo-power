@@ -1,9 +1,8 @@
 import logging
 from datetime import datetime, timezone
-import traceback
-from typing import List
 
 from beanie import PydanticObjectId
+from shared.repositories import StationsReadRepository
 
 from ..interfaces.stations import IStationsRepository
 from shared.models.station import Station
@@ -13,17 +12,7 @@ from app.models.deye import DeyeStation
 logger = logging.getLogger(__name__)
 
 
-class StationsRepository(IStationsRepository):
-
-    async def get_stations(self, all: bool = False) -> List[Station]:
-        query = {} if all else {"enabled": True}
-        return await Station.find(query).sort(Station.order).to_list()
-
-    async def get_station(self, station_id: str) -> Station | None:
-        return await Station.find_one(Station.id == PydanticObjectId(station_id))
-
-    async def get_station_by_station_id(self, station_id: int) -> Station | None:
-        return await Station.find_one(Station.station_id == station_id)
+class StationsRepository(StationsReadRepository, IStationsRepository):
 
     async def edit_station(
         self,

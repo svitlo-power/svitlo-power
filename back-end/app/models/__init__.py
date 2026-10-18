@@ -1,4 +1,3 @@
-from .assumed_station_status import AssumedStationStatus
 from .station_statistic_data import StationStatisticData
 from .deye import DeyeConnectionStatus, DeyeStationData, DeyeStation, DeyeStationList
 from .sorting_config import SortingConfig
@@ -9,7 +8,6 @@ from .date_value import DateValue
 from .date_range_value import DateRangeValue
 
 __all__ = [
-    AssumedStationStatus,
     StationStatisticData,
     DeyeConnectionStatus,
     DeyeStation,
