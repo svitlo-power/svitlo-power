@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { SettingsState, Setting, SettingsGroupedByCategory, BulkUpdateRequest } from "../types/settings";
-import { api } from "../../api";
+import apiClient from "../../utils/apiClient";
 
 const initialState: SettingsState = {
   items: [],
@@ -12,7 +12,7 @@ export const fetchSettings = createAsyncThunk<Setting[]>(
   "settings/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/settings");
+      const response = await apiClient.get("/settings");
       // Flatten the grouped settings
       const grouped = response.data.categories as SettingsGroupedByCategory;
       const flattened: Setting[] = [];
@@ -30,7 +30,7 @@ export const updateSetting = createAsyncThunk<Setting, { key: string; value: any
   "settings/update",
   async ({ key, value }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/settings/${key}`, { value });
+      const response = await apiClient.put(`/settings/${key}`, { value });
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.detail || "Failed to update setting");
@@ -42,7 +42,7 @@ export const bulkUpdateSettings = createAsyncThunk<Record<string, boolean>, Bulk
   "settings/bulkUpdate",
   async ({ updates }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/settings/bulk", { updates });
+      const response = await apiClient.post("/settings/bulk", { updates });
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.detail || "Failed to bulk update settings");
@@ -54,7 +54,7 @@ export const resetSettings = createAsyncThunk<{ reset_count: number }>(
   "settings/reset",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.post("/settings/reset");
+      const response = await apiClient.post("/settings/reset");
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.detail || "Failed to reset settings");
