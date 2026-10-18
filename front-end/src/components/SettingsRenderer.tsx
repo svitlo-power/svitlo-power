@@ -91,13 +91,14 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       if (onChange) {
         await onChange(setting.key, newValue);
       } else {
+            // @ts-expect-error - dispatch thunk action
             await dispatch(updateSetting({ key: setting.key, value: newValue })).unwrap();
-      }
+          }
         } catch (err: unknown) {
-      setError(t("settings.error.saveFailed"));
-    } finally {
-      setIsSaving(false);
-    }
+          setError(t("settings.error.saveFailed"));
+        } finally {
+          setIsSaving(false);
+        }
   };
 
   const renderNumberInput = () => (
