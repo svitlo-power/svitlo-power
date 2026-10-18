@@ -5,7 +5,7 @@ import {
   ChatsPage, MessagesPage, MessageEditPage, UsersPage,
   BuildingsPage, ExtDataPage, NotFoundPage,
   ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage,
-  PushPage, SystemSettings,
+  PushPage, SystemSettingsPage,
 } from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
