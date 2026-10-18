@@ -18,3 +18,4 @@ export * from "./lookupValues";
 export * from "./extDevices";
 export * from "./loginHistory";
 export * from "./push";
+export * from "./settings";

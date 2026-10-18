@@ -5,7 +5,7 @@ import {
   ChatsPage, MessagesPage, MessageEditPage, UsersPage,
   BuildingsPage, ExtDataPage, NotFoundPage,
   ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage,
-  PushPage,
+  PushPage, SystemSettingsPage,
 } from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
@@ -102,11 +102,17 @@ export const RootRoutes: MenuItem[] = [
     Component: PushPage,
   },
   {
-    path: "*",
-    name: "routes.notFound",
-    Component: NotFoundPage,
-    skipForMenu: true,
+      path: '/settings',
+      name: "routes.settings",
+      icon: "gear",
+      Component: SystemSettingsPage,
   },
+    {
+      path: "*",
+      name: "routes.notFound",
+      Component: NotFoundPage,
+      skipForMenu: true,
+    },
 ];
 
 const Routes: FC = () => {
