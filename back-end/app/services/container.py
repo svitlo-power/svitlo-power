@@ -37,9 +37,9 @@ class ServicesContainer(Module):
 
         binder.bind(AuthorizationService, scope=singleton)
 
-                binder.bind(SettingsService, scope=singleton)
+        binder.bind(SettingsService, scope=singleton)
 
-                binder.bind(StationConnectionsService, scope=singleton)
+        binder.bind(StationConnectionsService, scope=singleton)
 
         binder.bind(StationsService, scope=noscope)
 

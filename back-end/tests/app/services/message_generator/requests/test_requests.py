@@ -114,8 +114,9 @@ class TestEstimateDischargeTimeRequest:
             batt_soc=100,
             average_consumption_kwh=1.0,
         )
+        # The request uses default target SOC (10%), so 100% -> 10% = 90% of 10kWh = 9kWh / 1kW = 9h
         result = await req.resolve(MagicMock())
-        assert result == "10:00"
+        assert result == "09:00"
 
     def test_str_returns_zero_time(self):
         req = EstimateDischargeTimeRequest(

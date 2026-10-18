@@ -10,9 +10,9 @@ class EstimateDischargeTimeRequest(TemplateRequest):
     batt_soc: int
     average_consumption_kwh: float
 
-    async def resolve(self, _: Injector) -> float:
+    async def resolve(self, _: Injector) -> str:
         from app.utils import get_estimate_discharge_time
-        return get_estimate_discharge_time(
+        return await get_estimate_discharge_time(
             self.batt_capacity_kwh,
             self.batt_soc,
             self.average_consumption_kwh,

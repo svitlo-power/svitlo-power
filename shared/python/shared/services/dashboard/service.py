@@ -131,25 +131,25 @@ class ReadOnlyDashboardService(BaseService):
             batt_capacity = building.station.battery_capacity
             batt_soc = station_data.battery_soc
             if is_charging and (station_data.charge_power or 0) != 0:
-                            result.charge_source = ChargeSource.GRID
-                            if (station_data.generation_power or 0) > 0 and (station_data.wire_power or 0) == 0:
-                                result.charge_source = ChargeSource.GENERATOR
-                            if (station_data.generation_power or 0) == 0 and (station_data.wire_power or 0) == 0:
-                                result.charge_source = ChargeSource.RECUPERATION
-                            result.battery_charge_time = await get_estimate_charge_time(
-                                batt_capacity,
-                                batt_soc,
-                                ((station_data.charge_power or 0) / 1000.0) * -1,
-                            )
-                            result.charge_power = ((station_data.charge_power or 0) * -1) / 1000.0
+                result.charge_source = ChargeSource.GRID
+                if (station_data.generation_power or 0) > 0 and (station_data.wire_power or 0) == 0:
+                    result.charge_source = ChargeSource.GENERATOR
+                if (station_data.generation_power or 0) == 0 and (station_data.wire_power or 0) == 0:
+                    result.charge_source = ChargeSource.RECUPERATION
+                result.battery_charge_time = await get_estimate_charge_time(
+                    batt_capacity,
+                    batt_soc,
+                    ((station_data.charge_power or 0) / 1000.0) * -1,
+                )
+                result.charge_power = ((station_data.charge_power or 0) * -1) / 1000.0
 
-                        if is_discharging and average_consumption_w > 0:
-                            estimate_discharge_time = await get_estimate_discharge_time(
-                                batt_capacity,
-                                batt_soc,
-                                average_consumption_w / 1000,
-                            )
-                            result.battery_discharge_time = estimate_discharge_time
+            if is_discharging and average_consumption_w > 0:
+                estimate_discharge_time = await get_estimate_discharge_time(
+                    batt_capacity,
+                    batt_soc,
+                    average_consumption_w / 1000,
+                )
+                result.battery_discharge_time = estimate_discharge_time
 
         return result
 
