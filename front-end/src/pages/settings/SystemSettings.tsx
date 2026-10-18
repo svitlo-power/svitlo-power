@@ -2,25 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faSave,
-  faUndo,
-  faSpinner,
-  faChevronDown,
-  faChevronUp,
-} from "@fortawesome/free-solid-svg-icons";
-import { RootState, AppDispatch } from "../stores/store";
+import { AppDispatch } from "../../stores/store";
 import {
   fetchSettings,
-  updateSetting,
   bulkUpdateSettings,
   resetSettings,
   selectSettingsByCategory,
   selectSettingsLoading,
   selectSettingsError,
 } from "../../stores/slices/settings";
-import SettingsRenderer from "../components/SettingsRenderer";
-import { Page } from "../components/page";
+import SettingsRenderer from "../../components/SettingsRenderer";
+import { Page } from "../../components/page";
 
 interface CategorySectionProps {
   category: string;
@@ -51,7 +43,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
         <h5 className="mb-0 d-flex justify-content-between align-items-center">
           <span>{categoryLabel}</span>
           <FontAwesomeIcon
-            icon={expanded ? faChevronUp : faChevronDown}
+            icon={expanded ? "chevronUp" : "chevronDown"}
             className="text-muted"
           />
         </h5>
@@ -134,7 +126,7 @@ const SystemSettings: React.FC = () => {
     return (
       <Page title={t("settings.title")}>
         <div className="text-center py-5">
-          <FontAwesomeIcon icon={faSpinner} className="fa-spin fa-2x" />
+            <FontAwesomeIcon icon="spinner" className="fa-spin fa-2x" />
           <p className="mt-2">{t("settings.loading")}</p>
         </div>
       </Page>
@@ -159,7 +151,7 @@ const SystemSettings: React.FC = () => {
             onClick={handleReset}
             disabled={loading}
           >
-            <FontAwesomeIcon icon={faUndo} className="me-1" />
+              <FontAwesomeIcon icon="undo" className="me-1" />
             {t("settings.resetToDefaults")}
           </button>
           <button
@@ -167,7 +159,7 @@ const SystemSettings: React.FC = () => {
             onClick={handleSave}
             disabled={!hasChanges || loading}
           >
-            <FontAwesomeIcon icon={faSave} className="me-1" />
+              <FontAwesomeIcon icon="save" className="me-1" />
             {t("settings.saveChanges")}
           </button>
         </div>

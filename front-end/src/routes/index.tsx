@@ -5,7 +5,7 @@ import {
   ChatsPage, MessagesPage, MessageEditPage, UsersPage,
   BuildingsPage, ExtDataPage, NotFoundPage,
   ChangePasswordPage, AppLandingPage, ExtDevicesPage, PrivacyPolicyPage,
-  PushPage, SystemSettingsPage,
+  PushPage, SystemSettings,
 } from "../pages";
 import { FC } from "react";
 import { useAppSelector } from "../stores/store";
@@ -105,7 +105,7 @@ export const RootRoutes: MenuItem[] = [
       path: '/settings',
       name: "routes.settings",
       icon: "gear",
-      Component: SystemSettingsPage,
+      Component: SystemSettings,
   },
     {
       path: "*",

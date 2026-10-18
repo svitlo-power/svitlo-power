@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../stores/store";
-import { updateSetting } from "../../stores/slices/settings";
+import { useDispatch } from "react-redux";
+import { updateSetting } from "../stores/slices/settings";
 
 interface Setting {
   key: string;
@@ -197,7 +195,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
       {showLabel && (
         <label className="form-label fw-medium">
           {setting.label}
-          {isSaving && <FontAwesomeIcon icon={faSpinner} className="ms-2 fa-spin" />}
+          {isSaving && <FontAwesomeIcon icon="spinner" className="ms-2 fa-spin" />}
         </label>
       )}
       <div className="input-group">
