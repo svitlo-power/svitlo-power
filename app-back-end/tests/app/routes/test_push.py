@@ -15,6 +15,7 @@ from shared.models.api.push import PushDeviceResponse, PushTopicResponse
 def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
+    settings.APP_ACCESS_TOKEN = None
     return settings
 
 

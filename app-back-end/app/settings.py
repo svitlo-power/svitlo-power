@@ -42,6 +42,9 @@ class Settings(BaseSettings, BaseDeyeAppSettings, BaseAppSettings, BaseJWTSettin
     # Override Redis to be optional for local development
     REDIS_URI: Optional[str] = Field(default="redis://localhost:6379/0", description="Redis URI")
 
+    # Shared token the mobile app sends in the X-App-Token header; the check is off when empty
+    APP_ACCESS_TOKEN: Optional[str] = Field(default=None, description="App access token")
+
 
 class ProductionSettings(Settings):
     DEBUG: bool = False

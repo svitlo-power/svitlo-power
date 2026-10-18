@@ -15,6 +15,7 @@ from shared.services.outages_schedule.models import SchedulesResponse, UnitSched
 def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
+    settings.APP_ACCESS_TOKEN = None
     return settings
 
 

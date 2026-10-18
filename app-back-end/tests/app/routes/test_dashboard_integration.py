@@ -22,6 +22,7 @@ from shared.models.api.dashboard import (
 def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
+    settings.APP_ACCESS_TOKEN = None
     return settings
 
 
