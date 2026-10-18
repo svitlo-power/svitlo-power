@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../stores/store";
-import { updateSetting } from "../stores/settingsSlice";
+import { updateSetting } from "../../stores/slices/settings";
 
 interface Setting {
   key: string;

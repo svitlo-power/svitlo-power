@@ -18,7 +18,7 @@ import {
   selectSettingsByCategory,
   selectSettingsLoading,
   selectSettingsError,
-} from "../stores/settingsSlice";
+} from "../../stores/slices/settings";
 import SettingsRenderer from "../components/SettingsRenderer";
 import { Page } from "../components/page";
 
