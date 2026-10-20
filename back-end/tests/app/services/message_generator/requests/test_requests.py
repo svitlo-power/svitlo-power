@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from beanie import PydanticObjectId
 
 from app.services.message_generator.requests import (
     AssumedStateRequest,
@@ -12,7 +13,7 @@ from app.services.message_generator.requests import (
     EstimateDischargeTimeRequest,
     GetExtGridStateRequest,
 )
-from app.repositories import IStationsDataRepository, IExtDataRepository, IDashboardRepository
+from app.repositories import IStationsDataRepository, IExtDataRepository, IDashboardRepository, IStationsRepository
 from shared.models import AssumedStationStatus
 
 
@@ -109,32 +110,120 @@ class TestAverageMinutesRequest:
 class TestEstimateDischargeTimeRequest:
     @pytest.mark.asyncio
     async def test_resolve_returns_discharge_time(self):
-        req = EstimateDischargeTimeRequest(
-            batt_capacity_kwh=10.0,
-            batt_soc=100,
-            average_consumption_kwh=1.0,
-        )
-        # The request uses default target SOC (10%), so 100% -> 10% = 90% of 10kWh = 9kWh / 1kW = 9h
-        result = await req.resolve(MagicMock())
+        from shared.models.station import Station
+        from shared.models.station_data import StationData
+        from beanie import PydanticObjectId
+
+        mock_stations_repo = MagicMock(spec=IStationsRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+
+        # Mock station with battery_capacity
+        mock_station = MagicMock(spec=Station)
+        mock_station.id = PydanticObjectId()
+        mock_station.battery_capacity = 10.0
+        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+
+        # Mock station data with battery_soc
+        mock_station_data = MagicMock(spec=StationData)
+        mock_station_data.battery_soc = 100
+        mock_stations_data_repo.get_last_station_data = AsyncMock(return_value=mock_station_data)
+
+        # Mock average consumption
+        mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=1000.0)  # 1000W = 1kW
+
+        injector = MagicMock()
+        injector.get = MagicMock(side_effect=lambda x: mock_stations_repo if x == IStationsRepository else mock_stations_data_repo)
+
+        req = EstimateDischargeTimeRequest(station_id=1)
+        result = await req.resolve(injector)
+        # 10kWh * (100-10)% / 100 = 9kWh / 1kW = 9h = "09:00"
         assert result == "09:00"
+        mock_stations_repo.get_station_by_station_id.assert_called_once_with(1)
+        mock_stations_data_repo.get_last_station_data.assert_called_once_with(mock_station.id)
+        mock_stations_data_repo.get_station_data_average_column.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_resolve_returns_zero_when_no_station(self):
+        mock_stations_repo = MagicMock(spec=IStationsRepository)
+        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=None)
+
+        injector = MagicMock()
+        injector.get = MagicMock(return_value=mock_stations_repo)
+
+        req = EstimateDischargeTimeRequest(station_id=1)
+        result = await req.resolve(injector)
+        assert result == "00:00"
+
+    @pytest.mark.asyncio
+    async def test_resolve_returns_zero_when_no_battery_capacity(self):
+        from shared.models.station import Station
+
+        mock_stations_repo = MagicMock(spec=IStationsRepository)
+        mock_station = MagicMock(spec=Station)
+        mock_station.id = PydanticObjectId()
+        mock_station.battery_capacity = None
+        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+
+        injector = MagicMock()
+        injector.get = MagicMock(return_value=mock_stations_repo)
+
+        req = EstimateDischargeTimeRequest(station_id=1)
+        result = await req.resolve(injector)
+        assert result == "00:00"
+
+    @pytest.mark.asyncio
+    async def test_resolve_returns_zero_when_no_station_data(self):
+        from shared.models.station import Station
+
+        mock_stations_repo = MagicMock(spec=IStationsRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+
+        mock_station = MagicMock(spec=Station)
+        mock_station.id = PydanticObjectId()
+        mock_station.battery_capacity = 10.0
+        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+        mock_stations_data_repo.get_last_station_data = AsyncMock(return_value=None)
+
+        injector = MagicMock()
+        injector.get = MagicMock(side_effect=lambda x: mock_stations_repo if x == IStationsRepository else mock_stations_data_repo)
+
+        req = EstimateDischargeTimeRequest(station_id=1)
+        result = await req.resolve(injector)
+        assert result == "00:00"
+
+    @pytest.mark.asyncio
+    async def test_resolve_returns_zero_when_no_battery_soc(self):
+        from shared.models.station import Station
+        from shared.models.station_data import StationData
+
+        mock_stations_repo = MagicMock(spec=IStationsRepository)
+        mock_stations_data_repo = MagicMock(spec=IStationsDataRepository)
+
+        mock_station = MagicMock(spec=Station)
+        mock_station.id = PydanticObjectId()
+        mock_station.battery_capacity = 10.0
+        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+
+        mock_station_data = MagicMock(spec=StationData)
+        mock_station_data.battery_soc = None
+        mock_stations_data_repo.get_last_station_data = AsyncMock(return_value=mock_station_data)
+
+        injector = MagicMock()
+        injector.get = MagicMock(side_effect=lambda x: mock_stations_repo if x == IStationsRepository else mock_stations_data_repo)
+
+        req = EstimateDischargeTimeRequest(station_id=1)
+        result = await req.resolve(injector)
+        assert result == "00:00"
 
     def test_str_returns_zero_time(self):
-        req = EstimateDischargeTimeRequest(
-            batt_capacity_kwh=10.0,
-            batt_soc=100,
-            average_consumption_kwh=1.0,
-        )
+        req = EstimateDischargeTimeRequest(station_id=1)
         assert str(req) == "00:00"
 
     def test_describe(self):
-        req = EstimateDischargeTimeRequest(
-            batt_capacity_kwh=10.0,
-            batt_soc=100,
-            average_consumption_kwh=1.0,
-        )
-        # EstimateDischargeTimeRequest doesn't define 'name' ClassVar, so describe() raises AttributeError
-        with pytest.raises(AttributeError):
-            req.describe()
+        req = EstimateDischargeTimeRequest(station_id=1)
+        desc = req.describe()
+        assert "get_estimate_discharge_time" in desc
+        assert "station_id=1" in desc
 
 
 class TestGetExtGridStateRequest:

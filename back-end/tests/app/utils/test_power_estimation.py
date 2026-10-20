@@ -1,6 +1,6 @@
-"""Tests for app/utils/power_estimation.py."""
+"""Tests for shared/utils/power_estimation.py."""
 import pytest
-from app.utils.power_estimation import (
+from shared.utils.power_estimation import (
     get_kilowatthour_consumption,
     get_estimate_discharge_time,
     get_estimate_charge_time,
