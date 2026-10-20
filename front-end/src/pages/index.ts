@@ -16,4 +16,4 @@ export * from './extDevices/extDevices';
 export * from './push/push';
 export * from './public';
 export * from './privacyPolicy/privacyPolicy';
-export { SystemSettingsPage } from './settings/SystemSettings';
+export { SystemSettingsPage } from './settings/systemSettings';
