@@ -130,46 +130,12 @@ class SettingsService:
         return results
 
     async def reset_to_defaults(self) -> int:
-        """Reset all settings to their default values."""
-        settings = await self.get_all_settings()
-        count = 0
-        for setting in settings:
-            setting.value = None
-            setting.updated_at = datetime.utcnow()
-            await setting.save()
-            count += 1
-        return count
-
-    async def seed_default_settings(self) -> List[SystemSetting]:
-        """Seed default settings if they don't exist."""
-        defaults = [
-            SystemSetting(
-                key="discharge_target_soc",
-                label="Discharge Target SOC",
-                description="Battery % to stop discharging",
-                setting_type="number",
-                default_value=10,
-                value=10,
-                validation={"min": 0, "max": 100},
-                category="power_estimation",
-            ),
-            SystemSetting(
-                key="charge_target_soc",
-                label="Charge Target SOC",
-                description="Battery % to stop charging",
-                setting_type="number",
-                default_value=97,
-                value=97,
-                validation={"min": 0, "max": 100},
-                category="power_estimation",
-            ),
-        ]
-        
-        created = []
-        for setting in defaults:
-            existing = await self.get_setting(setting.key)
-            if not existing:
-                await setting.insert()
-                created.append(setting)
-        
-        return created
+            """Reset all settings to their default values."""
+            settings = await self.get_all_settings()
+            count = 0
+            for setting in settings:
+                setting.value = None
+                setting.updated_at = datetime.utcnow()
+                await setting.save()
+                count += 1
+            return count

@@ -1,3 +1,5 @@
+import { BaseEditableState } from "./base";
+
 export type SystemSettingValue = 
   | number 
   | string 
@@ -5,7 +7,7 @@ export type SystemSettingValue =
   | Date 
   | null;
 
-export interface Setting {
+export type BaseServerSettingItem = {
   key: string;
   label: string;
   description: string;
@@ -21,23 +23,31 @@ export interface Setting {
   category: string;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface SettingsState {
+export type ServerSettingItem = BaseServerSettingItem & {
+  key: string;
+};
+
+export type Setting = ServerSettingItem & {
+  changed: boolean;
+  created: boolean;
+};
+
+export type SettingsState = BaseEditableState & {
   items: Setting[];
-  loading: boolean;
-  error: string | null;
-}
+  changed: boolean;
+};
 
-export interface SettingsGroupedByCategory {
+export type SettingsGroupedByCategory = {
   [category: string]: Setting[];
 }
 
-export interface BulkUpdateRequest {
+export type BulkUpdateRequest = {
   updates: Record<string, SystemSettingValue>;
 }
 
-export interface SettingUpdateRequest {
+export type SettingUpdateRequest = {
   key: string;
   value: SystemSettingValue;
 }

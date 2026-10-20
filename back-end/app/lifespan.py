@@ -35,10 +35,9 @@ async def setup_push_topics(injector: Injector):
     await injector.get(PushService).ensure_default_topics()
 
 async def setup_settings(injector: Injector):
-    """Initialize settings service and seed default settings."""
+    """Initialize settings service."""
     settings_service = injector.get(SettingsService)
     set_settings_service(settings_service)
-    await settings_service.seed_default_settings()
 
 async def make_shutdown_handler(events: EventsService):
     async def shutdown(signum: int):

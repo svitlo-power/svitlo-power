@@ -18,4 +18,6 @@ __all__ = [
     ColumnDataType,
     PagingConfig,
     PagingInfo,
+    DateValue,
+    DateRangeValue,
 ]

@@ -31,6 +31,7 @@ from shared.services import (
     ReadOnlyDashboardService,
     OutagesScheduleService,
     PushDevicesService,
+    SettingsService,
 )
 from shared.services.events import EventsServiceConfig
 from shared.models import (
@@ -167,6 +168,7 @@ class AppModule(Module):
         stations: IStationsReadRepository,
         stations_data: IStationsDataReadRepository,
         users: IUsersReadRepository,
+        settings: SettingsService,
     ) -> ReadOnlyDashboardService:
         return ReadOnlyDashboardService(
             events=events,
@@ -175,6 +177,7 @@ class AppModule(Module):
             stations=stations,
             stations_data=stations_data,
             users=users,
+            settings=settings,
         )
 
     @singleton

@@ -1,75 +1,61 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { SettingsState, Setting, SettingsGroupedByCategory, BulkUpdateRequest, SystemSettingValue } from "../types/settings";
-import apiClient from "../../utils/apiClient";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { SettingsState, Setting, SystemSettingValue, ServerSettingItem } from "../types/settings";
+import { fetchSettings, saveSettings, cancelSettingsEditing } from "../thunks/settings";
 
 const initialState: SettingsState = {
   items: [],
   loading: false,
+  creating: false,
+  changed: false,
   error: null,
 };
 
-export const fetchSettings = createAsyncThunk<Setting[]>(
-  "settings/fetchAll",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.get("/settings");
-      // Flatten the grouped settings
-      const grouped = response.data.categories as SettingsGroupedByCategory;
-      const flattened: Setting[] = [];
-      Object.values(grouped).forEach((settings) => {
-        flattened.push(...settings);
-      });
-      return flattened;
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(error.response?.data?.detail || "Failed to fetch settings");
-    }
-  }
-);
-
-export const updateSetting = createAsyncThunk<Setting, { key: string; value: SystemSettingValue }>(
-  "settings/update",
-  async ({ key, value }, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.put(`/settings/${key}`, { value });
-      return response.data;
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(error.response?.data?.detail || "Failed to update setting");
-    }
-  }
-);
-
-export const bulkUpdateSettings = createAsyncThunk<Record<string, boolean>, BulkUpdateRequest>(
-  "settings/bulkUpdate",
-  async ({ updates }, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.post("/settings/bulk", { updates });
-      return response.data;
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(error.response?.data?.detail || "Failed to bulk update settings");
-    }
-  }
-);
-
-export const resetSettings = createAsyncThunk<{ reset_count: number }>(
-  "settings/reset",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.post("/settings/reset");
-      return response.data;
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      return rejectWithValue(error.response?.data?.detail || "Failed to reset settings");
-    }
-  }
-);
+export type UpdateSettingActionPayload = {
+  key: string;
+  value: Setting;
+};
 
 export const settingsSlice = createSlice({
   name: "settings",
   initialState,
   reducers: {
+    updateSetting(state, { payload }: PayloadAction<{ key: string; value: SystemSettingValue }>) {
+      const setting = state.items.find(s => s.key === payload.key);
+      if (setting) {
+        setting.value = payload.value;
+        setting.changed = true;
+        state.changed = true;
+      }
+    },
+    settingSaved(state, { payload }: PayloadAction<string>) {
+      const setting = state.items.find(s => s.key === payload);
+      if (setting) {
+        setting.changed = false;
+      }
+    },
+    startEditingSetting(state) {
+      state.creating = true;
+    },
+    cancelEditingSetting(state) {
+      state.creating = false;
+    },
+    createSetting(state, { payload }: PayloadAction<Setting>) {
+      state.creating = false;
+      state.items.push({
+        key: payload.key,
+        label: payload.label,
+        description: payload.description,
+        setting_type: payload.setting_type,
+        default_value: payload.default_value,
+        value: payload.default_value,
+        validation: payload.validation,
+        category: payload.category,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        changed: true,
+        created: true,
+      });
+    },
     clearError: (state) => {
       state.error = null;
     },
@@ -80,81 +66,44 @@ export const settingsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<Setting[]>) => {
-        state.items = action.payload;
+      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<ServerSettingItem[]>) => {
+        state.items = action.payload.map(item => ({ ...item, changed: false, created: false }));
         state.loading = false;
+        state.creating = false;
+        state.changed = false;
       })
       .addCase(fetchSettings.rejected, (state, action: PayloadAction<unknown>) => {
         state.loading = false;
         state.error = action.payload as string;
       });
-
     builder
-      .addCase(updateSetting.pending, (state) => {
+      .addCase(saveSettings.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(updateSetting.fulfilled, (state, action: PayloadAction<Setting>) => {
-        const index = state.items.findIndex((s) => s.key === action.payload.key);
-        if (index >= 0) {
-          state.items[index] = action.payload;
-        }
+      .addCase(saveSettings.fulfilled, (state) => {
         state.loading = false;
+        state.creating = false;
       })
-      .addCase(updateSetting.rejected, (state, action: PayloadAction<unknown>) => {
+      .addCase(saveSettings.rejected, (state, action: PayloadAction<unknown>) => {
         state.loading = false;
         state.error = action.payload as string;
       });
-
     builder
-      .addCase(bulkUpdateSettings.pending, (state) => {
+      .addCase(cancelSettingsEditing.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(bulkUpdateSettings.fulfilled, (state) => {
-        // Refresh settings after bulk update
+      .addCase(cancelSettingsEditing.fulfilled, (state) => {
         state.loading = false;
+        state.creating = false;
       })
-      .addCase(bulkUpdateSettings.rejected, (state, action: PayloadAction<unknown>) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
-
-    builder
-      .addCase(resetSettings.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(resetSettings.fulfilled, (state) => {
-        // Reset values to defaults
-        state.items = state.items.map((s) => ({ ...s, value: s.default_value }));
-        state.loading = false;
-      })
-      .addCase(resetSettings.rejected, (state, action: PayloadAction<unknown>) => {
+      .addCase(cancelSettingsEditing.rejected, (state, action: PayloadAction<unknown>) => {
         state.loading = false;
         state.error = action.payload as string;
       });
   },
 });
 
-export const { clearError } = settingsSlice.actions;
+export const { updateSetting, settingSaved, startEditingSetting, cancelEditingSetting, createSetting, clearError } = settingsSlice.actions;
 export const settingsReducer = settingsSlice.reducer;
-
-// Selectors
-export const selectSettings = (state: { settings: SettingsState }) => state.settings.items;
-export const selectSettingsLoading = (state: { settings: SettingsState }) => state.settings.loading;
-export const selectSettingsError = (state: { settings: SettingsState }) => state.settings.error;
-
-export const selectSettingsByCategory = (state: { settings: SettingsState }): SettingsGroupedByCategory => {
-  const grouped: SettingsGroupedByCategory = {};
-  state.settings.items.forEach((setting) => {
-    if (!grouped[setting.category]) {
-      grouped[setting.category] = [];
-    }
-    grouped[setting.category].push(setting);
-  });
-  return grouped;
-};
-
-export const selectSettingByKey = (state: { settings: SettingsState }, key: string) =>
-  state.settings.items.find((s) => s.key === key);
