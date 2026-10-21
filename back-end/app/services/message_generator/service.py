@@ -212,6 +212,6 @@ class MessageGeneratorService(IMessageGeneratorService):
             message = message_content,
             should_send = should_send,
             timeout = timeout,
-            next_send_time = next_send_time,
+            next_send_time = datetime.now(timezone.utc) if next_send_time < datetime.now(timezone.utc) else next_send_time,
             data = data,
         )

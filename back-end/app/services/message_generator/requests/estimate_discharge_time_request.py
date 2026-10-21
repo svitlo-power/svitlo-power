@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import ClassVar
 from injector import Injector
 
 from ..models import TemplateRequest
 from app.repositories import IStationsRepository, IStationsDataRepository
+from shared.services import SettingsService
 from shared.utils import get_estimate_discharge_time
 
 
@@ -11,13 +13,15 @@ from shared.utils import get_estimate_discharge_time
 class EstimateDischargeTimeRequest(TemplateRequest):
     name: ClassVar[str] = "get_estimate_discharge_time"
 
+    # Station document id (StationData.station_id), not the external Deye station_id
     station_id: int
 
     async def resolve(self, injector: Injector) -> str:
         stations_repo = injector.get(IStationsRepository)
         stations_data_repo = injector.get(IStationsDataRepository)
+        settings = injector.get(SettingsService)
 
-        station = await stations_repo.get_station_by_station_id(self.station_id)
+        station = await stations_repo.get_station(str(self.station_id))
         if station is None or station.battery_capacity is None:
             return "00:00"
 
@@ -29,15 +33,14 @@ class EstimateDischargeTimeRequest(TemplateRequest):
         if batt_soc is None:
             return "00:00"
 
-        # Get average consumption from the last 25 minutes (default period)
-        from datetime import datetime, timedelta, timezone
+        minutes = await settings.get_number("estimate_discharge_period_minutes", 25)
         end_date = datetime.now(timezone.utc)
-        start_date = end_date - timedelta(minutes=25)
+        start_date = end_date - timedelta(minutes=minutes)
 
         average_consumption_w = await stations_data_repo.get_station_data_average_column(
             start_date=start_date,
             end_date=end_date,
-            station_id=self.station_id,
+            station_id=station.id,
             column_name="consumption_power",
         ) or 0
 
@@ -51,4 +54,3 @@ class EstimateDischargeTimeRequest(TemplateRequest):
 
     def __str__(self):
         return "00:00"
-

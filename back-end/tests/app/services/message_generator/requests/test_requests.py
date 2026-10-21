@@ -1,5 +1,5 @@
 """Tests for app/services/message_generator/requests/."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -15,6 +15,7 @@ from app.services.message_generator.requests import (
 )
 from app.repositories import IStationsDataRepository, IExtDataRepository, IDashboardRepository, IStationsRepository
 from shared.models import AssumedStationStatus
+from shared.services import SettingsService
 
 
 class TestAssumedStateRequest:
@@ -107,6 +108,17 @@ class TestAverageMinutesRequest:
         assert "get_average_minutes" in desc
 
 
+def _make_injector(stations_repo, stations_data_repo, settings=None):
+    deps = {
+        IStationsRepository: stations_repo,
+        IStationsDataRepository: stations_data_repo,
+        SettingsService: settings or MagicMock(spec=SettingsService),
+    }
+    injector = MagicMock()
+    injector.get = MagicMock(side_effect=lambda x: deps[x])
+    return injector
+
+
 class TestEstimateDischargeTimeRequest:
     @pytest.mark.asyncio
     async def test_resolve_returns_discharge_time(self):
@@ -121,7 +133,7 @@ class TestEstimateDischargeTimeRequest:
         mock_station = MagicMock(spec=Station)
         mock_station.id = PydanticObjectId()
         mock_station.battery_capacity = 10.0
-        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+        mock_stations_repo.get_station = AsyncMock(return_value=mock_station)
 
         # Mock station data with battery_soc
         mock_station_data = MagicMock(spec=StationData)
@@ -131,21 +143,26 @@ class TestEstimateDischargeTimeRequest:
         # Mock average consumption
         mock_stations_data_repo.get_station_data_average_column = AsyncMock(return_value=1000.0)  # 1000W = 1kW
 
-        injector = MagicMock()
-        injector.get = MagicMock(side_effect=lambda x: mock_stations_repo if x == IStationsRepository else mock_stations_data_repo)
+        mock_settings = MagicMock(spec=SettingsService)
+        mock_settings.get_number = AsyncMock(return_value=30)
 
-        req = EstimateDischargeTimeRequest(station_id=1)
+        injector = _make_injector(mock_stations_repo, mock_stations_data_repo, mock_settings)
+
+        req = EstimateDischargeTimeRequest(station_id=mock_station.id)
         result = await req.resolve(injector)
         # 10kWh * (100-10)% / 100 = 9kWh / 1kW = 9h = "09:00"
         assert result == "09:00"
-        mock_stations_repo.get_station_by_station_id.assert_called_once_with(1)
+        mock_stations_repo.get_station.assert_called_once_with(str(mock_station.id))
         mock_stations_data_repo.get_last_station_data.assert_called_once_with(mock_station.id)
-        mock_stations_data_repo.get_station_data_average_column.assert_called_once()
+        mock_settings.get_number.assert_called_once_with("estimate_discharge_period_minutes", 25)
+        kwargs = mock_stations_data_repo.get_station_data_average_column.call_args.kwargs
+        assert kwargs["station_id"] == mock_station.id
+        assert kwargs["end_date"] - kwargs["start_date"] == timedelta(minutes=30)
 
     @pytest.mark.asyncio
     async def test_resolve_returns_zero_when_no_station(self):
         mock_stations_repo = MagicMock(spec=IStationsRepository)
-        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=None)
+        mock_stations_repo.get_station = AsyncMock(return_value=None)
 
         injector = MagicMock()
         injector.get = MagicMock(return_value=mock_stations_repo)
@@ -162,7 +179,7 @@ class TestEstimateDischargeTimeRequest:
         mock_station = MagicMock(spec=Station)
         mock_station.id = PydanticObjectId()
         mock_station.battery_capacity = None
-        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+        mock_stations_repo.get_station = AsyncMock(return_value=mock_station)
 
         injector = MagicMock()
         injector.get = MagicMock(return_value=mock_stations_repo)
@@ -181,7 +198,7 @@ class TestEstimateDischargeTimeRequest:
         mock_station = MagicMock(spec=Station)
         mock_station.id = PydanticObjectId()
         mock_station.battery_capacity = 10.0
-        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+        mock_stations_repo.get_station = AsyncMock(return_value=mock_station)
         mock_stations_data_repo.get_last_station_data = AsyncMock(return_value=None)
 
         injector = MagicMock()
@@ -202,7 +219,7 @@ class TestEstimateDischargeTimeRequest:
         mock_station = MagicMock(spec=Station)
         mock_station.id = PydanticObjectId()
         mock_station.battery_capacity = 10.0
-        mock_stations_repo.get_station_by_station_id = AsyncMock(return_value=mock_station)
+        mock_stations_repo.get_station = AsyncMock(return_value=mock_station)
 
         mock_station_data = MagicMock(spec=StationData)
         mock_station_data.battery_soc = None
