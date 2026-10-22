@@ -68,6 +68,7 @@ import {
   faUndo,
   faChevronUp,
   faGear,
+  faRotateLeft,
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add([
@@ -141,6 +142,7 @@ library.add([
   faUndo,
   faChevronUp,
   faGear,
+  faRotateLeft,
 ]);
 
 export default library;

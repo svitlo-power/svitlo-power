@@ -72,4 +72,25 @@ describe("SettingsRenderer", () => {
     renderWithStore(<SettingsRenderer setting={setting} disabled />);
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
   });
+
+  it("resets a non-default value through the supplied reset handler", async () => {
+    const onReset = vi.fn().mockResolvedValue(undefined);
+    renderWithStore(
+      <SettingsRenderer
+        setting={{ ...setting, value: 20 }}
+        onReset={onReset}
+        resettable
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
+
+    await waitFor(() => expect(onReset).toHaveBeenCalledWith("test_setting"));
+    expect(screen.getByRole("textbox", { name: "Test Setting" })).toHaveValue("10");
+  });
+
+  it("disables reset when the value already matches the default", () => {
+    renderWithStore(<SettingsRenderer setting={setting} resettable />);
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
+  });
 });

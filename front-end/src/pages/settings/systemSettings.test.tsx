@@ -1,11 +1,27 @@
 import { screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
-import { PageHeaderContentProvider } from "../../providers";
+import { PageHeaderContentProvider, useHeaderContent } from "../../providers";
 import { createTestStore, renderWithStore } from "../../test/storeTestUtils";
 import { SystemSettingsPage } from "./systemSettings";
 
-const { mockGet } = vi.hoisted(() => ({ mockGet: vi.fn() }));
+const { mockGet, translate } = vi.hoisted(() => {
+  const translations: Record<string, string> = {
+    "settings.resetToDefaults": "Reset to Defaults",
+    "settings.noSettings": "No settings available",
+    "settings.categories.power_estimation": "Power Estimation",
+    "button.save": "Save",
+    "button.cancel": "Cancel",
+    "button.yes": "Yes",
+    "button.no": "No",
+    "settings.confirmResetTitle": "Settings Reset",
+    "settings.confirmResetContent": "Are you sure you want to reset all settings to their default values?",
+  };
+  return {
+    mockGet: vi.fn(),
+    translate: (key: string) => translations[key] || key,
+  };
+});
 
 vi.mock("../../utils/apiClient", () => ({
   default: { get: mockGet, post: vi.fn(), put: vi.fn() },
@@ -14,6 +30,25 @@ vi.mock("../../utils/apiClient", () => ({
 vi.mock("../../components/page", () => ({
   Page: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
+
+vi.mock("@mantine/modals", () => ({
+  openConfirmModal: vi.fn(),
+}));
+
+vi.mock("react-i18next", async () => {
+  const actual = await vi.importActual("react-i18next");
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: translate,
+    }),
+  };
+});
+
+const HeaderButtons = () => {
+  const { headerButtons } = useHeaderContent();
+  return <>{headerButtons.map((button) => <button key={button.text} onClick={button.onClick}>{button.text}</button>)}</>;
+};
 
 const setting = {
   key: "discharge",
@@ -39,7 +74,10 @@ const renderPage = (items = [setting], error: string | null = null, fetchFailure
     settings: { items, loading: false, creating: false, changed: false, error },
   });
   return renderWithStore(
-    <PageHeaderContentProvider><SystemSettingsPage /></PageHeaderContentProvider>,
+    <PageHeaderContentProvider>
+      <SystemSettingsPage />
+      <HeaderButtons />
+    </PageHeaderContentProvider>,
     { store },
   );
 };
@@ -67,5 +105,20 @@ describe("SystemSettingsPage", () => {
   it("fetches settings when mounted", async () => {
     renderPage();
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/settings"));
+  });
+
+  it("shows reset button in header", async () => {
+    const changedSetting = { ...setting, changed: true, value: 20 };
+    renderPage([changedSetting]);
+
+    expect((await screen.findAllByRole("button", { name: "Reset to Defaults" })).length).toBeGreaterThan(1);
+  });
+
+  it("shows individual reset button for each setting", () => {
+    renderPage();
+    
+    // Check that the reset icon/button is rendered for the setting
+    const resetButtons = screen.getAllByLabelText("Reset to Defaults");
+    expect(resetButtons.length).toBeGreaterThan(0);
   });
 });

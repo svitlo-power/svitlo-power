@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppDispatch } from "../stores/store";
-import { updateSetting } from "../stores/slices/settings";
 import { SystemSettingValue } from "../stores/types/settings";
-import { NumberInput, TextInput, Select, Switch, Stack } from "@mantine/core";
+import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, ActionIcon, Box, Tooltip } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface Setting {
   key: string;
@@ -25,26 +24,21 @@ interface Setting {
 interface SettingsRendererProps {
   setting: Setting;
   onChange?: (key: string, value: SystemSettingValue) => void;
+  onReset?: (key: string) => void;
   disabled?: boolean;
   showLabel?: boolean;
+  resettable?: boolean;
 }
-
-type InputRendererFnProps = {
-  title: string;
-  description: string;
-  error: string | null;
-};
-type InputRendererFn = (props: InputRendererFnProps) => React.ReactElement;
 
 const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   setting,
   onChange,
+  onReset,
   disabled = false,
+  resettable = false,
 }) => {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
   const [localValue, setLocalValue] = useState<SystemSettingValue>(setting.value ?? setting.default_value);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Update local value when setting.value changes
@@ -93,55 +87,52 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
 
     setLocalValue(newValue);
-    setIsSaving(true);
 
-    try {
-      if (onChange) {
-        await onChange(setting.key, newValue);
-      } else {
-        // @ts-expect-error - dispatch thunk action
-        await (dispatch as AppDispatch)(updateSetting({ key: setting.key, value: newValue })).unwrap();
-      }
-    } catch {
-      setError(t("settings.error.saveFailed"));
-    } finally {
-      setIsSaving(false);
+    if (onChange) {
+      await onChange(setting.key, newValue);
     }
   };
 
-  const renderNumberInput:InputRendererFn = (props) => {
+  const handleReset = async () => {
+    setError(null);
+    setLocalValue(setting.default_value);
+
+    if (onReset) {
+      await onReset(setting.key);
+    }
+  };
+
+  const renderNumberInput = () => {
     const value = typeof localValue === "number" ? localValue : 0;
     return (
       <NumberInput
-        label={props.title}
-        description={props.description}
-        error={props.error}
+        aria-label={setting.label}
+        error={error}
         value={value}
         onChange={(val) => handleChange(val ?? 0)}
         min={setting.validation?.min}
         max={setting.validation?.max}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         step={1}
       />
     );
   };
 
-  const renderTextInput:InputRendererFn = (props) => {
+  const renderTextInput = () => {
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <TextInput
-        label={props.title}
-        description={props.description}
-        error={props.error}
+        aria-label={setting.label}
+        error={error}
         value={value}
         onChange={(e) => handleChange(e.currentTarget.value)}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         pattern={setting.validation?.regex}
       />
     );
   };
 
-  const renderDateTimeInput:InputRendererFn = (props) => {
+  const renderDateTimeInput = () => {
     let value: Date | null = null;
     if (localValue instanceof Date) {
       value = localValue;
@@ -152,19 +143,18 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        label={props.title}
-        description={props.description}
+        aria-label={setting.label}
         value={value}
-        error={props.error}
+        error={error}
         onChange={(val) => handleChange(val ? new Date(val).toISOString() : null)}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
     );
   };
 
-  const renderTimestampInput:InputRendererFn = (props) => {
+  const renderTimestampInput = () => {
     let value: Date | null = null;
     if (localValue instanceof Date) {
       value = localValue;
@@ -175,43 +165,40 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        label={props.title}
-        description={props.description}
+        aria-label={setting.label}
         value={value}
-        error={props.error}
+        error={error}
         onChange={(val) => handleChange(val ? new Date(val).getTime() : null)}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
     );
   };
 
-  const renderBooleanInput:InputRendererFn = (props) => {
+  const renderBooleanInput = () => {
     const value = typeof localValue === "boolean" ? localValue : false;
     return (
       <Switch
-        label={props.title}
-        description={props.description}
+        aria-label={setting.label}
         checked={value}
-        error={props.error}
+        error={error}
         onChange={(e) => handleChange(e.currentTarget.checked)}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         size="md"
       />
     );
   };
 
-  const renderSelectInput:InputRendererFn = (props) => {
+  const renderSelectInput = () => {
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <Select
-        label={props.title}
-        description={props.description}
+        aria-label={setting.label}
         value={value}
-        error={props.error}
+        error={error}
         onChange={(val) => handleChange(val ?? "")}
-        disabled={disabled || isSaving}
+        disabled={disabled}
         data={setting.validation?.options?.map((option) => ({
           value: String(option.value),
           label: option.label,
@@ -222,32 +209,55 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   };
 
   const renderInput = () => {
-    const renderArgs = {
-      title: setting.label,
-      description: setting.description,
-      error: error,
-    };
     switch (setting.setting_type) {
       case "number":
-        return renderNumberInput(renderArgs);
+        return renderNumberInput();
       case "text":
-        return renderTextInput(renderArgs);
+        return renderTextInput();
       case "datetime":
-        return renderDateTimeInput(renderArgs);
+        return renderDateTimeInput();
       case "timestamp":
-        return renderTimestampInput(renderArgs);
+        return renderTimestampInput();
       case "boolean":
-        return renderBooleanInput(renderArgs);
+        return renderBooleanInput();
       case "select":
-        return renderSelectInput(renderArgs);
+        return renderSelectInput();
       default:
         return <span className="text-muted">{t("settings.unknownType")}</span>;
     }
   };
 
+  const isDefaultValue = useMemo(() => localValue === setting.default_value, [localValue, setting]);
+
   return (
-    <Stack gap="md">
-      {renderInput()}
+    <Stack gap="0">
+      <Text size="sm" fw="bold">{setting.label}</Text>
+      <Group wrap="nowrap" gap="xs">
+        <Box style={{ flex: 1 }}>
+          {renderInput()}
+        </Box>
+        {resettable && <Tooltip
+            position="top"
+            disabled={isDefaultValue}
+            label={
+              <Text fw={500} fz={13}>
+                {t('settings.button.resetToDefault')}
+              </Text>
+          }>
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              size="sm"
+              style={{ flexShrink: 0 }}
+              onClick={handleReset}
+              disabled={isDefaultValue}
+              aria-label={t("settings.resetToDefaults")}
+            >
+              <FontAwesomeIcon icon="rotate-left" size="xs" />
+            </ActionIcon>
+          </Tooltip>}
+      </Group>
+      <Text c='dimmed' size="xs">{setting.description}</Text>
     </Stack>
   );
 };

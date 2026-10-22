@@ -116,7 +116,8 @@
       "noSettings": "No settings available",
       "saveChanges": "Save Changes",
       "resetToDefaults": "Reset to Defaults",
-      "confirmReset": "Are you sure you want to reset all settings to their default values?",
+      "confirmResetTitle": "Settings Reset",
+      "confirmResetContent": "Are you sure you want to reset all settings to their default values?",
       "unsavedChanges": "You have unsaved changes. Click Save to persist them.",
       "categories": {
         "power_estimation": "Power Estimation"
@@ -131,6 +132,7 @@
       "error": {
         "saveFailed": "Failed to save setting"
       },
-      "unknownType": "Unknown setting type"
+      "unknownType": "Unknown setting type",
+      "button.resetToDefault": "Reset value"
     }
   }

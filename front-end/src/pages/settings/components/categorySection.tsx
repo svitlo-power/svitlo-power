@@ -7,12 +7,14 @@ interface CategorySectionProps {
   category: string;
   settings: Setting[];
   onUpdate: (key: string, value: SystemSettingValue) => void;
+  onReset: (key: string) => void;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
   category,
   settings,
   onUpdate,
+  onReset,
 }) => {
   const { t } = useTranslation();
 
@@ -28,6 +30,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               key={setting.key}
               setting={setting}
               onChange={onUpdate}
+              onReset={onReset}
+              resettable
             />
           ))}
         </SimpleGrid>
