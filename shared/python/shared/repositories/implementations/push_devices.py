@@ -2,11 +2,16 @@ from beanie import PydanticObjectId
 from beanie.operators import In
 from pydantic import BaseModel
 from shared.models.push_device import PushDevice
-from shared.repositories.interfaces.push_devices import IPushDevicesRepository
+from shared.repositories.interfaces.push_devices import IPushDevicesRepository, PushRecipient
 
 
 class _DeviceToken(BaseModel):
     token: str
+
+
+class _DeviceRecipient(BaseModel):
+    token: str
+    language: str = "uk"
 
 
 class PushDevicesRepository(IPushDevicesRepository):
@@ -51,6 +56,10 @@ class PushDevicesRepository(IPushDevicesRepository):
 
     async def get_topic_tokens(self, topic: str) -> list[str]:
         return await self._find_tokens(self._topic_query(topic))
+
+    async def get_topic_recipients(self, topic: str) -> list[PushRecipient]:
+        devices = await PushDevice.find(self._topic_query(topic)).project(_DeviceRecipient).to_list()
+        return [PushRecipient(token=d.token, language=d.language) for d in devices]
 
     async def count_topic_devices(self, topic: str) -> int:
         return await PushDevice.find(self._topic_query(topic)).count()

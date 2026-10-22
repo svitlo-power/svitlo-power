@@ -15,3 +15,5 @@ export * from './localizableValueEditor';
 export * from './countryFlag';
 export * from './snowfall';
 export * from './orderControl';
+export * from './jinjaEditor';
+

@@ -7,7 +7,7 @@ import { RootState, useAppDispatch } from "../../stores/store";
 import {
   deletePushDevice, fetchPushDevices, fetchPushTopics, sendTestPush, setPushTopicState,
 } from "../../stores/thunks";
-import { PushDeviceItem, PushTestRequest, PushTopicItem } from "../../stores/types";
+import { PushDeliveryItem, PushDeviceItem, PushTemplateItem, PushTestRequest, PushTopicItem } from "../../stores/types";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType } from "../../types";
@@ -17,10 +17,14 @@ import useLocalStorage from "../../hooks/useLocalStorage";
 import { LocalizableValue } from "../../schemas";
 import i18n from "../../i18n";
 import { openPushTestDialog } from "./components/pushTestDialog";
+import { PushTemplatesTab } from "./components/pushTemplatesTab";
+import { PushDeliveriesTab } from "./components/pushDeliveriesTab";
 
 type ComponentProps = {
   devices: PushDeviceItem[];
   topics: PushTopicItem[];
+  templates: PushTemplateItem[];
+  deliveries: PushDeliveryItem[];
   loading: boolean;
   error: string | null;
 };
@@ -28,8 +32,10 @@ type ComponentProps = {
 const mapStateToProps = (state: RootState): ComponentProps => ({
   devices: state.pushDevices.items,
   topics: state.pushTopics.items,
-  loading: state.pushDevices.loading || state.pushTopics.loading,
-  error: state.pushDevices.error ?? state.pushTopics.error,
+  templates: state.pushTemplates.items,
+  deliveries: state.pushDeliveries.items,
+  loading: state.pushDevices.loading || state.pushTopics.loading || state.pushTemplates.loading,
+  error: state.pushDevices.error ?? state.pushTopics.error ?? state.pushTemplates.error,
 });
 
 const localized = (value: LocalizableValue) =>
@@ -42,7 +48,7 @@ const StatTile: FC<{ label: string; value: number }> = ({ label, value }) => (
   </Paper>
 );
 
-const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
+const Component: FC<ComponentProps> = ({ devices, topics, templates, deliveries, loading, error }) => {
   const dispatch = useAppDispatch();
   const t = usePageTranslation("push");
   const { refreshKey } = useRefreshKey();
@@ -60,6 +66,11 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
     fetchDevices();
     fetchTopics();
   }, [fetchDevices, fetchTopics]);
+
+  const topicName = useCallback((key: string) => {
+    const topic = topics.find((item) => item.key === key);
+    return topic ? localized(topic.name) : key;
+  }, [topics]);
 
   const stats = useMemo(() => ({
     total: devices.length,
@@ -128,6 +139,12 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
             </Tabs.Tab>
             <Tabs.Tab value="devices" leftSection={<FontAwesomeIcon icon="mobile" />}>
               {t("tabs.devices")}
+            </Tabs.Tab>
+            <Tabs.Tab value="templates" leftSection={<FontAwesomeIcon icon="code" />}>
+              {t("tabs.templates")}
+            </Tabs.Tab>
+            <Tabs.Tab value="deliveries" leftSection={<FontAwesomeIcon icon="history" />}>
+              {t("tabs.deliveries")}
             </Tabs.Tab>
           </Tabs.List>
 
@@ -300,6 +317,14 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
               ]}
               tableKey="pushDevices"
             />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="templates">
+            <PushTemplatesTab t={t} templates={templates} topics={topics} devices={devices} localized={localized} />
+          </Tabs.Panel>
+
+          <Tabs.Panel value="deliveries" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <PushDeliveriesTab t={t} deliveries={deliveries} refreshKey={refreshKey} topicName={topicName} />
           </Tabs.Panel>
         </Tabs>
       </Stack>

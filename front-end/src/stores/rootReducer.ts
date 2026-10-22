@@ -19,6 +19,9 @@ import {
   loginHistoryReducer,
   pushDevicesReducer,
   pushTopicsReducer,
+  pushTemplatesReducer,
+  pushDeliveriesReducer,
+  announcementsReducer,
   appReducer,
 } from "./slices";
 import { logout } from "./slices";
@@ -45,6 +48,9 @@ const combinedReducers = combineReducers({
   ["loginHistory"]: loginHistoryReducer,
   ["pushDevices"]: pushDevicesReducer,
   ["pushTopics"]: pushTopicsReducer,
+  ["pushTemplates"]: pushTemplatesReducer,
+  ["pushDeliveries"]: pushDeliveriesReducer,
+  ["announcements"]: announcementsReducer,
   ["app"]: appReducer,
 });
 

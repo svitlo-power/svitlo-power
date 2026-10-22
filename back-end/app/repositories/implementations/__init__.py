@@ -11,6 +11,10 @@ from .ext_data import ExtDataRepository
 from .ext_device import ExtDeviceRepository
 from .dashboard import DashboardRepository
 from .login_history import LoginHistoryRepository
+from .push_deliveries import PushDeliveriesRepository
+from .push_templates import PushTemplatesRepository
+from .push_trigger_states import PushTriggerStatesRepository
+from .announcements import AnnouncementsRepository
 from shared.repositories.implementations.push_devices import PushDevicesRepository
 from shared.repositories.implementations.push_topics import PushTopicsRepository
 
@@ -19,4 +23,5 @@ __all__ = [UsersRepository, MessagesRepository, BotsRepository, StationsReposito
            StationsDataRepository, VisitsCounterRepository, LookupsRepository,
            ChatsRepository, ExtDataRepository, ExtDeviceRepository, DashboardRepository,
            StationConnectionsRepository, LoginHistoryRepository, PushDevicesRepository,
-           PushTopicsRepository]
+           PushTopicsRepository, PushDeliveriesRepository, PushTemplatesRepository,
+           PushTriggerStatesRepository, AnnouncementsRepository]

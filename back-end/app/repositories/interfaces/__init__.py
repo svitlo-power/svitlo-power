@@ -12,6 +12,10 @@ from .ext_data import IExtDataRepository
 from .ext_device import IExtDeviceRepository
 from .dashboard import IDashboardRepository
 from .login_history import ILoginHistoryRepository
+from .push_deliveries import IPushDeliveriesRepository
+from .push_templates import IPushTemplatesRepository
+from .push_trigger_states import IPushTriggerStatesRepository
+from .announcements import IAnnouncementsRepository
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
 from shared.repositories.interfaces.push_devices import IPushDevicesRepository
 from shared.repositories.interfaces.push_topics import IPushTopicsRepository
@@ -22,4 +26,6 @@ __all__ = [DataQuery, IBotsRepository, IUsersRepository, IMessagesRepository,
            IStationsDataRepository, IVisitsCounterRepository, IChatsRepository,
            IExtDataRepository, IExtDeviceRepository, IDashboardRepository,
            IStationConnectionsRepository, ILoginHistoryRepository, IOutagesScheduleRepository,
-           IPushDevicesRepository, IPushTopicsRepository]
+           IPushDevicesRepository, IPushTopicsRepository, IPushDeliveriesRepository,
+           IPushTemplatesRepository, IPushTriggerStatesRepository,
+           IAnnouncementsRepository]

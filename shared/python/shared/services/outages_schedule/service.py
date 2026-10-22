@@ -1,5 +1,6 @@
 import logging
 import asyncio
+from dataclasses import dataclass
 from injector import inject
 from pydantic import ValidationError
 from datetime import datetime, timezone
@@ -7,7 +8,24 @@ import aiohttp
 
 from shared.services.events.service import EventsService
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
-from .models import SchedulesResponse, DayStatus
+from .models import SchedulesResponse, DayStatus, schedule_signature
+
+
+@dataclass
+class ScheduleUpdate:
+    # None when nothing was stored before (first fetch)
+    previous: SchedulesResponse | None
+    current: SchedulesResponse
+
+    @property
+    def changed(self) -> bool:
+        if self.previous is None:
+            return True
+        queues = set(self.previous.root) | set(self.current.root)
+        return any(
+            schedule_signature(self.previous.root.get(q)) != schedule_signature(self.current.root.get(q))
+            for q in queues
+        )
 
 
 logger = logging.getLogger(__name__)
@@ -57,7 +75,8 @@ class OutagesScheduleService(BaseService):
         """Async version of get_schedule."""
         return await self._repository.get_schedule(queue)
 
-    async def update(self, region: int, dso: int):
+    async def update(self, region: int, dso: int) -> ScheduleUpdate | None:
+        """Fetches the schedule; returns the previous and new values, or None when the fetch failed."""
         yasno_url = (
             f"https://app.yasno.ua/api/blackout-service/public/shutdowns/"
             f"regions/{region}/dsos/{dso}/planned-outages"
@@ -104,8 +123,13 @@ class OutagesScheduleService(BaseService):
                     if abs((day_date.date() - now.date()).days) > 2:
                         day.status = DayStatus.WaitingForSchedule
 
+            stored = await self._repository.get_all_schedules()
+            update = ScheduleUpdate(previous=stored if stored.root else None, current=parsed)
+
             await self._repository.set_schedule(parsed)
-            await self.broadcast_public("outages_updated")
+            if update.changed:
+                await self.broadcast_public("outages_updated")
+            return update
 
         except aiohttp.ClientConnectionError as e:
             logger.error(f"YASNO connection error: {e}")

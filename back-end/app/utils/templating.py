@@ -26,6 +26,19 @@ async def _create_template(
     return environment.from_string(template)
 
 
+async def render_template(
+    template_str: str,
+    data: dict,
+    template_macros: str | None = None,
+    name: str = "Template",
+) -> str:
+    try:
+        template = await _create_template(template_str, template_macros)
+        return await template.render_async(data)
+    except Exception as e:
+        raise Exception(f"Error in '{name}' template: {repr(e)}")
+
+
 async def generate_message(
     template_str: str,
     data: dict,

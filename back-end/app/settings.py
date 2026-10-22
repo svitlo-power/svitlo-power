@@ -34,6 +34,18 @@ class Settings(BaseSettings, BaseAppSettings, BaseDeyeAppSettings, BaseJWTSettin
     # Service account JSON or a path to the JSON file
     FIREBASE_CREDENTIALS: str | None = None
 
+    # Defaults of the event trigger parameters; admins can change them in the push templates
+    PUSH_OUTAGE_LEAD_MINUTES: int = 30
+    PUSH_POWER_DEBOUNCE_SECONDS: int = 60
+    PUSH_BATTERY_LOW_THRESHOLD: int = 20
+    PUSH_BATTERY_HYSTERESIS: int = 10
+
+    # -------------------------
+    # Outages schedule (YASNO)
+    # -------------------------
+    OUTAGES_REGION: int = 25
+    OUTAGES_DSO: int = 902
+
     # -------------------------
     # Auth / Admin
     # -------------------------

@@ -14,5 +14,6 @@ export * from './users/users';
 export * from './buildings/buildings';
 export * from './extDevices/extDevices';
 export * from './push/push';
+export * from './announcements/announcements';
 export * from './public';
 export * from './privacyPolicy/privacyPolicy';

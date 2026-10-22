@@ -56,6 +56,8 @@ class TestRegister:
     def test_update_outages_schedule_job_calls_service(self):
         """Test that update_outages_schedule job calls OutagesScheduleService.update."""
         settings = MagicMock()
+        settings.OUTAGES_REGION = 25
+        settings.OUTAGES_DSO = 902
         injector = MagicMock()
         scheduler = MagicMock()
 

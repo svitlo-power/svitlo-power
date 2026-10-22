@@ -62,6 +62,7 @@ import {
   faRightLong,
   faHistory,
   faBell,
+  faBullhorn,
   faPaperPlane,
   faGlobe,
 } from '@fortawesome/free-solid-svg-icons';
@@ -131,6 +132,7 @@ library.add([
   faRightLong,
   faHistory,
   faBell,
+  faBullhorn,
   faPaperPlane,
   faGlobe,
 ]);

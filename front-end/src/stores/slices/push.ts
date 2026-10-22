@@ -1,6 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { PushDevicesState, PushTopicsState } from "../types";
-import { deletePushDevice, fetchPushDevices, fetchPushTopics, setPushTopicState } from "../thunks";
+import {
+    AnnouncementsState, PushDeliveriesState, PushDevicesState, PushTemplateItem, PushTemplatesState, PushTopicsState,
+} from "../types";
+import {
+    deletePushDevice, fetchAnnouncements, fetchPushDeliveries, fetchPushDevices, fetchPushTemplates, fetchPushTopics,
+    resetPushTemplate, savePushTemplate, setPushTopicState,
+} from "../thunks";
 
 const initialDevicesState: PushDevicesState = {
     items: [],
@@ -70,5 +75,102 @@ const pushTopicsSlice = createSlice({
     },
 });
 
+const replaceTemplate = (state: PushTemplatesState, template: PushTemplateItem) => {
+    const index = state.items.findIndex((t) => t.topic === template.topic);
+    if (index >= 0) {
+        state.items[index] = template;
+    }
+};
+
+const initialPushTemplatesState: PushTemplatesState = {
+    items: [],
+    loading: false,
+    error: null,
+};
+
+const pushTemplatesSlice = createSlice({
+    name: "pushTemplates",
+    initialState: initialPushTemplatesState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchPushTemplates.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchPushTemplates.fulfilled, (state, action) => {
+                state.loading = false;
+                state.items = action.payload;
+            })
+            .addCase(fetchPushTemplates.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+            .addCase(savePushTemplate.fulfilled, (state, action) => {
+                replaceTemplate(state, action.payload);
+            })
+            .addCase(resetPushTemplate.fulfilled, (state, action) => {
+                replaceTemplate(state, action.payload);
+            });
+    },
+});
+
+const initialPushDeliveriesState: PushDeliveriesState = {
+    items: [],
+    loading: false,
+    error: null,
+};
+
+const pushDeliveriesSlice = createSlice({
+    name: "pushDeliveries",
+    initialState: initialPushDeliveriesState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchPushDeliveries.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchPushDeliveries.fulfilled, (state, action) => {
+                state.loading = false;
+                state.items = action.payload;
+            })
+            .addCase(fetchPushDeliveries.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            });
+    },
+});
+
+const initialAnnouncementsState: AnnouncementsState = {
+    items: [],
+    loading: false,
+    error: null,
+};
+
+const announcementsSlice = createSlice({
+    name: "announcements",
+    initialState: initialAnnouncementsState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchAnnouncements.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchAnnouncements.fulfilled, (state, action) => {
+                state.loading = false;
+                state.items = action.payload;
+            })
+            .addCase(fetchAnnouncements.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            });
+    },
+});
+
 export const pushDevicesReducer = pushDevicesSlice.reducer;
 export const pushTopicsReducer = pushTopicsSlice.reducer;
+export const pushTemplatesReducer = pushTemplatesSlice.reducer;
+export const pushDeliveriesReducer = pushDeliveriesSlice.reducer;
+export const announcementsReducer = announcementsSlice.reducer;

@@ -9,7 +9,7 @@ from app.app_container import bind_client_session, init_container
 from app.settings import Settings
 from app.jobs import register_jobs
 from app.routes import register_routes
-from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService, PushService
+from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService, PushService, PushTemplatesService
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from shared.services.events.service import EventsService
@@ -31,6 +31,7 @@ async def setup_bots(injector: Injector):
 
 async def setup_push_topics(injector: Injector):
     await injector.get(PushService).ensure_default_topics()
+    await injector.get(PushTemplatesService).ensure_default_templates()
 
 async def make_shutdown_handler(events: EventsService):
     async def shutdown(signum: int):

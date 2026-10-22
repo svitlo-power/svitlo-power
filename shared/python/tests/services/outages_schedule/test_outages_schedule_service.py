@@ -115,13 +115,85 @@ class TestOutagesScheduleService:
         
         # Mock repository set_schedule
         mock_outages_repo.set_schedule = AsyncMock()
+        mock_outages_repo.get_all_schedules = AsyncMock(return_value=SchedulesResponse({}))
         
         result = await outages_service.update(region=1, dso=1)
         
-        assert result is None  # update returns None on success
+        # First fetch: nothing stored before
+        assert result.previous is None
+        assert "queue_1" in result.current.root
         mock_aiohttp_session.get.assert_called_once()
         mock_outages_repo.set_schedule.assert_called_once()
         mock_events_service.broadcast_public.assert_called_once_with("outages_updated", None)
+
+    @staticmethod
+    def _yasno(slots, updated_on="2024-01-15T10:00:00Z", status="ScheduleApplies"):
+        return {
+            "queue_1": {
+                # Today: days far from now are reset to WaitingForSchedule
+                "today": {"date": datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00Z"), "slots": slots, "status": status},
+                "updatedOn": updated_on,
+            }
+        }
+
+    async def _update_twice(self, outages_service, mock_aiohttp_session, mock_outages_repo, first, second):
+        stored = SchedulesResponse({})
+
+        async def set_schedule(schedule):
+            nonlocal stored
+            stored = schedule
+
+        mock_outages_repo.set_schedule = AsyncMock(side_effect=set_schedule)
+        mock_outages_repo.get_all_schedules = AsyncMock(side_effect=lambda: stored)
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_aiohttp_session.get.return_value.__aenter__.return_value = mock_response
+
+        mock_response.json.return_value = first
+        await outages_service.update(region=1, dso=1)
+        mock_response.json.return_value = second
+        return await outages_service.update(region=1, dso=1)
+
+    @pytest.mark.asyncio
+    async def test_update_without_changes_does_not_broadcast(
+        self, outages_service, mock_aiohttp_session, mock_outages_repo, mock_events_service,
+    ):
+        slots = [{"start": 480, "end": 720, "type": "Definite"}]
+        result = await self._update_twice(
+            outages_service, mock_aiohttp_session, mock_outages_repo,
+            self._yasno(slots), self._yasno(slots, updated_on="2024-01-15T10:05:00Z"),
+        )
+
+        assert result.previous is not None
+        assert result.changed is False
+        # Only the first fetch broadcasts
+        mock_events_service.broadcast_public.assert_called_once_with("outages_updated", None)
+
+    @pytest.mark.asyncio
+    async def test_update_with_changed_slots_broadcasts(
+        self, outages_service, mock_aiohttp_session, mock_outages_repo, mock_events_service,
+    ):
+        result = await self._update_twice(
+            outages_service, mock_aiohttp_session, mock_outages_repo,
+            self._yasno([{"start": 480, "end": 720, "type": "Definite"}]),
+            self._yasno([{"start": 600, "end": 720, "type": "Definite"}]),
+        )
+
+        assert result.changed is True
+        assert result.previous.root["queue_1"].days[0].slots[0].start == 480
+        assert result.current.root["queue_1"].days[0].slots[0].start == 600
+        assert mock_events_service.broadcast_public.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_update_with_changed_status_broadcasts(
+        self, outages_service, mock_aiohttp_session, mock_outages_repo, mock_events_service,
+    ):
+        result = await self._update_twice(
+            outages_service, mock_aiohttp_session, mock_outages_repo,
+            self._yasno([]), self._yasno([], status="EmergencyShutdowns"),
+        )
+
+        assert result.changed is True
 
     @pytest.mark.asyncio
     async def test_update_http_error(self, outages_service, mock_aiohttp_session, mock_events_service):

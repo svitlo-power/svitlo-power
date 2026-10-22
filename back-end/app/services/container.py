@@ -19,7 +19,16 @@ from .dashboard import DashboardService
 from .maintenance import MaintenanceService
 from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
-from .push import FcmSender, PushService
+from .push import (
+    FcmSender,
+    PushService,
+    PushTemplatesService,
+    PushEventDispatcher,
+    AnnouncementsService,
+    SchedulePushTriggers,
+    PowerPushTriggers,
+    BatteryPushTriggers,
+)
 from .interfaces import IMessageGeneratorService, IExtDeviceService
 
 
@@ -70,6 +79,12 @@ class ServicesContainer(Module):
 
         binder.bind(FcmSender, scope=singleton)
         binder.bind(PushService, scope=noscope)
+        binder.bind(PushTemplatesService, scope=noscope)
+        binder.bind(PushEventDispatcher, scope=noscope)
+        binder.bind(AnnouncementsService, scope=noscope)
+        binder.bind(SchedulePushTriggers, scope=noscope)
+        binder.bind(PowerPushTriggers, scope=noscope)
+        binder.bind(BatteryPushTriggers, scope=noscope)
 
         scheduler = AsyncIOScheduler()
         binder.bind(AsyncIOScheduler, to=scheduler, scope=singleton)

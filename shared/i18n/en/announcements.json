@@ -1,0 +1,34 @@
+{
+    "hint": "An announcement is sent right away to every device subscribed to the “Announcements” topic, in its language. The notification layout is set by the announcements template on the Push page.",
+    "button": {
+        "new": "New announcement",
+        "publish": "Publish"
+    },
+    "table": {
+        "createdAt": "Published",
+        "announcement": "Announcement",
+        "delivery": "Delivery"
+    },
+    "delivery": {
+        "pending": "Sending",
+        "sent": "Sent",
+        "failed": "Failed",
+        "skipped_topic_disabled": "Topic off",
+        "skipped_template_disabled": "Template off",
+        "skipped_condition": "Condition not met",
+        "no_recipients": "No recipients",
+        "result": "Recipients: {{recipients}} · delivered: {{success}} · failed: {{failure}}"
+    },
+    "modal": {
+        "deleteTitle": "Delete announcement",
+        "deleteConfirm": "The announcement will be removed from the list. Notifications already sent stay on devices. Continue?"
+    },
+    "dialog": {
+        "header": "New announcement",
+        "hint": "Fill in at least one language. Devices with a language left empty get the English text.",
+        "title": "Title",
+        "body": "Text",
+        "required": "Fill in both the title and the text for this language",
+        "empty": "Fill in the announcement for at least one language"
+    }
+}

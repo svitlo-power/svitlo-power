@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from beanie import PydanticObjectId
 
 from shared.models.push_device import PushDevice
+
+
+@dataclass(frozen=True)
+class PushRecipient:
+    token: str
+    language: str
 
 
 class IPushDevicesRepository(ABC):
@@ -35,6 +42,10 @@ class IPushDevicesRepository(ABC):
 
     @abstractmethod
     async def get_topic_tokens(self, topic: str) -> list[str]:
+        ...
+
+    @abstractmethod
+    async def get_topic_recipients(self, topic: str) -> list[PushRecipient]:
         ...
 
     @abstractmethod
