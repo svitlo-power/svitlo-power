@@ -25,6 +25,8 @@ import enPrivacyPolicy from './en/privacyPolicy.json';
 import ukPrivacyPolicy from './uk/privacyPolicy.json';
 import enPush from './en/push.json';
 import ukPush from './uk/push.json';
+import enAnnouncements from './en/announcements.json';
+import ukAnnouncements from './uk/announcements.json';
 
 export const AVAILABLE_LANGUAGES = ['en', 'uk'];
 
@@ -52,6 +54,7 @@ i18n
         devices: enDevices,
         privacyPolicy: enPrivacyPolicy,
         push: enPush,
+        announcements: enAnnouncements,
       },
       uk: {
         common: ukCommon,
@@ -66,6 +69,7 @@ i18n
         devices: ukDevices,
         privacyPolicy: ukPrivacyPolicy,
         push: ukPush,
+        announcements: ukAnnouncements,
       },
     },
 

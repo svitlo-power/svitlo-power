@@ -17,6 +17,10 @@ from .interfaces import (
     IOutagesScheduleRepository,
     IPushDevicesRepository,
     IPushTopicsRepository,
+    IPushDeliveriesRepository,
+    IPushTemplatesRepository,
+    IPushTriggerStatesRepository,
+    IAnnouncementsRepository,
 )
 from .implementations import (
     MessagesRepository,
@@ -34,6 +38,10 @@ from .implementations import (
     LoginHistoryRepository,
     PushDevicesRepository,
     PushTopicsRepository,
+    PushDeliveriesRepository,
+    PushTemplatesRepository,
+    PushTriggerStatesRepository,
+    AnnouncementsRepository,
 )
 from shared.repositories.implementations import (
     RedisOutagesScheduleRepository,
@@ -70,3 +78,7 @@ class RepositoryContainer(Module):
             binder.bind(IOutagesScheduleRepository, to=redis_repo, scope=singleton)
         binder.bind(IPushDevicesRepository, to=PushDevicesRepository, scope=noscope)
         binder.bind(IPushTopicsRepository, to=PushTopicsRepository, scope=noscope)
+        binder.bind(IPushDeliveriesRepository, to=PushDeliveriesRepository, scope=noscope)
+        binder.bind(IPushTemplatesRepository, to=PushTemplatesRepository, scope=noscope)
+        binder.bind(IPushTriggerStatesRepository, to=PushTriggerStatesRepository, scope=noscope)
+        binder.bind(IAnnouncementsRepository, to=AnnouncementsRepository, scope=noscope)

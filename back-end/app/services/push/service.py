@@ -3,6 +3,7 @@ from beanie import PydanticObjectId
 from injector import inject
 
 from shared.models.localizable_value import LocalizableValue
+from shared.models.push_device import PushDevice
 from shared.models.push_topic import PushTopic
 from shared.services.push import PushDevicesService
 from app.repositories import IPushDevicesRepository, IPushTopicsRepository
@@ -51,6 +52,10 @@ class PushService(PushDevicesService):
             failure_count   = result.failure_count,
             removed_count   = removed,
         )
+
+
+    async def find_device(self, device_id: PydanticObjectId) -> PushDevice | None:
+        return await self._devices.get_device_by_id(device_id)
 
 
     async def send_to_device(self, device_id: PydanticObjectId, message: PushMessage) -> PushSendResult | None:

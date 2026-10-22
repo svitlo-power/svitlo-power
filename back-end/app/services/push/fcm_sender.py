@@ -19,6 +19,10 @@ FCM_BATCH_SIZE = 500
 APP_NAME = "svitlo-power-push"
 
 
+def _error_code(error: Exception | None) -> str:
+    return getattr(error, "code", None) or type(error).__name__
+
+
 @dataclass
 class PushMessage:
     title: str
@@ -91,7 +95,8 @@ class FcmSender:
             if isinstance(item.exception, (messaging.UnregisteredError, messaging.SenderIdMismatchError)):
                 result.invalid_tokens.append(token)
             else:
-                logger.warning(f"FCM send failed: {item.exception}")
+                # Only the error code: the full response may contain the token
+                logger.warning(f"FCM send failed: {_error_code(item.exception)}")
         return result
 
     async def send(self, tokens: list[str], message: PushMessage) -> FcmSendResult:
@@ -111,7 +116,7 @@ class FcmSender:
                 result = await asyncio.to_thread(self._send_batch, batch, message)
             except Exception as e:
                 # FCM unreachable or credentials rejected: count the batch as failed instead of failing the caller
-                logger.error(f"FCM batch of {len(batch)} tokens failed: {e}")
+                logger.error(f"FCM batch of {len(batch)} tokens failed: {_error_code(e)}")
                 total.failure_count += len(batch)
                 continue
             total.success_count += result.success_count

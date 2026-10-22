@@ -61,6 +61,7 @@ class TestOutagesScheduleServiceUpdate:
         mock_session = MagicMock()
         mock_repo = MagicMock(spec=IOutagesScheduleRepository)
         mock_repo.set_schedule = AsyncMock()
+        mock_repo.get_all_schedules = AsyncMock(return_value=SchedulesResponse({}))
 
         service = OutagesScheduleService(mock_events, mock_session, mock_repo)
 
@@ -79,7 +80,7 @@ class TestOutagesScheduleServiceUpdate:
         mock_session.get = MagicMock(return_value=mock_response)
 
         result = await service.update(25, 902)
-        assert result is None  # update returns None on success
+        assert result.previous is None  # first fetch, nothing stored before
         mock_repo.set_schedule.assert_called_once()
         mock_events.broadcast_public.assert_called_once_with("outages_updated", None)
 

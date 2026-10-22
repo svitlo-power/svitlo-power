@@ -1,4 +1,4 @@
-from .service import OutagesScheduleService
+from .service import OutagesScheduleService, ScheduleUpdate
 from .models import (
     SchedulesResponse,
     UnitSchedule,
@@ -10,6 +10,7 @@ from .models import (
 
 __all__ = [
     "OutagesScheduleService",
+    "ScheduleUpdate",
     "SchedulesResponse",
     "UnitSchedule",
     "DaySchedule",

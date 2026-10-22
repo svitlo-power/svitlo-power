@@ -40,6 +40,16 @@ def keep_only_definite_slots(schedule: "SchedulesResponse") -> "SchedulesRespons
     return schedule
 
 
+def schedule_signature(unit: "UnitSchedule | None") -> list | None:
+    """Content of the queue's schedule without updatedOn, for change detection."""
+    if unit is None:
+        return None
+    return [
+        (day.date, day.status, [(s.start, s.end, s.type) for s in day.slots])
+        for day in unit.days
+    ]
+
+
 class SchedulesResponse(RootModel[Dict[str, UnitSchedule]]):
     pass
 

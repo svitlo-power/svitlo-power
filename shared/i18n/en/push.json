@@ -52,7 +52,9 @@
     },
     "tabs": {
         "topics": "Topics",
-        "devices": "Devices"
+        "devices": "Devices",
+        "templates": "Event templates",
+        "deliveries": "Delivery log"
     },
     "topics": {
         "hint": "An inactive topic is not sent to anyone and is hidden in the app. Users choose topics in the app; by default they get all active topics.",
@@ -62,5 +64,58 @@
         "subscribers": "Subscribers",
         "enabled": "Active"
     },
-    "subscriptionsPartial": "{{count}} topics off"
+    "subscriptionsPartial": "{{count}} topics off",
+    "templates": {
+        "hint": "Each event sends a notification built from its Jinja2 template. Texts are rendered per device language.",
+        "on": "On",
+        "off": "Off",
+        "enabled": "Send on event",
+        "title": "Title",
+        "body": "Text",
+        "languageFallback": "An empty language uses the English template.",
+        "route": "Screen to open",
+        "routeDescription": "App path opened on tap, may use variables, e.g. /buildings/{{ building.id }}",
+        "condition": "Send condition",
+        "conditionDescription": "Optional. The notification is sent only when the template renders to True, e.g. {{ soc < 15 }}",
+        "macros": "Macros",
+        "macrosDescription": "Jinja2 macros available in all fields of this template.",
+        "variables": "Variables",
+        "variablesDescription": "Sample values of this event used by the preview. Also available: lang, topic, now.",
+        "params": {
+            "lead_minutes": "Remind before, min",
+            "debounce_seconds": "Confirm after, s",
+            "threshold": "Low battery, %",
+            "hysteresis": "Re-arm above threshold by, %"
+        },
+        "paramDefault": "Default: {{value}}",
+        "preview": "Preview",
+        "willSend": "Condition met: will be sent",
+        "willSkip": "Condition not met: will be skipped",
+        "testDevice": "Send a test to a device",
+        "testDevicePlaceholder": "Select a device",
+        "saved": "Template saved",
+        "reset": "Reset to default",
+        "resetTitle": "Reset template",
+        "resetConfirm": "The texts, condition and parameters of this event will be replaced with the defaults. Continue?",
+        "resetDone": "Template reset to default"
+    },
+    "deliveries": {
+        "hint": "Notifications sent by events in the last 30 days. Each event is sent once.",
+        "createdAt": "Time",
+        "topic": "Event",
+        "status": "Status",
+        "statuses": {
+            "pending": "Sending",
+            "sent": "Sent",
+            "failed": "Failed",
+            "skipped_topic_disabled": "Topic off",
+            "skipped_template_disabled": "Template off",
+            "skipped_condition": "Condition not met",
+            "no_recipients": "No recipients"
+        },
+        "recipients": "Recipients",
+        "result": "Result",
+        "resultValue": "✓ {{success}} · ✗ {{failure}} · removed {{removed}}",
+        "dedupKey": "Event key"
+    }
 }

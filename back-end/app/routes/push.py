@@ -14,8 +14,19 @@ from app.models.api import (
     PushTopicResponse,
     PushTopicAdminResponse,
     PushTopicStateRequest,
+    PushTemplateRequest,
+    PushTemplateResponse,
+    PushTemplatePreviewResponse,
+    PushTemplateTestRequest,
+    PushDeliveryResponse,
 )
-from app.services import PushService, PushMessage
+from app.services import (
+    PushService,
+    PushMessage,
+    PushTemplatesService,
+    PushTemplateError,
+    PushEventDispatcher,
+)
 from app.utils.jwt_dependencies import jwt_required
 
 
@@ -146,3 +157,98 @@ def register(app: FastAPI):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"
             )
+
+
+    # -------------------------
+    # Event templates
+    # -------------------------
+
+    @app.get("/api/push/templates")
+    async def get_templates(
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+    ) -> List[PushTemplateResponse]:
+        return await templates.get_all_templates()
+
+
+    @app.get("/api/push/templates/{topic}")
+    async def get_template(
+        topic: str,
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+    ) -> PushTemplateResponse:
+        template = await templates.get_template_response(topic)
+        if not template:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        return template
+
+
+    @app.put("/api/push/templates/{topic}")
+    async def save_template(
+        topic: str,
+        body: PushTemplateRequest,
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+    ) -> PushTemplateResponse:
+        try:
+            template = await templates.save_template(topic, body)
+        except PushTemplateError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        if not template:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        return template
+
+
+    @app.post("/api/push/templates/{topic}/reset")
+    async def reset_template(
+        topic: str,
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+    ) -> PushTemplateResponse:
+        template = await templates.reset_template(topic)
+        if not template:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        return template
+
+
+    @app.post("/api/push/templates/{topic}/preview")
+    async def preview_template(
+        topic: str,
+        body: PushTemplateRequest,
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+    ) -> PushTemplatePreviewResponse:
+        preview = await templates.preview(topic, body)
+        if not preview:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+        return preview
+
+
+    @app.post("/api/push/templates/{topic}/test")
+    async def test_template(
+        topic: str,
+        body: PushTemplateTestRequest,
+        _ = Depends(jwt_required),
+        templates = Injected(PushTemplatesService),
+        push = Injected(PushService),
+    ) -> PushSendResult:
+        try:
+            device = await push.find_device(body.device_id)
+            if not device:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+            message = await templates.render_sample(topic, body, device.language)
+            if not message:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+            return await push.send_to_tokens([device.token], message)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+    @app.get("/api/push/deliveries")
+    async def get_deliveries(
+        _ = Depends(jwt_required),
+        dispatcher = Injected(PushEventDispatcher),
+    ) -> List[PushDeliveryResponse]:
+        return await dispatcher.get_recent_deliveries()
