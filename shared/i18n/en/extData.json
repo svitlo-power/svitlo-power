@@ -27,6 +27,7 @@
     "selectUserPlaceholder": "Select user",
     "gridStateLabel": "Grid State (ON/OFF)",
     "receivedAtLabel": "Received At (optional, defaults to now)",
+    "selectReceivedAtPlaceholder": "Select received at date",
     "deleteConfirmTitle": "Delete Event",
     "deleteConfirmMessage": "Are you sure you want to delete this event? User: {{user}}, State: {{state}}"
   }

@@ -23,7 +23,8 @@
     "no": "Ні",
     "close": "Закрити",
     "confirm": "Підтвердити",
-    "getApp": "Додаток"
+    "getApp": "Додаток",
+    "create": "Створити"
   },
   "validation": {
     "localizableValue.required": "Локалізоване значення обов'язкове",
@@ -132,6 +133,8 @@
         "saveFailed": "Не вдалося зберегти налаштування"
       },
       "unknownType": "Невідомий тип налаштування",
-      "button.resetToDefault": "Скинути значення"
+      "button": {
+        "resetToDefault": "Скинути значення"
+      }
     }
   }

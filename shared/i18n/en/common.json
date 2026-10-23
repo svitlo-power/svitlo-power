@@ -23,7 +23,8 @@
     "no": "No",
     "close": "Close",
     "confirm": "Confirm",
-    "getApp": "Get the app"
+    "getApp": "Get the app",
+    "create": "Create"
   },
   "validation": {
     "localizableValue.required": "Localized value is required",
@@ -133,6 +134,8 @@
         "saveFailed": "Failed to save setting"
       },
       "unknownType": "Unknown setting type",
-      "button.resetToDefault": "Reset value"
+      "button": {
+        "resetToDefault": "Reset value"
+      }
     }
   }
