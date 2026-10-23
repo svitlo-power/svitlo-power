@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, Field
 from beanie import Document
 
 
@@ -35,8 +35,8 @@ class SystemSetting(Document):
             "category",
         ]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "key": "discharge_target_soc",
                 "label": "Discharge Target SOC",
@@ -48,3 +48,4 @@ class SystemSetting(Document):
                 "category": "power_estimation",
             }
         }
+    )

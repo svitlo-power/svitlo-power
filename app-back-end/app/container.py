@@ -44,6 +44,7 @@ from shared.models import (
     OutagesSchedule,
     PushDevice,
     PushTopic,
+    SystemSetting,
 )
 
 
@@ -67,6 +68,7 @@ class BeanieInitializer:
                 OutagesSchedule,
                 PushDevice,
                 PushTopic,
+                SystemSetting,
             ],
         )
 

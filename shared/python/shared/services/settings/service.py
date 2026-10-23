@@ -1,7 +1,6 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 from datetime import datetime
 from injector import inject, singleton
-from beanie import PydanticObjectId
 
 from shared.models.system_setting import SystemSetting, SystemSettingValue
 
