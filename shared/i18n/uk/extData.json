@@ -27,6 +27,7 @@
     "selectUserPlaceholder": "Оберіть користувача",
     "gridStateLabel": "Стан мережі (УВІМК/ВИМК)",
     "receivedAtLabel": "Отримано (необов'язково, за замовчуванням зараз)",
+    "selectReceivedAtPlaceholder": "Оберіть дату отримання",
     "deleteConfirmTitle": "Видалити подію",
     "deleteConfirmMessage": "Ви впевнені, що хочете видалити цю подію? Користувач: {{user}}, Стан: {{state}}"
   }

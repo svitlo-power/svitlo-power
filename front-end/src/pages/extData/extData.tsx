@@ -297,17 +297,18 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
           />
           <DateTimePicker
             label={t('modal.receivedAtLabel')}
-            placeholder={t('modal.selectUserPlaceholder')}
+            placeholder={t('modal.selectReceivedAtPlaceholder')}
             value={formData.received_at}
             onChange={(val) => setFormData({ ...formData, received_at: val })}
             clearable
+            highlightToday
           />
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={handleCloseModal}>
               {t('button.cancel')}
             </Button>
             <Button onClick={handleCreate} disabled={!formData.user_id}>
-              {t('button.create') ?? t('button.add')}
+              {t('button.create')}
             </Button>
           </Group>
         </Stack>
