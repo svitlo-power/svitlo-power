@@ -19,6 +19,7 @@ from .push_device import PushDevice, PushPlatform
 from .push_topic import PushTopic
 from .beanie_filter import BeanieFilter
 from .outages_schedule import OutagesSchedule
+from .system_setting import SystemSetting
 from .api.dashboard import (
     BuildingResponse,
     ChargeSource,
@@ -50,10 +51,11 @@ __all__ = [
     PowerLogsRequest,
     PeriodResponse,
     PowerLogsResponse,
+    SystemSetting,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
     StationConnection, VisitCounter, DailyVisitCounter, LoginHistory, OutagesSchedule,
-    PushDevice, PushTopic]
+    PushDevice, PushTopic, SystemSetting]

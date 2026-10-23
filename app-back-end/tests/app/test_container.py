@@ -16,8 +16,9 @@ from shared.repositories.interfaces import (
     IPushDevicesRepository,
     IPushTopicsRepository,
 )
-from shared.services import EventsService
+from shared.services import EventsService, SettingsService
 from shared.services.events import EventsServiceConfig
+from shared.models import SystemSetting
 
 
 class TestBeanieInitializer:
@@ -37,6 +38,8 @@ class TestBeanieInitializer:
             call_args = mock_init_beanie.call_args
             assert call_args.kwargs['database'] == mock_client['test-db']
             assert 'document_models' in call_args.kwargs
+            document_models = call_args.kwargs['document_models']
+            assert SystemSetting in document_models
 
 
 class TestAppModule:
@@ -211,25 +214,28 @@ class TestAppModule:
         mock_stations = MagicMock(spec=IStationsReadRepository)
         mock_stations_data = MagicMock(spec=IStationsDataReadRepository)
         mock_users = MagicMock(spec=IUsersReadRepository)
+        mock_settings = MagicMock(spec=SettingsService)
         
         with patch('app.container.ReadOnlyDashboardService') as mock_service_class:
-            mock_service = MagicMock()
-            mock_service_class.return_value = mock_service
+                mock_service = MagicMock()
+                mock_service_class.return_value = mock_service
             
-            result = module.provide_dashboard_service(
-                mock_events, mock_dashboard, mock_ext_data,
-                mock_stations, mock_stations_data, mock_users
-            )
+                result = module.provide_dashboard_service(
+                    mock_events, mock_dashboard, mock_ext_data,
+                    mock_stations, mock_stations_data, mock_users,
+                    mock_settings
+                )
             
-            mock_service_class.assert_called_once_with(
-                events=mock_events,
-                dashboard=mock_dashboard,
-                ext_data=mock_ext_data,
-                stations=mock_stations,
-                stations_data=mock_stations_data,
-                users=mock_users,
-            )
-            assert result == mock_service
+                mock_service_class.assert_called_once_with(
+                    events=mock_events,
+                    dashboard=mock_dashboard,
+                    ext_data=mock_ext_data,
+                    stations=mock_stations,
+                    stations_data=mock_stations_data,
+                    users=mock_users,
+                    settings=mock_settings,
+                )
+                assert result == mock_service
 
     def test_provide_outages_schedule_service(self):
         module = AppModule()

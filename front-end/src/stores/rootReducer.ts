@@ -20,6 +20,7 @@ import {
   pushDevicesReducer,
   pushTopicsReducer,
   appReducer,
+  settingsReducer,
 } from "./slices";
 import { logout } from "./slices";
 import { lookupValuesReducer } from "./slices/lookupValues";
@@ -46,6 +47,7 @@ const combinedReducers = combineReducers({
   ["pushDevices"]: pushDevicesReducer,
   ["pushTopics"]: pushTopicsReducer,
   ["app"]: appReducer,
+  ["settings"]: settingsReducer,
 });
 
 type RootState = ReturnType<typeof combinedReducers>;

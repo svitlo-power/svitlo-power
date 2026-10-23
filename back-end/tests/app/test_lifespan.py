@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import FastAPI
 
-from app.lifespan import lifespan, create_user, setup_bots, make_shutdown_handler
+from app.lifespan import lifespan, create_user, setup_bots, make_shutdown_handler, setup_settings
 from app.settings import Settings
 
 
@@ -98,7 +98,8 @@ class TestLifespan:
              patch("app.lifespan.setup_bots") as mock_setup_bots, \
              patch("app.lifespan.create_user") as mock_create_user, \
              patch("app.lifespan.setup_push_topics") as mock_setup_push_topics, \
-             patch("app.lifespan.register_chained_signal_handlers") as mock_register_signals:
+                     patch("app.lifespan.setup_settings") as mock_setup_settings, \
+                     patch("app.lifespan.register_chained_signal_handlers") as mock_register_signals:
 
             mock_injector = MagicMock()
             mock_init_container.return_value = mock_injector
@@ -127,7 +128,8 @@ class TestLifespan:
                 mock_tg,  # TelegramService
                 mock_events,  # EventsService
                 mock_scheduler,  # AsyncIOScheduler
-            ])
+                            MagicMock(),  # SettingsService
+                        ])
 
             async with lifespan(app):
                 pass
@@ -139,4 +141,5 @@ class TestLifespan:
             mock_setup_bots.assert_called_once()
             mock_create_user.assert_called_once()
             mock_setup_push_topics.assert_called_once()
+            mock_setup_settings.assert_called_once()
             mock_register_signals.assert_called_once()

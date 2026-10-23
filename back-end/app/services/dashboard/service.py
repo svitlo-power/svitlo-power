@@ -1,13 +1,10 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import List
 from beanie import PydanticObjectId
 from injector import inject
 
 from shared.models.assumed_station_status import AssumedStationStatus
 from shared.models.building import Building
 from shared.models.dashboard_config import DashboardConfig
-from shared.models.ext_data import ExtData
 from shared.services.events.service import EventsService
 from shared.services.dashboard import ReadOnlyDashboardService
 from app.repositories import (
@@ -18,18 +15,11 @@ from app.repositories import (
     IUsersRepository,
 )
 from app.models.api import (
-    BuildingResponse,
-    BuildingSummaryResponse,
-    BuildingWithSummaryResponse,
-    ChargeSource,
     DashboardConfigResponse,
-    EditBuildingResponse,
-    PeriodResponse,
-    PowerLogsResponse,
     SaveBuildingRequest,
     SaveDashboardConfigRequest,
 )
-from app.utils import get_estimate_charge_time, get_estimate_discharge_time
+from shared.services.settings.service import SettingsService
 
 
 @inject
@@ -42,6 +32,7 @@ class DashboardService(ReadOnlyDashboardService):
         stations: IStationsRepository,
         stations_data: IStationsDataRepository,
         users: IUsersRepository,
+        settings: SettingsService,
     ):
         super().__init__(
             events=events,
@@ -50,6 +41,7 @@ class DashboardService(ReadOnlyDashboardService):
             stations=stations,
             stations_data=stations_data,
             users=users,
+            settings=settings,
         )
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:

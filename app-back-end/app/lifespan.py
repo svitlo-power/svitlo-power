@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from shared.services.settings.service import SettingsService
+from shared.utils.power_estimation import set_settings_service
 
 
 @asynccontextmanager
@@ -14,15 +16,16 @@ async def lifespan(app: FastAPI):
     await beanie_initializer.init()
 
     # Get resources that need cleanup
-    from app.container import AppModule
     import aiohttp
     import redis.asyncio as redis
-    from pymongo import AsyncMongoClient
 
     # Store resources in app.state for cleanup
     app.state.mongo_client = beanie_initializer._client
     app.state.aiohttp_session = app.state.injector.get(aiohttp.ClientSession)
     app.state.redis_client = app.state.injector.get(redis.Redis)
+
+    settings_service = app.state.injector.get(SettingsService)
+    set_settings_service(settings_service)
 
     yield
 

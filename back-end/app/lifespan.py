@@ -13,6 +13,8 @@ from app.services import AuthorizationService, BeanieInitializer, BotsService, T
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from shared.services.events.service import EventsService
+from shared.services.settings.service import SettingsService
+from shared.utils.power_estimation import set_settings_service
 from shared.utils.signals import register_chained_signal_handlers
 
 
@@ -31,6 +33,11 @@ async def setup_bots(injector: Injector):
 
 async def setup_push_topics(injector: Injector):
     await injector.get(PushService).ensure_default_topics()
+
+async def setup_settings(injector: Injector):
+    """Initialize settings service."""
+    settings_service = injector.get(SettingsService)
+    set_settings_service(settings_service)
 
 async def make_shutdown_handler(events: EventsService):
     async def shutdown(signum: int):
@@ -64,6 +71,7 @@ async def lifespan(app: FastAPI):
     await setup_bots(injector)
     await create_user(settings, injector)
     await setup_push_topics(injector)
+    await setup_settings(injector)
 
     register_chained_signal_handlers(
         handler=await make_shutdown_handler(events)

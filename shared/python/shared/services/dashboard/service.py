@@ -6,7 +6,6 @@ from injector import inject
 
 from shared.models.assumed_station_status import AssumedStationStatus
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 from shared.models.ext_data import ExtData
 from shared.services.events.service import EventsService
 from shared.services.outages_schedule.service import BaseService
@@ -28,6 +27,7 @@ from shared.models import (
     PowerLogsResponse,
 )
 from shared.utils import get_estimate_charge_time, get_estimate_discharge_time
+from shared.services.settings.service import SettingsService
 
 
 @inject
@@ -45,6 +45,7 @@ class ReadOnlyDashboardService(BaseService):
         stations: IStationsReadRepository,
         stations_data: IStationsDataReadRepository,
         users: IUsersReadRepository,
+        settings: SettingsService,
     ):
         super().__init__(events)
         self._dashboard = dashboard
@@ -52,6 +53,7 @@ class ReadOnlyDashboardService(BaseService):
         self._stations = stations
         self._stations_data = stations_data
         self._users = users
+        self._settings = settings
 
     async def get_config(self) -> DashboardConfigResponse:
         config = await self._dashboard.get_config()
@@ -135,20 +137,18 @@ class ReadOnlyDashboardService(BaseService):
                     result.charge_source = ChargeSource.GENERATOR
                 if (station_data.generation_power or 0) == 0 and (station_data.wire_power or 0) == 0:
                     result.charge_source = ChargeSource.RECUPERATION
-                result.battery_charge_time = get_estimate_charge_time(
+                result.battery_charge_time = await get_estimate_charge_time(
                     batt_capacity,
                     batt_soc,
                     ((station_data.charge_power or 0) / 1000.0) * -1,
-                    97,
                 )
                 result.charge_power = ((station_data.charge_power or 0) * -1) / 1000.0
 
             if is_discharging and average_consumption_w > 0:
-                estimate_discharge_time = get_estimate_discharge_time(
+                estimate_discharge_time = await get_estimate_discharge_time(
                     batt_capacity,
                     batt_soc,
                     average_consumption_w / 1000,
-                    10
                 )
                 result.battery_discharge_time = estimate_discharge_time
 
@@ -156,16 +156,14 @@ class ReadOnlyDashboardService(BaseService):
 
     async def get_buildings_summary(self, building_ids: List[PydanticObjectId]) -> List[BuildingSummaryResponse]:
         buildings = await self._dashboard.get_buildings(building_ids)
-        minutes = 25
-
+        minutes = await self._settings.get_number("estimate_discharge_period_minutes", 25)
         return await asyncio.gather(
             *(self._process_building_summary(b, minutes) for b in buildings)
         )
 
     async def get_buildings_with_summary(self) -> List[BuildingWithSummaryResponse]:
         buildings = await self._dashboard.get_buildings()
-        minutes = 25
-
+        minutes = await self._settings.get_number("estimate_discharge_period_minutes", 25)
         async def process_building(building: Building) -> BuildingWithSummaryResponse:
             res = await self._process_building_summary(building, minutes)
 

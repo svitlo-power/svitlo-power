@@ -13,6 +13,7 @@ from shared.models.api.dashboard import (
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.events import EventsService
+from shared.services.settings import SettingsService
 from shared.repositories.interfaces import (
     IDashboardReadRepository,
     IExtDataReadRepository,
@@ -73,6 +74,8 @@ def dashboard_service(
     mock_stations_data_repo,
     mock_users_repo,
 ):
+    mock_settings = AsyncMock(spec=SettingsService)
+    mock_settings.get_number = AsyncMock(return_value=25)
     return ReadOnlyDashboardService(
         events=mock_events_service,
         dashboard=mock_dashboard_repo,
@@ -80,6 +83,7 @@ def dashboard_service(
         stations=mock_stations_repo,
         stations_data=mock_stations_data_repo,
         users=mock_users_repo,
+        settings=mock_settings,
     )
 
 

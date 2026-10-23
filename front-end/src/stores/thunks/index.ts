@@ -10,6 +10,7 @@ export * from "./extData";
 export * from "./messages";
 export * from "./outagesSchedule";
 export * from "./powerLogs";
+export * from "./settings";
 export * from "./stations";
 export * from "./stationsData";
 export * from "./users";

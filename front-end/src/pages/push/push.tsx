@@ -16,7 +16,7 @@ import { useRefreshKey } from "../../hooks";
 import useLocalStorage from "../../hooks/useLocalStorage";
 import { LocalizableValue } from "../../schemas";
 import i18n from "../../i18n";
-import { openPushTestDialog } from "./components/pushTestDialog";
+import { openPushTestDialog } from "./components";
 
 type ComponentProps = {
   devices: PushDeviceItem[];

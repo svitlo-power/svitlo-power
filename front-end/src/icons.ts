@@ -64,6 +64,11 @@ import {
   faBell,
   faPaperPlane,
   faGlobe,
+  faSpinner,
+  faUndo,
+  faChevronUp,
+  faGear,
+  faRotateLeft,
 } from '@fortawesome/free-solid-svg-icons';
 
 library.add([
@@ -133,6 +138,11 @@ library.add([
   faBell,
   faPaperPlane,
   faGlobe,
+  faSpinner,
+  faUndo,
+  faChevronUp,
+  faGear,
+  faRotateLeft,
 ]);
 
 export default library;

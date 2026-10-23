@@ -21,6 +21,7 @@ export const DayOutageSchedule: FC<DayOutageScheduleProps> = ({ t, isDark, dayDa
     [dayData],
   );
   const summaryOutageTime = useMemo(
+    // eslint-disable-next-line no-useless-assignment
     () => slots?.reduce((prev, curr) => prev += (curr.end - curr.start), 0),
     [slots],
   );

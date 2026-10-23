@@ -10,6 +10,7 @@ class UserListResponseModel(BaseModel):
     name: str
     is_active: bool = Field(True, alias='isActive')
     is_reporter: bool = Field(False, alias='isReporter')
+    is_admin: bool = Field(False, alias='isAdmin')
     api_key: Optional[str] = Field(None, alias='apiKey')
     report_mode: Optional[ReportMode] = Field(None, alias='reportMode')
 

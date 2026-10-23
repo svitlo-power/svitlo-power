@@ -3,6 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
 from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
+from shared.services.settings.service import SettingsService
 from .beanie_initializer import BeanieInitializer
 from .authorization import AuthorizationService
 from .bots import BotConfig, BotsService
@@ -35,6 +36,8 @@ class ServicesContainer(Module):
         binder.bind(BeanieInitializer, to=beanie, scope=singleton)
 
         binder.bind(AuthorizationService, scope=singleton)
+
+        binder.bind(SettingsService, scope=singleton)
 
         binder.bind(StationConnectionsService, scope=singleton)
 

@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List
 from fastapi import FastAPI, Depends, Request, HTTPException
 from fastapi_injector import Injected
 from app.services import UsersService

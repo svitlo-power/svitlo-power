@@ -5,6 +5,7 @@ from .station_connections import *
 from .ext_data import *
 from .ext_device import *
 from .messages import *
+from .settings import *
 from .stations_data import *
 from .api import *
 from .users import *
@@ -18,6 +19,7 @@ from .station_connections import __all__ as _station_connections_all
 from .ext_data import __all__ as _ext_data_all
 from .ext_device import __all__ as _ext_device_all
 from .messages import __all__ as _messages_all
+from .settings import __all__ as _settings_all
 from .stations_data import __all__ as _stations_data_all
 from .api import __all__ as _api_all
 from .users import __all__ as _users_all
@@ -32,6 +34,7 @@ __all__.extend(_station_connections_all)
 __all__.extend(_ext_data_all)
 __all__.extend(_ext_device_all)
 __all__.extend(_messages_all)
+__all__.extend(_settings_all)
 __all__.extend(_stations_data_all)
 __all__.extend(_api_all)
 __all__.extend(_users_all)

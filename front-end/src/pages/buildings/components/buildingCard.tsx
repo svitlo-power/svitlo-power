@@ -31,7 +31,7 @@ export const BuildingCard: FC<BuildingCardProps> = ({ t, building, buildingSumma
 
   const getBatteryIcon = (summary: BuildingSummaryItem): ReactNode | null => {
     const batteryPercent = summary.batteryPercent ?? 0;
-    let icon: IconName | null = null;
+    let icon: IconName | null;
     if (summary.isOffline) {
       return <span className="fa-layers fa-fw">
         <FontAwesomeIcon icon='battery-0' />
@@ -115,7 +115,7 @@ export const BuildingCard: FC<BuildingCardProps> = ({ t, building, buildingSumma
 
   const rows = [];
   if (buildingSummary) {
-    let availabilityText = '';
+    let availabilityText;
     switch (buildingSummary.gridAvailabilityPct) {
       case 0: availabilityText = t('grid.unavailable'); break;
       case 100: availabilityText = t('grid.available'); break;
