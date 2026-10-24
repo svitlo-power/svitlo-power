@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { SystemSettingValue } from "../stores/types/settings";
+import type { LocalizableValue } from "../schemas/base";
+import { LocalizableValueEditor } from "./localizableValueEditor";
 import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, ActionIcon, Box, Tooltip } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,7 +11,7 @@ interface Setting {
   key: string;
   label: string;
   description: string;
-  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select";
+  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select" | "localizable_text";
   default_value: SystemSettingValue;
   value: SystemSettingValue;
   validation?: {
@@ -29,6 +31,12 @@ interface SettingsRendererProps {
   showLabel?: boolean;
   resettable?: boolean;
 }
+
+const isLocalizableValue = (value: SystemSettingValue): value is LocalizableValue =>
+  typeof value === "object" &&
+  value !== null &&
+  !(value instanceof Date) &&
+  Object.values(value).every((translation) => typeof translation === "string");
 
 const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   setting,
@@ -132,6 +140,17 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     );
   };
 
+  const renderLocalizableTextInput = () => {
+    return (
+      <LocalizableValueEditor
+        t={t}
+        label={setting.label}
+        value={isLocalizableValue(localValue) ? localValue : {}}
+        onChange={handleChange}
+      />
+    );
+  };
+
   const renderDateTimeInput = () => {
     let value: Date | null = null;
     if (localValue instanceof Date) {
@@ -214,6 +233,8 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         return renderNumberInput();
       case "text":
         return renderTextInput();
+      case "localizable_text":
+        return renderLocalizableTextInput();
       case "datetime":
         return renderDateTimeInput();
       case "timestamp":
@@ -227,7 +248,19 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
   };
 
-  const isDefaultValue = useMemo(() => localValue === setting.default_value, [localValue, setting]);
+  const isDefaultValue = useMemo(() => {
+    const defaultValue = setting.default_value;
+    if (
+      setting.setting_type === "localizable_text" &&
+      isLocalizableValue(localValue) &&
+      isLocalizableValue(defaultValue)
+    ) {
+      const keys = Object.keys(localValue);
+      return keys.length === Object.keys(defaultValue).length &&
+        keys.every((key) => localValue[key] === defaultValue[key]);
+    }
+    return localValue === defaultValue;
+  }, [localValue, setting.default_value, setting.setting_type]);
 
   return (
     <Stack gap="0">

@@ -3,6 +3,8 @@ from typing import Literal, Optional, Union
 from pydantic import ConfigDict, Field
 from beanie import Document
 
+from .localizable_value import LocalizableValue
+
 
 SystemSettingValue = Union[
     int,
@@ -10,6 +12,7 @@ SystemSettingValue = Union[
     str,
     bool,
     datetime,
+    LocalizableValue,
     None,
 ]
 
@@ -18,9 +21,15 @@ class SystemSetting(Document):
     key: str = Field(..., description="Unique identifier (e.g., 'discharge_target_soc')")
     label: str = Field(..., description="Human-readable label")
     description: str = Field(..., description="Help text")
-    setting_type: Literal["number", "text", "datetime", "timestamp", "boolean", "select"] = Field(
-        ..., description="Type of setting"
-    )
+    setting_type: Literal[
+        "number",
+        "text",
+        "datetime",
+        "timestamp",
+        "boolean",
+        "select",
+        "localizable_text",
+    ] = Field(..., description="Type of setting")
     default_value: SystemSettingValue = Field(..., description="Default value")
     value: Optional[SystemSettingValue] = Field(None, description="Current value (overrides default)")
     validation: Optional[dict] = Field(None, description="Validation rules (min/max for numbers, regex for text, options for select)")

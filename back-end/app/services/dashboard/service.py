@@ -4,7 +4,6 @@ from injector import inject
 
 from shared.models.assumed_station_status import AssumedStationStatus
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 from shared.services.events.service import EventsService
 from shared.services.dashboard import ReadOnlyDashboardService
 from app.repositories import (
@@ -20,6 +19,13 @@ from app.models.api import (
     SaveDashboardConfigRequest,
 )
 from shared.services.settings.service import SettingsService
+from shared.services.dashboard.config_settings import (
+    DASHBOARD_TITLE_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
+)
 
 
 @inject
@@ -45,11 +51,36 @@ class DashboardService(ReadOnlyDashboardService):
         )
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
-        config = DashboardConfig(
-            title=config.title,
-            outages_schedule=config.outages_schedule,
-        )
-        await self._dashboard.save_config(config)
+        schedule = config.outages_schedule
+        updates = {
+            DASHBOARD_TITLE_SETTING_KEY: config.title,
+            DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY: bool(
+                schedule and schedule.enable
+            ),
+            DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY: (
+                schedule.region if schedule else None
+            ),
+            DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY: (
+                schedule.dso if schedule else None
+            ),
+            DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY: (
+                schedule.queue if schedule else None
+            ),
+        }
+        missing_settings = [
+            key for key in updates if await self._settings.get_setting(key) is None
+        ]
+        if missing_settings:
+            raise RuntimeError(
+                f"Dashboard settings are missing: {', '.join(missing_settings)}"
+            )
+
+        results = await self._settings.bulk_update(updates)
+        failed_settings = [key for key in updates if not results.get(key, False)]
+        if failed_settings:
+            raise RuntimeError(
+                f"Unable to save dashboard settings: {', '.join(failed_settings)}"
+            )
         await self.broadcast_public("dashboard_config_updated")
         return await self.get_config()
 

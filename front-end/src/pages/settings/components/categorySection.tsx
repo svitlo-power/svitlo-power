@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Setting, SystemSettingValue } from "../../../stores/types/settings";
 import SettingsRenderer from "../../../components/settingsRenderer";
-import { Accordion, SimpleGrid } from "@mantine/core";
+import { Accordion, Card, SimpleGrid } from "@mantine/core";
 
 interface CategorySectionProps {
   category: string;
@@ -26,13 +26,14 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
       <Accordion.Panel>
         <SimpleGrid cols={{ md: 2, sm: 1}}>
           {settings.map((setting) => (
-            <SettingsRenderer
-              key={setting.key}
-              setting={setting}
-              onChange={onUpdate}
-              onReset={onReset}
-              resettable
-            />
+            <Card key={setting.key} shadow="sm" padding="sm" withBorder>
+              <SettingsRenderer
+                setting={setting}
+                onChange={onUpdate}
+                onReset={onReset}
+                resettable
+              />
+            </Card>
           ))}
         </SimpleGrid>
       </Accordion.Panel>

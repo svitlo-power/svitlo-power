@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from beanie import PydanticObjectId
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 
 class IDashboardReadRepository(ABC):
 
@@ -20,8 +19,4 @@ class IDashboardReadRepository(ABC):
         ids: Optional[List[PydanticObjectId]] = None,
         all: bool = False
     ) -> List[Building]:
-        ...
-
-    @abstractmethod
-    async def get_config(self) -> DashboardConfig:
         ...

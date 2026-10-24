@@ -1,17 +1,19 @@
 import { BaseEditableState } from "./base";
+import type { LocalizableValue } from "../../schemas/base";
 
 export type SystemSettingValue = 
   | number 
   | string 
   | boolean 
   | Date 
+  | LocalizableValue
   | null;
 
 export type BaseServerSettingItem = {
   key: string;
   label: string;
   description: string;
-  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select";
+  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select" | "localizable_text";
   default_value: SystemSettingValue;
   value: SystemSettingValue;
   validation?: {

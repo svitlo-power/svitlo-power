@@ -56,6 +56,6 @@ __all__ = [
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
-    StationData, ExtData, ExtDevice, DashboardConfig,
+    StationData, ExtData, ExtDevice,
     StationConnection, VisitCounter, DailyVisitCounter, LoginHistory,
     PushDevice, PushTopic, SystemSetting]

@@ -68,6 +68,50 @@ describe("SettingsRenderer", () => {
     expect(screen.getByRole("combobox", { name: "Test Setting" })).toHaveValue("One");
   });
 
+  it("renders localized text inputs and saves all language values", async () => {
+    const onChange = vi.fn().mockResolvedValue(undefined);
+    renderWithStore(
+      <SettingsRenderer
+        setting={{
+          ...setting,
+          setting_type: "localizable_text",
+          default_value: { en: "Default", uk: "За замовчуванням" },
+          value: { en: "Dashboard", uk: "Панель" },
+        }}
+        onChange={onChange}
+      />,
+    );
+
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]).toHaveValue("Dashboard");
+    expect(inputs[1]).toHaveValue("Панель");
+
+    fireEvent.change(inputs[0], { target: { value: "Updated" } });
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("test_setting", {
+        en: "Updated",
+        uk: "Панель",
+      });
+    });
+  });
+
+  it("compares localized values by content when enabling reset", () => {
+    renderWithStore(
+      <SettingsRenderer
+        setting={{
+          ...setting,
+          setting_type: "localizable_text",
+          default_value: { en: "Dashboard", uk: "Панель" },
+          value: { en: "Dashboard", uk: "Панель" },
+        }}
+        resettable
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
+  });
+
   it("disables the rendered control when requested", () => {
     renderWithStore(<SettingsRenderer setting={setting} disabled />);
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();

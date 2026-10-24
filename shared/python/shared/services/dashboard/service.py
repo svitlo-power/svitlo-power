@@ -26,8 +26,17 @@ from shared.models import (
     PeriodResponse,
     PowerLogsResponse,
 )
+from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.localizable_value import LocalizableValue
 from shared.utils import get_estimate_charge_time, get_estimate_discharge_time
 from shared.services.settings.service import SettingsService
+from shared.services.dashboard.config_settings import (
+    DASHBOARD_TITLE_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
+)
 
 
 @inject
@@ -56,16 +65,37 @@ class ReadOnlyDashboardService(BaseService):
         self._settings = settings
 
     async def get_config(self) -> DashboardConfigResponse:
-        config = await self._dashboard.get_config()
+        title = await self._settings.get_localizable_text(
+            DASHBOARD_TITLE_SETTING_KEY,
+            LocalizableValue({"en": "Dashboard", "uk": "Панель керування"}),
+        )
+        enabled = await self._settings.get_boolean(
+            DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY,
+            False,
+        )
+        region = await self._settings.get_text(
+            DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY,
+            "",
+        )
+        dso = await self._settings.get_text(
+            DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
+            "",
+        )
+        queue = await self._settings.get_text(
+            DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
+            "",
+        )
+        schedule = OutagesScheduleConfig(
+            enable=enabled,
+            region=region or None,
+            dso=dso or None,
+            queue=queue or None,
+        )
         return DashboardConfigResponse(
-            title=config.title,
-            outages_schedule=config.outages_schedule,
-            enable_outages_schedule=bool(
-                config.outages_schedule and config.outages_schedule.enable
-            ),
-            outages_schedule_queue=(
-                config.outages_schedule.queue if config.outages_schedule else None
-            ),
+            title=title,
+            outages_schedule=schedule,
+            enable_outages_schedule=enabled,
+            outages_schedule_queue=queue or None,
         )
 
     def _process_building(self, building: Building) -> BuildingResponse:

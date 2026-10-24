@@ -123,7 +123,8 @@
       "confirmResetContent": "Are you sure you want to reset all settings to their default values?",
       "unsavedChanges": "You have unsaved changes. Click Save to persist them.",
       "categories": {
-        "power_estimation": "Power Estimation"
+        "power_estimation": "Power Estimation",
+        "dashboard": "Buildings"
       },
       "validation": {
         "notANumber": "Value must be a number",

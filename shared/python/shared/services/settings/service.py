@@ -2,6 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from injector import inject, singleton
 
+from shared.models.localizable_value import LocalizableValue
 from shared.models.system_setting import SystemSetting, SystemSettingValue
 
 
@@ -44,6 +45,21 @@ class SettingsService:
         """Get a setting value as text."""
         value = await self.get_value(key, default)
         return str(value) if value is not None else default
+
+    async def get_localizable_text(
+        self,
+        key: str,
+        default: LocalizableValue,
+    ) -> LocalizableValue:
+        """Get a setting value as localized text."""
+        value = await self.get_value(key, default)
+        if value is None:
+            return default
+        if isinstance(value, LocalizableValue):
+            return value
+        if isinstance(value, dict):
+            return LocalizableValue.model_validate(value)
+        raise TypeError(f"Setting '{key}' does not contain localized text")
 
     async def get_boolean(self, key: str, default: bool = False) -> bool:
         """Get a setting value as boolean."""

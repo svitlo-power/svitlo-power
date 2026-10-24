@@ -116,8 +116,8 @@ class TestBeanieModels:
     def test_beanie_models_contains_ext_device(self):
         assert ExtDevice in BEANIE_MODELS
 
-    def test_beanie_models_contains_dashboard_config(self):
-        assert DashboardConfig in BEANIE_MODELS
+    def test_beanie_models_does_not_register_dashboard_config(self):
+        assert DashboardConfig not in BEANIE_MODELS
 
     def test_beanie_models_contains_station_connection(self):
         assert StationConnection in BEANIE_MODELS

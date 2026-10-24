@@ -7,8 +7,6 @@ from beanie import PydanticObjectId
 
 from app.repositories.implementations.dashboard import DashboardRepository
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
-from shared.models.dashboard_config import OutagesScheduleConfig
 
 # Mock Beanie class-level query attributes to prevent AttributeError when beanie is not initialized
 Building.order = MagicMock()
@@ -69,41 +67,3 @@ class TestDashboardRepository:
         assert b2.order == 2
         b1.save.assert_called_once()
         b2.save.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_save_config_existing(self):
-        """Test save_config when config exists."""
-        config_data = MagicMock(spec=DashboardConfig)
-        config_data.title = {"en": "New Title"}
-        config_data.outages_schedule = OutagesScheduleConfig(
-            enable=True,
-            region="Kyiv",
-            dso="Yasno",
-            queue="queue",
-        )
-        mock_existing = MagicMock(spec=DashboardConfig)
-        mock_existing.save = AsyncMock()
-        
-        with patch.object(DashboardConfig, 'find_one', new_callable=AsyncMock) as mock_find:
-            mock_find.return_value = mock_existing
-            
-            repo = DashboardRepository()
-            await repo.save_config(config_data)
-            
-            assert mock_existing.title == {"en": "New Title"}
-            assert mock_existing.outages_schedule == config_data.outages_schedule
-            mock_existing.save.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_save_config_new(self):
-        """Test save_config when no config exists."""
-        config_data = MagicMock(spec=DashboardConfig)
-        config_data.insert = AsyncMock()
-        
-        with patch.object(DashboardConfig, 'find_one', new_callable=AsyncMock) as mock_find:
-            mock_find.return_value = None
-            
-            repo = DashboardRepository()
-            await repo.save_config(config_data)
-            
-            config_data.insert.assert_called_once()

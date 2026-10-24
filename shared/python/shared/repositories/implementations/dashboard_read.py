@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from beanie import PydanticObjectId
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 from shared.repositories.interfaces import IDashboardReadRepository
 
 class DashboardReadRepository(IDashboardReadRepository):
@@ -36,6 +35,3 @@ class DashboardReadRepository(IDashboardReadRepository):
             .sort(Building.order)
             .to_list()
         )
-
-    async def get_config(self) -> DashboardConfig:
-        return await DashboardConfig.find_one()
