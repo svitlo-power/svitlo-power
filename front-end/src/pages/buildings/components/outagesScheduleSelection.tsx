@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Group, Select, Stack, Stepper, Text } from "@mantine/core";
+import { Alert, Button, Group, Loader, Select, Stack, Stepper, Text } from "@mantine/core";
 import { TFunction } from "i18next";
 import { OutagesScheduleConfig } from "../../../schemas/dashboardEdit";
 import { getErrorMessage } from "../../../utils";
@@ -182,6 +182,12 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
 
   return (
     <Stack>
+      {loadingRegions ? (
+        <Group justify="center" py="xl">
+          <Loader size="sm" />
+          <Text>{t('dashboardEdit.loading')}</Text>
+        </Group>
+      ) : (
       <Stepper
         active={step}
         onStepClick={setStep}
@@ -197,8 +203,6 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
             value={region}
             onChange={handleRegionChange}
             searchable
-            disabled={loadingRegions}
-            nothingFoundMessage={loadingRegions ? t('dashboardEdit.loading') : undefined}
           />
         </Stepper.Step>
         <Stepper.Step label={t('dashboardEdit.provider')}>
@@ -210,6 +214,7 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
               value={dso}
               onChange={handleProviderChange}
               disabled={loadingProviders || !selectedRegion}
+              rightSection={loadingProviders ? <Loader size="xs" /> : undefined}
             />
             <Group justify="space-between">
               <Button variant="default" onClick={() => setStep(0)}>{t('button.back')}</Button>
@@ -226,6 +231,7 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
               value={queue}
               onChange={(queue) => onChange({ queue })}
               disabled={loadingQueues || !selectedProvider}
+              rightSection={loadingQueues ? <Loader size="xs" /> : undefined}
             />
             <Text size="sm" c="dimmed">
               {t('dashboardEdit.selectionSummary', {
@@ -241,8 +247,9 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
         </Stepper.Step>
         <Stepper.Completed>{null}</Stepper.Completed>
       </Stepper>
+      )}
       {step === 0 && <Group justify="flex-end">
-        <Button onClick={() => setStep(1)} disabled={!region}>{t('button.next')}</Button>
+        {!loadingRegions && <Button onClick={() => setStep(1)} disabled={!region}>{t('button.next')}</Button>}
       </Group>}
       {discoveryError && <Alert color="red">{discoveryError}</Alert>}
     </Stack>

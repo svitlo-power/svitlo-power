@@ -26,6 +26,7 @@ const translate = ((key: string, options?: Record<string, string>) => {
     "dashboardEdit.selectProvider": "Select a provider",
     "dashboardEdit.queue": "Queue",
     "dashboardEdit.selectQueue": "Select a queue",
+    "dashboardEdit.loading": "Loading...",
     "button.back": "Back",
     "button.next": "Next",
     "dashboardEdit.discoveryError": "Unable to load options.",
@@ -87,6 +88,20 @@ describe("OutagesScheduleSelection", () => {
     fireEvent.click(screen.getByText("1.2"));
 
     expect(screen.getByText("Київ · ДТЕК · Queue 1.2")).toBeInTheDocument();
+  });
+
+  it("shows a loader instead of the empty initial step while loading regions", async () => {
+    let resolveRegions: (value: { data: { id: number; value: string; label: string }[] }) => void;
+    mockGet.mockReturnValueOnce(new Promise((resolve) => {
+      resolveRegions = resolve;
+    }));
+    render(<Harness initialValue={{ enable: true, region: null, dso: null, queue: null }} />);
+
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Region" })).not.toBeInTheDocument();
+
+    resolveRegions!({ data: [{ id: 25, value: "Київ", label: "Київ" }] });
+    expect(await screen.findByRole("combobox", { name: "Region" })).toBeInTheDocument();
   });
 
   it("supports navigating back to the previous step", async () => {
