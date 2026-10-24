@@ -5,13 +5,16 @@ import SettingsRenderer from "./settingsRenderer";
 
 const setting = {
   key: "test_setting",
-  label: "Test Setting",
-  description: "Test description",
+  label: { en: "Test Setting", uk: "Тестове налаштування" },
+  description: { en: "Test description", uk: "Опис тесту" },
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
   validation: { min: 0, max: 100 },
-  category: "test_category",
+  category: {
+    id: "test_category",
+    label: { en: "Test Category", uk: "Тестова категорія" },
+  },
 };
 
 describe("SettingsRenderer", () => {

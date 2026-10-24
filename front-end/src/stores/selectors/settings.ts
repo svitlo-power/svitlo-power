@@ -8,10 +8,11 @@ export const selectSettingsError = (state: RootState): string | null => state.se
 export const selectSettingsByCategory = (state: RootState): SettingsGroupedByCategory => {
   const grouped: SettingsGroupedByCategory = {};
   state.settings.items.forEach((setting) => {
-    if (!grouped[setting.category]) {
-      grouped[setting.category] = [];
+    const categoryId = setting.category.id;
+    if (!grouped[categoryId]) {
+      grouped[categoryId] = { category: setting.category, settings: [] };
     }
-    grouped[setting.category].push(setting);
+    grouped[categoryId].settings.push(setting);
   });
   return grouped;
 };

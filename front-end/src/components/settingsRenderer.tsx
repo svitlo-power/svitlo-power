@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { SystemSettingValue } from "../stores/types/settings";
+import { SettingCategory, SystemSettingValue } from "../stores/types/settings";
 import type { LocalizableValue } from "../schemas/base";
 import { LocalizableValueEditor } from "./localizableValueEditor";
 import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, ActionIcon, Box, Tooltip } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { getLocalizedValue } from "../utils/i18n";
 
 interface Setting {
   key: string;
-  label: string;
-  description: string;
+  label: LocalizableValue;
+  description: LocalizableValue;
   setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select" | "localizable_text";
   default_value: SystemSettingValue;
   value: SystemSettingValue;
@@ -20,7 +21,7 @@ interface Setting {
     regex?: string;
     options?: Array<{ value: SystemSettingValue; label: string }>;
   };
-  category: string;
+  category: SettingCategory;
 }
 
 interface SettingsRendererProps {
@@ -45,7 +46,10 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   disabled = false,
   resettable = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const label = getLocalizedValue(setting.label, language);
+  const description = getLocalizedValue(setting.description, language);
   const [localValue, setLocalValue] = useState<SystemSettingValue>(setting.value ?? setting.default_value);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,7 +118,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "number" ? localValue : 0;
     return (
       <NumberInput
-        aria-label={setting.label}
+        aria-label={label}
         error={error}
         value={value}
         onChange={(val) => handleChange(val ?? 0)}
@@ -130,7 +134,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <TextInput
-        aria-label={setting.label}
+        aria-label={label}
         error={error}
         value={value}
         onChange={(e) => handleChange(e.currentTarget.value)}
@@ -144,7 +148,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     return (
       <LocalizableValueEditor
         t={t}
-        label={setting.label}
+        label={label}
         value={isLocalizableValue(localValue) ? localValue : {}}
         onChange={handleChange}
       />
@@ -162,7 +166,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).toISOString() : null)}
@@ -184,7 +188,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).getTime() : null)}
@@ -199,7 +203,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "boolean" ? localValue : false;
     return (
       <Switch
-        aria-label={setting.label}
+        aria-label={label}
         checked={value}
         error={error}
         onChange={(e) => handleChange(e.currentTarget.checked)}
@@ -213,7 +217,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <Select
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ?? "")}
@@ -264,7 +268,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
 
   return (
     <Stack gap="0">
-      <Text size="sm" fw="bold">{setting.label}</Text>
+      <Text size="sm" fw="bold">{label}</Text>
       <Group wrap="nowrap" gap="xs">
         <Box style={{ flex: 1 }}>
           {renderInput()}
@@ -290,7 +294,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
             </ActionIcon>
           </Tooltip>}
       </Group>
-      <Text c='dimmed' size="xs">{setting.description}</Text>
+      <Text c='dimmed' size="xs">{description}</Text>
     </Stack>
   );
 };

@@ -5,11 +5,10 @@ import { PageHeaderContentProvider, useHeaderContent } from "../../providers";
 import { createTestStore, renderWithStore } from "../../test/storeTestUtils";
 import { SystemSettingsPage } from "./systemSettings";
 
-const { mockGet, translate } = vi.hoisted(() => {
+const { mockGet, translate, mockLanguage } = vi.hoisted(() => {
   const translations: Record<string, string> = {
     "settings.resetToDefaults": "Reset to Defaults",
     "settings.noSettings": "No settings available",
-    "settings.categories.power_estimation": "Power Estimation",
     "button.save": "Save",
     "button.cancel": "Cancel",
     "button.yes": "Yes",
@@ -20,6 +19,7 @@ const { mockGet, translate } = vi.hoisted(() => {
   return {
     mockGet: vi.fn(),
     translate: (key: string) => translations[key] || key,
+    mockLanguage: { current: "en" },
   };
 });
 
@@ -41,6 +41,10 @@ vi.mock("react-i18next", async () => {
     ...actual,
     useTranslation: () => ({
       t: translate,
+      i18n: {
+        language: mockLanguage.current,
+        resolvedLanguage: mockLanguage.current,
+      },
     }),
   };
 });
@@ -52,12 +56,12 @@ const HeaderButtons = () => {
 
 const setting = {
   key: "discharge",
-  label: "Discharge target",
-  description: "Battery target",
+  label: { en: "Discharge target", uk: "Ціль розрядження" },
+  description: { en: "Battery target", uk: "Ціль батареї" },
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
-  category: "power_estimation",
+  category_id: "category-id",
   created_at: "2024-01-01T00:00:00.000Z",
   updated_at: "2024-01-01T00:00:00.000Z",
   changed: false,
@@ -68,10 +72,32 @@ const renderPage = (items = [setting], error: string | null = null, fetchFailure
   if (fetchFailure) {
     mockGet.mockRejectedValue(new Error(error));
   } else {
-    mockGet.mockResolvedValue({ data: { categories: { power_estimation: items } } });
+    mockGet.mockResolvedValue({
+      data: {
+        categories: {
+          "category-id": {
+            id: "category-id",
+            label: { en: "Power Estimation", uk: "Оцінка потужності" },
+            settings: items,
+          },
+        },
+      },
+    });
   }
   const store = createTestStore({
-    settings: { items, loading: false, creating: false, changed: false, error },
+    settings: {
+      items: items.map((item) => ({
+        ...item,
+        category: {
+          id: item.category_id,
+          label: { en: "Power Estimation", uk: "Оцінка потужності" },
+        },
+      })),
+      loading: false,
+      creating: false,
+      changed: false,
+      error,
+    },
   });
   return renderWithStore(
     <PageHeaderContentProvider>
@@ -90,6 +116,16 @@ describe("SystemSettingsPage", () => {
 
     expect(screen.getByText("Power Estimation")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Discharge target" })).toHaveValue("10");
+  });
+
+  it("renders localized category and setting metadata", () => {
+    mockLanguage.current = "uk";
+    renderPage();
+
+    expect(screen.getByText("Оцінка потужності")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ціль розрядження" })).toHaveValue("10");
+    expect(screen.getByText("Ціль батареї")).toBeInTheDocument();
+    mockLanguage.current = "en";
   });
 
   it("shows the empty-state message when no settings exist", () => {

@@ -43,6 +43,7 @@ from shared.models import (
     PushDevice,
     PushTopic,
     SystemSetting,
+    SystemSettingCategory,
 )
 
 
@@ -65,6 +66,7 @@ class BeanieInitializer:
                 PushDevice,
                 PushTopic,
                 SystemSetting,
+                SystemSettingCategory,
             ],
         )
 

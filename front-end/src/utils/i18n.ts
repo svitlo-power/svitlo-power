@@ -17,6 +17,17 @@ export function getCountryByLang(lang: string): string {
   return langCountryMap[lang];
 }
 
+export const getLocalizedValue = (
+  value: LocalizableValue,
+  language: string,
+): string => {
+  const culture = language.toLowerCase().split("-")[0] as keyof LocalizableValue;
+  return value[culture]
+    ?? value.en
+    ?? Object.values(value)[0]
+    ?? "";
+};
+
 export const localizableValueToString = (
   value: LocalizableValue
 ): string => {

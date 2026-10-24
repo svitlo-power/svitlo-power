@@ -21,4 +21,3 @@ class LocalizableValue(RootModel[dict[str, str]]):
             return self.root[lang]
         except KeyError:
             raise ValueError(f"No value found for culture: {lang}")
-        
