@@ -1,5 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { SettingsState, Setting, SystemSettingValue, ServerSettingItem } from "../types/settings";
+import {
+  FetchedSetting,
+  SettingsState,
+  Setting,
+  SystemSettingValue,
+} from "../types/settings";
 import { fetchSettings, saveSettings, cancelSettingsEditing } from "../thunks/settings";
 
 const initialState: SettingsState = {
@@ -75,7 +80,7 @@ export const settingsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<ServerSettingItem[]>) => {
+      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<FetchedSetting[]>) => {
         state.items = action.payload.map(item => ({ ...item, changed: false, created: false }));
         state.loading = false;
         state.creating = false;

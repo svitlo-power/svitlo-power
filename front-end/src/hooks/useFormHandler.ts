@@ -1,4 +1,4 @@
-import { ChangeEventHandler, ReactNode, useEffect, useRef } from "react";
+import { ChangeEventHandler, ReactNode, useCallback, useEffect, useRef } from "react";
 import { useForm, FieldValues, PathValue, Path, UseFormRegisterReturn, Control } from "react-hook-form";
 import { valibotResolver } from "@hookform/resolvers/valibot";
 import { useLocation } from "react-router-dom";
@@ -108,7 +108,7 @@ export const useFormHandler = <T extends FieldValues>({
     trigger();
   };
 
-  const setControlValue = (
+  const setControlValue = useCallback((
     name: Path<T>,
     value: PathValue<T, Path<T>>,
     shouldDirty: boolean = true,
@@ -120,7 +120,7 @@ export const useFormHandler = <T extends FieldValues>({
     } else {
       trigger(name);
     }
-  };
+  }, [setValue, trigger]);
 
   const getControlValue = (name: Path<T>): PathValue<T, Path<T>> => {
     return getValues()[name];

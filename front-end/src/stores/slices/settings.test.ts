@@ -2,12 +2,15 @@ import { settingsReducer, resetSetting } from "./settings";
 
 const setting = {
   key: "discharge",
-  label: "Discharge target",
-  description: "Battery target",
+  label: { en: "Discharge target", uk: "Ціль розрядження" },
+  description: { en: "Battery target", uk: "Ціль батареї" },
   setting_type: "number" as const,
   default_value: 10,
   value: 20,
-  category: "power_estimation",
+  category: {
+    id: "power_estimation",
+    label: { en: "Power Estimation", uk: "Оцінка потужності" },
+  },
   changed: false,
   created: false,
 };

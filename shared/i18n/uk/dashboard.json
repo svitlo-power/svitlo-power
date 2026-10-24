@@ -19,7 +19,16 @@
     "dialogTitle": "Редагування панелі",
     "title": "Назва панелі",
     "enableOutagesSchedule": "Увімкнути графік планових відключень",
-    "outagesScheduleQueue": "Черга розкладу відключень"
+    "step": "Крок {{step}} з 3",
+    "region": "Область",
+    "selectRegion": "Оберіть область",
+    "provider": "Постачальник",
+    "selectProvider": "Оберіть постачальника",
+    "queue": "Черга",
+    "selectQueue": "Оберіть чергу",
+    "selectionSummary": "{{region}} · {{provider}} · Черга {{queue}}",
+    "loading": "Завантаження варіантів...",
+    "discoveryError": "Не вдалося завантажити варіанти графіка відключень."
   },
   "outages": {
     "title": "Графік планових відключень (черга {{outageQueue}})",
@@ -71,7 +80,8 @@
     "stationRequired": "Вибір станції є обов'язковим.",
     "reportUsersRequired": "Принаймні один користувач для звітів є обов'язковим.",
     "dashboardTitleRequired": "Назва панелі є обов'язковою.",
-    "outagesScheduleQueueRequired": "Черга розкладу відключень є обов'язковою."
+    "outagesScheduleQueueRequired": "Черга розкладу відключень є обов'язковою.",
+    "outagesScheduleSelectionRequired": "Оберіть область, постачальника та чергу."
   },
   "powerLogs": {
     "dialogTitle": "Статистика мережі",

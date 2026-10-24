@@ -15,18 +15,36 @@ vi.mock("../../utils/apiClient", () => ({
 
 const serverSetting = {
   key: "discharge",
-  label: "Discharge",
-  description: "Battery target",
+  label: { en: "Discharge", uk: "Розрядження" },
+  description: { en: "Battery target", uk: "Ціль батареї" },
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
   validation: { min: 0, max: 100 },
-  category: "power",
+  category_id: "power",
   created_at: "2024-01-01T00:00:00.000Z",
   updated_at: "2024-01-01T00:00:00.000Z",
 };
 
-const fetchResponse = (items = [serverSetting]) => ({ data: { categories: { power: items } } });
+const fetchResponse = (items = [serverSetting]) => ({
+  data: {
+    categories: {
+      power: {
+        id: "power",
+        label: { en: "Power", uk: "Потужність" },
+        settings: items,
+      },
+    },
+  },
+});
+
+const settingWithCategory = {
+  ...serverSetting,
+  category: { id: "power", label: { en: "Power", uk: "Потужність" } },
+};
+const fetchedServerSetting = Object.fromEntries(
+  Object.entries(serverSetting).filter(([key]) => key !== "category_id"),
+);
 
 describe("settings thunks", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -35,10 +53,20 @@ describe("settings thunks", () => {
     mockGet.mockResolvedValue(fetchResponse());
     const store = createTestStore();
 
-    await expect(store.dispatch(fetchSettings()).unwrap()).resolves.toEqual([serverSetting]);
+    await expect(store.dispatch(fetchSettings()).unwrap()).resolves.toEqual([
+      {
+        ...fetchedServerSetting,
+        category: { id: "power", label: { en: "Power", uk: "Потужність" } },
+      },
+    ]);
 
     expect(mockGet).toHaveBeenCalledWith("/settings");
-    expect(store.getState().settings.items).toEqual([{ ...serverSetting, changed: false, created: false }]);
+    expect(store.getState().settings.items).toEqual([{
+      ...fetchedServerSetting,
+      category: { id: "power", label: { en: "Power", uk: "Потужність" } },
+      changed: false,
+      created: false,
+    }]);
   });
 
   it("keeps the server error when fetching fails", async () => {
@@ -50,7 +78,7 @@ describe("settings thunks", () => {
   });
 
   it("saves changed existing settings with PUT, then refreshes them", async () => {
-    const changedSetting = { ...serverSetting, value: 20, changed: true, created: false };
+    const changedSetting = { ...settingWithCategory, value: 20, changed: true, created: false };
     mockPut.mockResolvedValue({ data: changedSetting });
     mockGet.mockResolvedValue(fetchResponse([{ ...serverSetting, value: 20 }]));
     const store = createTestStore({
@@ -60,11 +88,17 @@ describe("settings thunks", () => {
     await store.dispatch(saveSettings()).unwrap();
 
     expect(mockPut).toHaveBeenCalledWith("/settings/discharge", expect.objectContaining({ value: 20 }));
-    await waitFor(() => expect(store.getState().settings.items[0]).toEqual({ ...serverSetting, value: 20, changed: false, created: false }));
+    await waitFor(() => expect(store.getState().settings.items[0]).toEqual({
+      ...fetchedServerSetting,
+      category: { id: "power", label: { en: "Power", uk: "Потужність" } },
+      value: 20,
+      changed: false,
+      created: false,
+    }));
   });
 
   it("uses POST for newly-created settings", async () => {
-    const createdSetting = { ...serverSetting, key: "new-setting", changed: true, created: true };
+    const createdSetting = { ...settingWithCategory, key: "new-setting", changed: true, created: true };
     mockPost.mockResolvedValue({ data: createdSetting });
     mockGet.mockResolvedValue(fetchResponse([createdSetting]));
     const store = createTestStore({

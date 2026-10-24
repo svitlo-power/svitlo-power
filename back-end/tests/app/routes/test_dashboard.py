@@ -181,8 +181,12 @@ class TestDashboardRoute:
         from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
-            enable_outages_schedule=True,
-            outages_schedule_queue="test-queue"
+            outages_schedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "test-queue",
+            },
         )
 
         mock_dashboard = MagicMock()
@@ -196,7 +200,12 @@ class TestDashboardRoute:
         response = client.get("/api/dashboard/config")
         assert response.status_code == 200
         data = response.json()
-        assert data["enableOutagesSchedule"] is True
+        assert data["outagesSchedule"] == {
+            "enable": True,
+            "region": "Kyiv",
+            "dso": "Yasno",
+            "queue": "test-queue",
+        }
 
     def test_update_dashboard_config(self):
         """Test update_dashboard_config saves config."""
@@ -206,8 +215,12 @@ class TestDashboardRoute:
         from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
-            enable_outages_schedule=True,
-            outages_schedule_queue="test-queue"
+            outages_schedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "test-queue",
+            },
         )
 
         mock_dashboard = MagicMock()
@@ -222,8 +235,12 @@ class TestDashboardRoute:
         client = TestClient(app)
         response = client.put("/api/dashboard/config", json={
             "title": {"en": "Test Title"},
-            "enableOutagesSchedule": True,
-            "outagesScheduleQueue": "test-queue",
+            "outagesSchedule": {
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "test-queue",
+            },
         })
         assert response.status_code == 200
 

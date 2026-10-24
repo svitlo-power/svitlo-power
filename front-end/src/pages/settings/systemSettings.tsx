@@ -91,9 +91,9 @@ export const SystemSettingsPage: React.FC = () => {
           </div>
         ) : (
           <Accordion defaultValue={defExpanded} variant="contained">
-            {Object.entries(settingsByCategory).map(([category, settings]) => (
+            {Object.entries(settingsByCategory).map(([categoryId, { category, settings }]) => (
               <CategorySection
-                key={category}
+                key={categoryId}
                 category={category}
                 settings={settings}
                 onUpdate={handleUpdate}

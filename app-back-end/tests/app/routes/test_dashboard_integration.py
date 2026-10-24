@@ -181,8 +181,12 @@ class TestDashboardRoutes:
     async def test_get_dashboard_config(self, client, mock_dashboard_service, sample_dashboard_config):
         mock_dashboard_service.get_config.return_value = DashboardConfigResponse(
             title={"en": "Test Dashboard"},
-            enableOutagesSchedule=True,
-            outagesScheduleQueue="queue_1"
+            outagesSchedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "queue_1",
+            },
         )
         
         response = client.get("/api/dashboard/config")
@@ -190,6 +194,7 @@ class TestDashboardRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["title"]["en"] == "Test Dashboard"
+        assert "outagesSchedule" not in data
         assert data["enableOutagesSchedule"] is True
         assert data["outagesScheduleQueue"] == "queue_1"
 
@@ -197,8 +202,12 @@ class TestDashboardRoutes:
     async def test_get_dashboard_config_alias(self, client, mock_dashboard_service, sample_dashboard_config):
         mock_dashboard_service.get_config.return_value = DashboardConfigResponse(
             title={"en": "Test Dashboard"},
-            enableOutagesSchedule=True,
-            outagesScheduleQueue="queue_1"
+            outagesSchedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "queue_1",
+            },
         )
         
         response = client.get("/api/buildings/dashboardConfig")
@@ -206,6 +215,25 @@ class TestDashboardRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["title"]["en"] == "Test Dashboard"
+        assert "outagesSchedule" not in data
+        assert data["enableOutagesSchedule"] is True
+        assert data["outagesScheduleQueue"] == "queue_1"
+
+    @pytest.mark.asyncio
+    async def test_get_dashboard_config_legacy_fields_when_schedule_disabled(
+        self, client, mock_dashboard_service,
+    ):
+        mock_dashboard_service.get_config.return_value = DashboardConfigResponse(
+            title={"en": "Test Dashboard"},
+            outagesSchedule=None,
+        )
+
+        response = client.get("/api/dashboard/config")
+
+        assert response.status_code == 200
+        assert "outagesSchedule" not in response.json()
+        assert response.json()["enableOutagesSchedule"] is False
+        assert response.json()["outagesScheduleQueue"] is None
 
     @pytest.mark.asyncio
     async def test_get_building_power_logs_success(self, client, mock_dashboard_service):

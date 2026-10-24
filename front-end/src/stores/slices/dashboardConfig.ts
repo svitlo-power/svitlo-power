@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { DashboardConfig, DashboardConfigState } from "../types";
 import { fetchDashboardConfig, saveDashboardConfig } from "../thunks/dashboardConfig";
-import { DashboardEditType } from "../../schemas/dashboardEdit";
 
 const initialState: DashboardConfigState = {
   loading: false,
@@ -16,7 +15,7 @@ export const dashboardConfigSlice = createSlice({
     startEditingDashboardConfig(state) {
       state.editingConfig = state.config;
     },
-    finishEditingDashboardConfig(state, { payload }: PayloadAction<DashboardEditType>) {
+    finishEditingDashboardConfig(state, { payload }: PayloadAction<DashboardConfig>) {
       state.config = payload;
       delete state.editingConfig;
       state.changed = true;

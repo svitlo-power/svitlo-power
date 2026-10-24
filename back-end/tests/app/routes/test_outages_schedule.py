@@ -1,9 +1,12 @@
 """Tests for app/routes/outages_schedule.py."""
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from yarl import URL
 
 from app.routes.outages_schedule import register
 
@@ -14,6 +17,86 @@ class TestOutagesScheduleRoute:
         register(app)
         routes = [r.path for r in app.routes]
         assert "/api/outagesSchedule/outagesSchedule/{queue}" in routes
+        assert "/api/outagesSchedule/regions" in routes
+        assert "/api/outagesSchedule/providers/{region_name}" in routes
+        assert "/api/outagesSchedule/queues/{region_id}/{dso_id}" in routes
+
+    def test_discovery_endpoints_return_yasno_options(self):
+        app = FastAPI()
+        register(app)
+
+        mock_service = MagicMock()
+        mock_service.fetch_regions = AsyncMock(return_value=[{
+            "id": 25,
+            "value": "Kyiv",
+            "label": "Kyiv",
+            "dsos": [{"id": 902, "name": "Yasno"}],
+        }])
+        mock_service.fetch_providers_for_region = AsyncMock(
+            return_value=[{"id": 902, "name": "Yasno"}],
+        )
+        mock_service.fetch_queues = AsyncMock(return_value=["1.1", "1.2"])
+        app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+
+        client = TestClient(app)
+        assert client.get("/api/outagesSchedule/regions").json()[0]["value"] == "Kyiv"
+        assert client.get("/api/outagesSchedule/providers/Kyiv").json() == [
+            {"id": 902, "name": "Yasno"},
+        ]
+        assert client.get("/api/outagesSchedule/queues/25/902").json() == ["1.1", "1.2"]
+
+    @pytest.mark.parametrize(
+        ("method", "path", "upstream_error", "status_code"),
+        [
+            (method, path, error, status_code)
+            for method, path in [
+                ("fetch_regions", "/api/outagesSchedule/regions"),
+                ("fetch_providers_for_region", "/api/outagesSchedule/providers/Kyiv"),
+                ("fetch_queues", "/api/outagesSchedule/queues/25/902"),
+            ]
+            for error, status_code in [
+                (aiohttp.ClientResponseError(
+                    request_info=MagicMock(real_url=URL("https://yasno.example")),
+                    history=(),
+                    status=404,
+                ), 404),
+                (aiohttp.ClientResponseError(
+                    request_info=MagicMock(real_url=URL("https://yasno.example")),
+                    history=(),
+                    status=503,
+                ), 502),
+                (aiohttp.ClientError("connection failed"), 502),
+                (asyncio.TimeoutError(), 502),
+                (ValueError("invalid response"), 502),
+            ]
+        ],
+    )
+    def test_discovery_endpoints_map_upstream_errors(
+        self, method, path, upstream_error, status_code,
+    ):
+        app = FastAPI()
+        register(app)
+        mock_service = MagicMock()
+        setattr(mock_service, method, AsyncMock(side_effect=upstream_error))
+        app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+
+        response = TestClient(app).get(path)
+
+        assert response.status_code == status_code
+
+    def test_provider_endpoint_maps_unknown_region_to_not_found(self):
+        app = FastAPI()
+        register(app)
+        mock_service = MagicMock()
+        mock_service.fetch_providers_for_region = AsyncMock(
+            side_effect=KeyError("Unknown YASNO region: Missing"),
+        )
+        app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+
+        response = TestClient(app).get("/api/outagesSchedule/providers/Missing")
+
+        assert response.status_code == 404
+        assert "Unknown YASNO region: Missing" in response.json()["detail"]
 
     def test_get_outages_schedule_returns_data(self):
         """Test that get_outages_schedule returns schedule data."""

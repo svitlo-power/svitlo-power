@@ -1,12 +1,28 @@
 """Tests for app/jobs/outages_schedule.py."""
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 from app.jobs.outages_schedule import register
 from shared.services import OutagesScheduleService
+from shared.services.settings.service import SettingsService
 
 
 class TestRegister:
+    @staticmethod
+    def _job_for_service(mock_service, enabled=False, region="", dso=""):
+        injector = MagicMock()
+        scheduler = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.get_boolean = AsyncMock(return_value=enabled)
+        mock_settings.get_text = AsyncMock(side_effect=[region, dso])
+        injector.get.side_effect = lambda cls: (
+            mock_service if cls is OutagesScheduleService
+            else mock_settings if cls is SettingsService
+            else scheduler
+        )
+        register(MagicMock(), injector)
+        return scheduler.add_job.call_args.kwargs["func"], mock_settings
+
     def test_register_adds_update_outages_schedule_job(self):
         """Test that register adds update_outages_schedule job to scheduler."""
         settings = MagicMock()
@@ -15,10 +31,15 @@ class TestRegister:
 
         mock_service = MagicMock()
         mock_service.update = AsyncMock()
+        mock_settings = MagicMock()
+        mock_settings.get_boolean = AsyncMock(return_value=True)
+        mock_settings.get_text = AsyncMock(side_effect=["Kyiv", "Yasno"])
 
         def get_side_effect(cls):
             if cls is OutagesScheduleService:
                 return mock_service
+            if cls is SettingsService:
+                return mock_settings
             return scheduler
 
         injector.get.side_effect = get_side_effect
@@ -61,10 +82,20 @@ class TestRegister:
 
         mock_service = MagicMock()
         mock_service.update = AsyncMock()
+        mock_service.fetch_regions = AsyncMock(return_value=[{
+            "id": 25,
+            "value": "Київ",
+            "dsos": [{"id": 902, "name": "ДТЕК Київські електромережі"}],
+        }])
+        mock_settings = MagicMock()
+        mock_settings.get_boolean = AsyncMock(return_value=True)
+        mock_settings.get_text = AsyncMock(side_effect=["Kyiv", "Yasno"])
 
         def get_side_effect(cls):
             if cls is OutagesScheduleService:
                 return mock_service
+            if cls is SettingsService:
+                return mock_settings
             return scheduler
 
         injector.get.side_effect = get_side_effect
@@ -75,8 +106,43 @@ class TestRegister:
         call_kwargs = scheduler.add_job.call_args[1]
         job_func = call_kwargs["func"]
 
-        # Run the async job function
         asyncio.run(job_func())
 
-        # Verify the service was called with correct args
+        mock_service.fetch_regions.assert_awaited_once()
         mock_service.update.assert_called_once_with(25, 902)
+        mock_settings.get_boolean.assert_awaited_once()
+        assert mock_settings.get_text.await_count == 2
+
+    def test_update_outages_schedule_job_skips_missing_or_incomplete_config(self):
+        service = MagicMock()
+        service.fetch_regions = AsyncMock()
+        service.update = AsyncMock()
+        job, _ = self._job_for_service(service, enabled=False)
+        service.fetch_regions.assert_not_awaited()
+        asyncio.run(job())
+        service.update.assert_not_awaited()
+
+        job, _ = self._job_for_service(service, enabled=True, region="", dso="")
+        asyncio.run(job())
+        service.fetch_regions.assert_not_awaited()
+        service.update.assert_not_awaited()
+
+    def test_update_outages_schedule_job_skips_unknown_region_or_provider(self):
+        service = MagicMock()
+        service.update = AsyncMock()
+        service.fetch_regions = AsyncMock(return_value=[{
+            "id": 25,
+            "value": "Київ",
+            "dsos": [{"id": 902, "name": "ДТЕК Київські електромережі"}],
+        }])
+        for region, provider in [("Missing", "Any"), ("Київ", "Missing")]:
+            job, _ = self._job_for_service(
+                service,
+                enabled=True,
+                region=region,
+                dso=provider,
+            )
+            asyncio.run(job())
+
+        assert service.fetch_regions.await_count == 2
+        service.update.assert_not_awaited()

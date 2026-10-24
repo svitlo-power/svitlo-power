@@ -5,13 +5,16 @@ import SettingsRenderer from "./settingsRenderer";
 
 const setting = {
   key: "test_setting",
-  label: "Test Setting",
-  description: "Test description",
+  label: { en: "Test Setting", uk: "Тестове налаштування" },
+  description: { en: "Test description", uk: "Опис тесту" },
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
   validation: { min: 0, max: 100 },
-  category: "test_category",
+  category: {
+    id: "test_category",
+    label: { en: "Test Category", uk: "Тестова категорія" },
+  },
 };
 
 describe("SettingsRenderer", () => {
@@ -66,6 +69,50 @@ describe("SettingsRenderer", () => {
       }} />
     );
     expect(screen.getByRole("combobox", { name: "Test Setting" })).toHaveValue("One");
+  });
+
+  it("renders localized text inputs and saves all language values", async () => {
+    const onChange = vi.fn().mockResolvedValue(undefined);
+    renderWithStore(
+      <SettingsRenderer
+        setting={{
+          ...setting,
+          setting_type: "localizable_text",
+          default_value: { en: "Default", uk: "За замовчуванням" },
+          value: { en: "Dashboard", uk: "Панель" },
+        }}
+        onChange={onChange}
+      />,
+    );
+
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0]).toHaveValue("Dashboard");
+    expect(inputs[1]).toHaveValue("Панель");
+
+    fireEvent.change(inputs[0], { target: { value: "Updated" } });
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("test_setting", {
+        en: "Updated",
+        uk: "Панель",
+      });
+    });
+  });
+
+  it("compares localized values by content when enabling reset", () => {
+    renderWithStore(
+      <SettingsRenderer
+        setting={{
+          ...setting,
+          setting_type: "localizable_text",
+          default_value: { en: "Dashboard", uk: "Панель" },
+          value: { en: "Dashboard", uk: "Панель" },
+        }}
+        resettable
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
   });
 
   it("disables the rendered control when requested", () => {

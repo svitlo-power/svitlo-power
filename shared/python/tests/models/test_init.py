@@ -13,14 +13,17 @@ from shared.models import (
     ExtData,
     ExtDevice,
     DashboardConfig,
+    OutagesScheduleConfig,
     StationConnection,
     VisitCounter,
     DailyVisitCounter,
     LookupValue,
     LocalizableValue,
     LoginHistory,
+    SystemSettingCategory,
 )
 from shared.models import BEANIE_MODELS
+from shared.models.outages_schedule import OutagesSchedule
 
 
 class TestExports:
@@ -63,6 +66,9 @@ class TestExports:
     def test_dashboard_config_exported(self):
         assert DashboardConfig is not None
 
+    def test_outages_schedule_config_exported(self):
+        assert OutagesScheduleConfig is not None
+
     def test_station_connection_exported(self):
         assert StationConnection is not None
 
@@ -81,10 +87,14 @@ class TestExports:
     def test_login_history_exported(self):
         assert LoginHistory is not None
 
+    def test_system_setting_category_exported(self):
+        assert SystemSettingCategory is not None
+
 
 class TestBeanieModels:
     def test_beanie_models_is_list(self):
         assert isinstance(BEANIE_MODELS, list)
+        assert OutagesSchedule not in BEANIE_MODELS
 
     def test_beanie_models_contains_bot(self):
         assert Bot in BEANIE_MODELS
@@ -110,8 +120,8 @@ class TestBeanieModels:
     def test_beanie_models_contains_ext_device(self):
         assert ExtDevice in BEANIE_MODELS
 
-    def test_beanie_models_contains_dashboard_config(self):
-        assert DashboardConfig in BEANIE_MODELS
+    def test_beanie_models_does_not_register_dashboard_config(self):
+        assert DashboardConfig not in BEANIE_MODELS
 
     def test_beanie_models_contains_station_connection(self):
         assert StationConnection in BEANIE_MODELS
@@ -130,3 +140,6 @@ class TestBeanieModels:
 
     def test_beanie_models_contains_chat_request(self):
         assert ChatRequest in BEANIE_MODELS
+
+    def test_beanie_models_contains_system_setting_category(self):
+        assert SystemSettingCategory in BEANIE_MODELS

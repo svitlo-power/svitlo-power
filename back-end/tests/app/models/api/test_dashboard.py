@@ -20,6 +20,29 @@ from shared.models.localizable_value import LocalizableValue
 
 
 class TestSaveDashboardConfigRequest:
+    def test_nested_outages_schedule(self):
+        req = SaveDashboardConfigRequest(
+            title=LocalizableValue({"en": "My Dashboard"}),
+            outagesSchedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "1.1",
+            },
+        )
+
+        assert req.outages_schedule.enable is True
+        assert req.outages_schedule.region == "Kyiv"
+        assert req.outages_schedule.dso == "Yasno"
+        assert req.outages_schedule.queue == "1.1"
+
+    def test_rejects_incomplete_enabled_schedule(self):
+        with pytest.raises(ValidationError):
+            SaveDashboardConfigRequest(
+                title=LocalizableValue({"en": "My Dashboard"}),
+                outagesSchedule={"enable": True},
+            )
+
     def test_valid_request(self):
         title = LocalizableValue({"en": "My Dashboard", "uk": "Мій Панель"})
         req = SaveDashboardConfigRequest(
@@ -39,10 +62,45 @@ class TestSaveDashboardConfigRequest:
 
 
 class TestDashboardConfigResponse:
+    def test_non_mapping_input_is_not_migrated(self):
+        with pytest.raises(ValidationError):
+            DashboardConfigResponse.model_validate("not a mapping")
+
     def test_inherits_from_request(self):
         title = LocalizableValue({"en": "Test"})
         resp = DashboardConfigResponse(title=title)
         assert resp.title.root == {"en": "Test"}
+
+    def test_serializes_nested_schedule_without_legacy_fields(self):
+        resp = DashboardConfigResponse(
+            title=LocalizableValue({"en": "Test"}),
+            outagesSchedule={
+                "enable": True,
+                "region": "Kyiv",
+                "dso": "Yasno",
+                "queue": "1.1",
+            },
+            enableOutagesSchedule=True,
+            outagesScheduleQueue="1.1",
+        )
+
+        assert resp.model_dump(by_alias=True)["outagesSchedule"] == {
+            "enable": True,
+            "region": "Kyiv",
+            "dso": "Yasno",
+            "queue": "1.1",
+        }
+        assert "enableOutagesSchedule" not in resp.model_dump(by_alias=True)
+
+    def test_preserves_explicit_null_schedule(self):
+        resp = DashboardConfigResponse(
+            title=LocalizableValue({"en": "Test"}),
+            outages_schedule=None,
+            enable_outages_schedule=False,
+            outages_schedule_queue=None,
+        )
+
+        assert resp.outages_schedule is None
 
 
 class TestBuildingResponse:

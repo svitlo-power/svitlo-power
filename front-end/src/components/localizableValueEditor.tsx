@@ -8,7 +8,7 @@ import { TFunction } from 'i18next';
 
 type Props = {
 	t: TFunction,
-	value?: LocalizableValue;
+	value?: Partial<LocalizableValue>;
 	onChange?: (v: LocalizableValue) => void;
 	className?: string;
 	label: string;

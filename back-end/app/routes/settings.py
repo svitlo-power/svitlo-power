@@ -5,6 +5,7 @@ from shared.services.settings.service import SettingsService
 from app.utils.jwt_dependencies import jwt_required
 from app.models.api import (
     SettingsGroupedResponse,
+    CategorySettingsResponse,
     SettingResponse,
     SettingUpdateRequest,
     SettingBulkUpdateRequest
@@ -27,8 +28,16 @@ def register(app: FastAPI):
 
         grouped = await settings_service.get_settings_grouped_by_category()
         result = {}
-        for category, settings in grouped.items():
-            result[category] = [SettingResponse.from_model(s) for s in settings]
+        for category_id, data in grouped.items():
+            category = data["category"]
+            result[category_id] = CategorySettingsResponse(
+                id=category_id,
+                label=category.label,
+                settings=[
+                    SettingResponse.from_model(setting)
+                    for setting in data["settings"]
+                ],
+            )
 
         return SettingsGroupedResponse(categories=result)
 
