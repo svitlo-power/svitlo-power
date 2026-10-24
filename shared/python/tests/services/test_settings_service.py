@@ -1,9 +1,11 @@
 from unittest.mock import AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from beanie import PydanticObjectId
 
 from shared.models.localizable_value import LocalizableValue
-from shared.models.system_setting import SystemSetting
+from shared.models.system_setting import SystemSetting, SystemSettingCategory
 from shared.services.settings.service import SettingsService
 
 
@@ -20,6 +22,8 @@ def test_system_setting_accepts_localizable_text_value():
 
     assert isinstance(setting.default_value, LocalizableValue)
     assert isinstance(setting.value, LocalizableValue)
+    assert isinstance(setting.label, LocalizableValue)
+    assert isinstance(setting.description, LocalizableValue)
     assert setting.value.root == {"en": "My dashboard", "uk": "Моя панель"}
 
 
@@ -55,3 +59,48 @@ async def test_get_localizable_text_rejects_invalid_culture_codes():
             "dashboard_title",
             LocalizableValue({"en": "Dashboard"}),
         )
+
+
+@pytest.mark.asyncio
+async def test_get_settings_grouped_by_category_includes_category_metadata():
+    category_id = PydanticObjectId("64a1a1a1a1a1a1a1a1a1a1a1")
+    category = MagicMock(
+        id=category_id,
+        label=LocalizableValue({"en": "Dashboard", "uk": "Панель"}),
+    )
+    setting = SystemSetting(
+        key="dashboard_title",
+        label=LocalizableValue({"en": "Title", "uk": "Назва"}),
+        description=LocalizableValue({"en": "Description", "uk": "Опис"}),
+        setting_type="text",
+        default_value="",
+        category_id=category_id,
+    )
+    service = SettingsService()
+    service.get_all_settings = AsyncMock(return_value=[setting])
+    category_query = MagicMock()
+    category_query.to_list = AsyncMock(return_value=[category])
+
+    with patch.object(SystemSettingCategory, "find_all", return_value=category_query):
+        grouped = await service.get_settings_grouped_by_category()
+
+    assert grouped[str(category_id)] == {
+        "category": category,
+        "settings": [setting],
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_settings_grouped_by_category_rejects_missing_category_reference():
+    setting = SystemSetting(
+        key="dashboard_title",
+        label="Title",
+        description="Description",
+        setting_type="text",
+        default_value="",
+    )
+    service = SettingsService()
+    service.get_all_settings = AsyncMock(return_value=[setting])
+
+    with pytest.raises(RuntimeError, match="has no category reference"):
+        await service.get_settings_grouped_by_category()

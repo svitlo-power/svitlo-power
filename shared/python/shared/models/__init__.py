@@ -18,7 +18,7 @@ from .login_history import LoginHistory
 from .push_device import PushDevice, PushPlatform
 from .push_topic import PushTopic
 from .beanie_filter import BeanieFilter
-from .system_setting import SystemSetting
+from .system_setting import SystemSetting, SystemSettingCategory
 from .api.dashboard import (
     BuildingResponse,
     ChargeSource,
@@ -52,10 +52,11 @@ __all__ = [
     PeriodResponse,
     PowerLogsResponse,
     SystemSetting,
+    SystemSettingCategory,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice,
     StationConnection, VisitCounter, DailyVisitCounter, LoginHistory,
-    PushDevice, PushTopic, SystemSetting]
+    PushDevice, PushTopic, SystemSetting, SystemSettingCategory]

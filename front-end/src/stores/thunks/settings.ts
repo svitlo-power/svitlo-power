@@ -2,18 +2,32 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from "../../utils/apiClient";
 import { getErrorMessage } from "../../utils";
 import { RootState } from "../store";
-import { ServerSettingItem, Setting } from "../types/settings";
+import {
+  FetchedSetting,
+  ServerSettingsGroupedResponse,
+  Setting,
+} from "../types/settings";
 import { settingSaved } from "../slices/settings";
 
-export const fetchSettings = createAsyncThunk<ServerSettingItem[]>(
+export const fetchSettings = createAsyncThunk<FetchedSetting[]>(
   "settings/fetchAll",
   async (_, thunkAPI) => {
     try {
       const response = await apiClient.get("/settings");
-      const grouped = response.data.categories as Record<string, Setting[]>;
-      const flattened: Setting[] = [];
-      Object.values(grouped).forEach((settings) => {
-        flattened.push(...settings);
+      const grouped = (response.data as ServerSettingsGroupedResponse).categories;
+      const flattened: FetchedSetting[] = [];
+      Object.values(grouped).forEach(({ id, label, settings }) => {
+        settings.forEach(({ category_id, ...setting }) => {
+          if (category_id !== id) {
+            throw new Error(
+              `Setting '${setting.key}' category does not match its group`,
+            );
+          }
+          flattened.push({
+            ...setting,
+            category: { id: category_id, label },
+          });
+        });
       });
       return flattened;
     } catch (err: unknown) {
@@ -39,7 +53,7 @@ export const saveSettings = createAsyncThunk(
             default_value: setting.default_value,
             value: setting.value,
             validation: setting.validation,
-            category: setting.category,
+            category_id: setting.category.id,
           };
           if (setting.created) {
             const response = await apiClient.post("/settings", serverDto);

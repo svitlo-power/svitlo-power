@@ -9,9 +9,9 @@ import {
 } from "./settings";
 
 const items = [
-  { key: "discharge", label: "Discharge", description: "", setting_type: "number" as const, default_value: 10, value: 10, category: "power", created_at: "", updated_at: "", changed: false, created: false },
-  { key: "charge", label: "Charge", description: "", setting_type: "number" as const, default_value: 97, value: 97, category: "power", created_at: "", updated_at: "", changed: true, created: false },
-  { key: "email", label: "Email", description: "", setting_type: "text" as const, default_value: "a@b.c", value: "a@b.c", category: "notifications", created_at: "", updated_at: "", changed: false, created: false },
+  { key: "discharge", label: { en: "Discharge", uk: "Розрядження" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 10, value: 10, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: false, created: false },
+  { key: "charge", label: { en: "Charge", uk: "Заряджання" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 97, value: 97, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: true, created: false },
+  { key: "email", label: { en: "Email", uk: "Електронна пошта" }, description: { en: "", uk: "" }, setting_type: "text" as const, default_value: "a@b.c", value: "a@b.c", category: { id: "notifications", label: { en: "Notifications", uk: "Сповіщення" } }, created_at: "", updated_at: "", changed: false, created: false },
 ];
 
 const state = createTestStore({
@@ -27,7 +27,10 @@ describe("settings selectors", () => {
   });
 
   it("groups settings by category", () => {
-    expect(selectSettingsByCategory(state)).toEqual({ power: items.slice(0, 2), notifications: [items[2]] });
+    expect(selectSettingsByCategory(state)).toEqual({
+      power: { category: items[0].category, settings: items.slice(0, 2) },
+      notifications: { category: items[2].category, settings: [items[2]] },
+    });
   });
 
   it("finds a setting by key and returns undefined for an unknown key", () => {

@@ -3,10 +3,11 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from beanie import PydanticObjectId
 
 from shared.models.dashboard_config import DashboardConfig, OutagesScheduleConfig
 from shared.models.localizable_value import LocalizableValue
-from shared.models.system_setting import SystemSetting
+from shared.models.system_setting import SystemSetting, SystemSettingCategory
 from shared.services.dashboard.config_settings import DASHBOARD_SETTING_KEYS
 
 
@@ -34,7 +35,23 @@ def test_dashboard_setting_migration_definitions():
         "en": "Dashboard",
         "uk": "Панель керування",
     }
-    assert all(setting.category == "dashboard" for setting in settings)
+    assert all(setting.category_id is None for setting in settings)
+
+
+def test_localizable_setting_migration_covers_all_migration_seeded_settings():
+    migration = load_migration(
+        "20261024180000_localizable_setting_categories.py",
+        "localizable_setting_categories_metadata",
+    )
+    power_setting_keys = {
+        "discharge_target_soc",
+        "charge_target_soc",
+        "estimate_discharge_period_minutes",
+    }
+
+    assert set(migration.SETTING_METADATA) == (
+        power_setting_keys | set(DASHBOARD_SETTING_KEYS)
+    )
 
 
 @pytest.mark.asyncio
@@ -162,3 +179,64 @@ async def test_dashboard_config_migration_backward_restores_document_from_settin
         dso="Yasno",
         queue="1.3",
     )
+
+
+class AsyncCursor:
+    def __init__(self, documents):
+        self._documents = iter(documents)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._documents)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
+@pytest.mark.asyncio
+async def test_localizable_settings_migration_localizes_and_links_settings():
+    migration = load_migration(
+        "20261024180000_localizable_setting_categories.py",
+        "localizable_setting_categories_forward",
+    )
+    setting_documents = [
+        {"_id": "setting-1", "key": "discharge_target_soc"},
+        {"_id": "setting-2", "key": "dashboard_title"},
+    ]
+    categories = {
+        "power_estimation": MagicMock(
+            id=PydanticObjectId("64a1a1a1a1a1a1a1a1a1a1a1")
+        ),
+        "dashboard": MagicMock(
+            id=PydanticObjectId("64b2b2b2b2b2b2b2b2b2b2b2")
+        ),
+    }
+    collection = MagicMock()
+    collection.find.return_value = AsyncCursor(setting_documents)
+    collection.update_one = AsyncMock()
+
+    with patch.object(
+        SystemSettingCategory,
+        "find_one",
+        new_callable=AsyncMock,
+        side_effect=[categories["power_estimation"], categories["dashboard"]],
+    ), patch.object(SystemSetting, "get_pymongo_collection", return_value=collection):
+        await migration.Forward.localize_setting_metadata.function(
+            migration.Forward(),
+            "session",
+        )
+
+    assert collection.update_one.await_count == 2
+    first_update = collection.update_one.await_args_list[0]
+    assert first_update.args[0] == {"_id": "setting-1"}
+    assert first_update.args[1]["$set"]["label"] == migration.SETTING_METADATA[
+        "discharge_target_soc"
+    ]["label"]
+    assert first_update.args[1]["$set"]["category_id"] == categories[
+        "power_estimation"
+    ].id
+    assert first_update.args[1]["$unset"] == {"category": ""}
+    second_update = collection.update_one.await_args_list[1]
+    assert second_update.args[1]["$set"]["category_id"] == categories["dashboard"].id

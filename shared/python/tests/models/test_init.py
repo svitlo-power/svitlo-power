@@ -20,6 +20,7 @@ from shared.models import (
     LookupValue,
     LocalizableValue,
     LoginHistory,
+    SystemSettingCategory,
 )
 from shared.models import BEANIE_MODELS
 from shared.models.outages_schedule import OutagesSchedule
@@ -86,6 +87,9 @@ class TestExports:
     def test_login_history_exported(self):
         assert LoginHistory is not None
 
+    def test_system_setting_category_exported(self):
+        assert SystemSettingCategory is not None
+
 
 class TestBeanieModels:
     def test_beanie_models_is_list(self):
@@ -136,3 +140,6 @@ class TestBeanieModels:
 
     def test_beanie_models_contains_chat_request(self):
         assert ChatRequest in BEANIE_MODELS
+
+    def test_beanie_models_contains_system_setting_category(self):
+        assert SystemSettingCategory in BEANIE_MODELS
