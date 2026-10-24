@@ -24,7 +24,9 @@
     "close": "Close",
     "confirm": "Confirm",
     "getApp": "Get the app",
-    "create": "Create"
+    "create": "Create",
+    "back": "Back",
+    "next": "Next"
   },
   "validation": {
     "localizableValue.required": "Localized value is required",

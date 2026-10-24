@@ -13,6 +13,7 @@ from shared.models import (
     ExtData,
     ExtDevice,
     DashboardConfig,
+    OutagesScheduleConfig,
     StationConnection,
     VisitCounter,
     DailyVisitCounter,
@@ -21,6 +22,7 @@ from shared.models import (
     LoginHistory,
 )
 from shared.models import BEANIE_MODELS
+from shared.models.outages_schedule import OutagesSchedule
 
 
 class TestExports:
@@ -63,6 +65,9 @@ class TestExports:
     def test_dashboard_config_exported(self):
         assert DashboardConfig is not None
 
+    def test_outages_schedule_config_exported(self):
+        assert OutagesScheduleConfig is not None
+
     def test_station_connection_exported(self):
         assert StationConnection is not None
 
@@ -85,6 +90,7 @@ class TestExports:
 class TestBeanieModels:
     def test_beanie_models_is_list(self):
         assert isinstance(BEANIE_MODELS, list)
+        assert OutagesSchedule not in BEANIE_MODELS
 
     def test_beanie_models_contains_bot(self):
         assert Bot in BEANIE_MODELS

@@ -47,8 +47,7 @@ class DashboardService(ReadOnlyDashboardService):
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         config = DashboardConfig(
             title=config.title,
-            enable_outages_schedule=config.enable_outages_schedule,
-            outages_schedule_queue=config.outages_schedule_queue,
+            outages_schedule=config.outages_schedule,
         )
         await self._dashboard.save_config(config)
         await self.broadcast_public("dashboard_config_updated")

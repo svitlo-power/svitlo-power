@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from beanie import PydanticObjectId
 
 from shared.models.api.dashboard import (
@@ -10,6 +11,8 @@ from shared.models.api.dashboard import (
     DashboardConfigResponse,
     EditBuildingResponse,
 )
+from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.localizable_value import LocalizableValue
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.events import EventsService
@@ -122,11 +125,15 @@ def sample_building():
 
 @pytest.fixture
 def sample_dashboard_config():
-    config = MagicMock()
-    config.title = {"en": "Test Dashboard"}
-    config.enable_outages_schedule = True
-    config.outages_schedule_queue = "queue_1"
-    return config
+    return SimpleNamespace(
+        title=LocalizableValue({"en": "Test Dashboard"}),
+        outages_schedule=OutagesScheduleConfig(
+            enable=True,
+            region="Kyiv",
+            dso="Yasno",
+            queue="queue_1",
+        ),
+    )
 
 
 @pytest.fixture
@@ -161,8 +168,8 @@ class TestReadOnlyDashboardService:
         
         assert isinstance(result, DashboardConfigResponse)
         assert result.title.get_culture_value("en") == "Test Dashboard"
-        assert result.enable_outages_schedule is True
-        assert result.outages_schedule_queue == "queue_1"
+        assert result.outages_schedule.enable is True
+        assert result.outages_schedule.queue == "queue_1"
 
     @pytest.mark.asyncio
     async def test_get_buildings(self, dashboard_service, mock_dashboard_repo, sample_building):

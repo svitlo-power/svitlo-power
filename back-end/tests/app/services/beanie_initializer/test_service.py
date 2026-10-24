@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.services.beanie_initializer.service import BeanieInitializer
+from shared.models.outages_schedule import OutagesSchedule
 
 
 class TestBeanieInitializer:
@@ -41,3 +42,4 @@ class TestBeanieInitializer:
 
             call_kwargs = mock_init_beanie.call_args
             assert call_kwargs[1]["database"] == mock_client["mydb"]
+            assert OutagesSchedule not in call_kwargs[1]["document_models"]

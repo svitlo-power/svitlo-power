@@ -5,7 +5,7 @@ from .assumed_station_status import AssumedStationStatus
 from .chat_request import ChatRequest
 from .bot import Bot
 from .building import Building
-from .dashboard_config import DashboardConfig
+from .dashboard_config import DashboardConfig, OutagesScheduleConfig
 from .station_connection import StationConnection
 from .ext_data import ExtData
 from .ext_device import ExtDevice
@@ -18,7 +18,6 @@ from .login_history import LoginHistory
 from .push_device import PushDevice, PushPlatform
 from .push_topic import PushTopic
 from .beanie_filter import BeanieFilter
-from .outages_schedule import OutagesSchedule
 from .system_setting import SystemSetting
 from .api.dashboard import (
     BuildingResponse,
@@ -40,8 +39,9 @@ __all__ = [
     BeanieFilter, Bot, AllowedChat, AssumedStationStatus, ChatRequest,
     User, ReportMode, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
+    OutagesScheduleConfig,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
-    LocalizableValue, LoginHistory, OutagesSchedule, PushDevice, PushPlatform, PushTopic,
+    LocalizableValue, LoginHistory, PushDevice, PushPlatform, PushTopic,
     BuildingResponse,
     ChargeSource,
     BuildingSummaryResponse,
@@ -57,5 +57,5 @@ __all__ = [
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,
     User, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
-    StationConnection, VisitCounter, DailyVisitCounter, LoginHistory, OutagesSchedule,
+    StationConnection, VisitCounter, DailyVisitCounter, LoginHistory,
     PushDevice, PushTopic, SystemSetting]

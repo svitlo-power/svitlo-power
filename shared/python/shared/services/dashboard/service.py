@@ -59,8 +59,13 @@ class ReadOnlyDashboardService(BaseService):
         config = await self._dashboard.get_config()
         return DashboardConfigResponse(
             title=config.title,
-            enable_outages_schedule=config.enable_outages_schedule,
-            outages_schedule_queue=config.outages_schedule_queue,
+            outages_schedule=config.outages_schedule,
+            enable_outages_schedule=bool(
+                config.outages_schedule and config.outages_schedule.enable
+            ),
+            outages_schedule_queue=(
+                config.outages_schedule.queue if config.outages_schedule else None
+            ),
         )
 
     def _process_building(self, building: Building) -> BuildingResponse:

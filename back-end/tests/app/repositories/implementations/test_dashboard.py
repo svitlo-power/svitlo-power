@@ -8,6 +8,7 @@ from beanie import PydanticObjectId
 from app.repositories.implementations.dashboard import DashboardRepository
 from shared.models.building import Building
 from shared.models.dashboard_config import DashboardConfig
+from shared.models.dashboard_config import OutagesScheduleConfig
 
 # Mock Beanie class-level query attributes to prevent AttributeError when beanie is not initialized
 Building.order = MagicMock()
@@ -74,8 +75,12 @@ class TestDashboardRepository:
         """Test save_config when config exists."""
         config_data = MagicMock(spec=DashboardConfig)
         config_data.title = {"en": "New Title"}
-        config_data.enable_outages_schedule = True
-        config_data.outages_schedule_queue = "queue"
+        config_data.outages_schedule = OutagesScheduleConfig(
+            enable=True,
+            region="Kyiv",
+            dso="Yasno",
+            queue="queue",
+        )
         mock_existing = MagicMock(spec=DashboardConfig)
         mock_existing.save = AsyncMock()
         
@@ -86,8 +91,7 @@ class TestDashboardRepository:
             await repo.save_config(config_data)
             
             assert mock_existing.title == {"en": "New Title"}
-            assert mock_existing.enable_outages_schedule is True
-            assert mock_existing.outages_schedule_queue == "queue"
+            assert mock_existing.outages_schedule == config_data.outages_schedule
             mock_existing.save.assert_called_once()
 
     @pytest.mark.asyncio

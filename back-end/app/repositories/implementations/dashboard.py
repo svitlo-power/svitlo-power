@@ -28,8 +28,7 @@ class DashboardRepository(DashboardReadRepository, IDashboardRepository):
         existing_config = await DashboardConfig.find_one()
         if existing_config:
             existing_config.title = config.title
-            existing_config.enable_outages_schedule = config.enable_outages_schedule
-            existing_config.outages_schedule_queue = config.outages_schedule_queue
+            existing_config.outages_schedule = config.outages_schedule
             await existing_config.save()
         else:
             await config.insert()

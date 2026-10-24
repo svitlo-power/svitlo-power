@@ -3,7 +3,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
-from beanie import PydanticObjectId
 
 from app.main import create_app
 from app.settings import Settings

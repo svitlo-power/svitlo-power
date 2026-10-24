@@ -19,6 +19,7 @@ from shared.repositories.interfaces import (
 from shared.services import EventsService, SettingsService
 from shared.services.events import EventsServiceConfig
 from shared.models import SystemSetting
+from shared.models.outages_schedule import OutagesSchedule
 
 
 class TestBeanieInitializer:
@@ -40,6 +41,7 @@ class TestBeanieInitializer:
             assert 'document_models' in call_args.kwargs
             document_models = call_args.kwargs['document_models']
             assert SystemSetting in document_models
+            assert OutagesSchedule not in document_models
 
 
 class TestAppModule:

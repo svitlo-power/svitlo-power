@@ -24,7 +24,9 @@
     "close": "Закрити",
     "confirm": "Підтвердити",
     "getApp": "Додаток",
-    "create": "Створити"
+    "create": "Створити",
+    "back": "Назад",
+    "next": "Далі"
   },
   "validation": {
     "localizableValue.required": "Локалізоване значення обов'язкове",
