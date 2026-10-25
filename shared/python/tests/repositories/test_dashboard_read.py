@@ -5,7 +5,6 @@ from beanie import PydanticObjectId
 
 from shared.repositories.implementations.dashboard_read import DashboardReadRepository
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 
 
 # Mock Beanie class-level query attributes
@@ -82,13 +81,3 @@ class TestDashboardReadRepository:
             result = await repo.get_buildings(ids=ids)
             assert result == mock_buildings
             mock_find.assert_called_once_with({"_id": {"$in": ids}}, fetch_links=True)
-
-    @pytest.mark.asyncio
-    async def test_get_config(self):
-        """Test get_config."""
-        mock_config = MagicMock(spec=DashboardConfig)
-        with patch.object(DashboardConfig, 'find_one', new_callable=AsyncMock) as mock_find_one:
-            mock_find_one.return_value = mock_config
-            repo = DashboardReadRepository()
-            result = await repo.get_config()
-            assert result == mock_config

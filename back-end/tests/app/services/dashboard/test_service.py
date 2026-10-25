@@ -15,7 +15,6 @@ from shared.models import (
     ChargeSource,
 )
 from shared.models.building import Building
-from shared.models.dashboard_config import DashboardConfig
 from shared.models.localizable_value import LocalizableValue
 from shared.models.station import Station
 from shared.models.station_data import StationData
@@ -56,25 +55,26 @@ class TestDashboardServiceGetConfig:
         mock_stations_data_repo = MagicMock()
         mock_users_repo = MagicMock()
 
-        config = DashboardConfig(
-            title=LocalizableValue({"en": "My Dashboard"}),
-            enable_outages_schedule=True,
-            outages_schedule_queue="queue1",
-        )
-        mock_dashboard_repo.get_config = AsyncMock(return_value=config)
-
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "My Dashboard"})
+        )
+        mock_settings.get_boolean = AsyncMock(return_value=True)
+        mock_settings.get_value = AsyncMock(side_effect=[25, 902])
+        mock_settings.get_text = AsyncMock(return_value="queue1")
         service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
         result = await service.get_config()
         assert isinstance(result, DashboardConfigResponse)
         assert result.enable_outages_schedule is True
         assert result.outages_schedule_queue == "queue1"
+        assert result.outages_schedule.region_id == 25
+        assert result.outages_schedule.dso_id == 902
 
 
 class TestDashboardServiceSaveConfig:
     @pytest.mark.asyncio
-    async def test_save_config_delegates_to_repository(self):
+    async def test_save_config_updates_settings_and_broadcasts(self):
         mock_events = MagicMock()
         mock_events.broadcast_public = AsyncMock()
         mock_dashboard_repo = MagicMock()
@@ -83,25 +83,110 @@ class TestDashboardServiceSaveConfig:
         mock_stations_data_repo = MagicMock()
         mock_users_repo = MagicMock()
 
-        mock_dashboard_repo.save_config = AsyncMock()
-        mock_dashboard_repo.get_config = AsyncMock(return_value=DashboardConfig(
-            title=LocalizableValue({"en": "Test"}),
-            enable_outages_schedule=False,
-            outages_schedule_queue=None,
-        ))
-
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_settings.bulk_update = AsyncMock(return_value={
+            "dashboard_title": True,
+            "dashboard_outages_schedule_enabled": True,
+            "dashboard_outages_schedule_region": True,
+            "dashboard_outages_schedule_dso": True,
+            "dashboard_outages_schedule_queue": True,
+        })
+        mock_settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "Test"})
+        )
+        mock_settings.get_boolean = AsyncMock(return_value=True)
+        mock_settings.get_value = AsyncMock(side_effect=[25, 902])
+        mock_settings.get_text = AsyncMock(return_value="queue1")
         service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
         request = SaveDashboardConfigRequest(
             title=LocalizableValue({"en": "Test"}),
-            enableOutagesSchedule=True,
-            outagesScheduleQueue="queue1",
+            outagesSchedule={
+                "enable": True,
+                "regionId": 25,
+                "dsoId": 902,
+                "queue": "queue1",
+            },
         )
         result = await service.save_config(request)
         assert isinstance(result, DashboardConfigResponse)
-        mock_dashboard_repo.save_config.assert_called_once()
+        mock_settings.bulk_update.assert_awaited_once()
+        updates = mock_settings.bulk_update.call_args.args[0]
+        assert updates["dashboard_title"] == LocalizableValue({"en": "Test"})
+        assert updates["dashboard_outages_schedule_enabled"] is True
+        assert updates["dashboard_outages_schedule_region"] == 25
+        assert updates["dashboard_outages_schedule_dso"] == 902
+        assert updates["dashboard_outages_schedule_queue"] == "queue1"
         mock_events.broadcast_public.assert_called_once_with("dashboard_config_updated", None)
+
+    @pytest.mark.asyncio
+    async def test_save_config_fails_when_a_setting_cannot_be_updated(self):
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_settings = AsyncMock()
+        mock_settings.bulk_update = AsyncMock(return_value={
+            "dashboard_title": True,
+            "dashboard_outages_schedule_enabled": False,
+        })
+        service = DashboardService(
+            mock_events,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            mock_settings,
+        )
+        request = SaveDashboardConfigRequest(
+            title=LocalizableValue({"en": "Test"}),
+            enableOutagesSchedule=False,
+        )
+
+        with pytest.raises(RuntimeError, match="Unable to save dashboard settings"):
+            await service.save_config(request)
+
+        mock_settings.bulk_update.assert_awaited_once()
+        mock_events.broadcast_public.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_disabling_schedule_preserves_existing_selection(self):
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_settings = AsyncMock()
+        mock_settings.bulk_update = AsyncMock(return_value={
+            "dashboard_title": True,
+            "dashboard_outages_schedule_enabled": True,
+        })
+        mock_settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "Test"})
+        )
+        mock_settings.get_boolean = AsyncMock(return_value=False)
+        mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
+        mock_settings.get_text = AsyncMock(return_value="queue1")
+        service = DashboardService(
+            mock_events,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            mock_settings,
+        )
+
+        await service.save_config(SaveDashboardConfigRequest(
+            title=LocalizableValue({"en": "Test"}),
+            outagesSchedule={
+                "enable": False,
+                "regionId": None,
+                "dsoId": None,
+                "queue": None,
+            },
+        ))
+
+        assert mock_settings.bulk_update.call_args.args[0] == {
+            "dashboard_title": LocalizableValue({"en": "Test"}),
+            "dashboard_outages_schedule_enabled": False,
+        }
 
 
 class TestDashboardServiceProcessBuilding:

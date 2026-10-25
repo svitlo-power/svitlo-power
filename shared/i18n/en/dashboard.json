@@ -19,7 +19,16 @@
     "dialogTitle": "Edit Dashboard",
     "title": "Dashboard Title",
     "enableOutagesSchedule": "Enable Planned Outages Schedule",
-    "outagesScheduleQueue": "Outages Schedule Queue"
+    "step": "Step {{step}} of 3",
+    "region": "Region",
+    "selectRegion": "Select a region",
+    "provider": "Provider",
+    "selectProvider": "Select a provider",
+    "queue": "Queue",
+    "selectQueue": "Select a queue",
+    "selectionSummary": "{{region}} · {{provider}} · Queue {{queue}}",
+    "loading": "Loading options...",
+    "discoveryError": "Unable to load outage schedule options."
   },
   "outages": {
     "title": "Planned Power Outages Schedule (Queue {{outageQueue}})",
@@ -72,7 +81,8 @@
     "stationRequired": "Station is required.",
     "reportUsersRequired": "At least one reporter user is required.",
     "dashboardTitleRequired": "Dashboard title is required.",
-    "outagesScheduleQueueRequired": "Outages schedule queue is required."
+    "outagesScheduleQueueRequired": "Outages schedule queue is required.",
+    "outagesScheduleSelectionRequired": "Select a region, provider, and queue."
   },
   "powerLogs": {
     "dialogTitle": "Grid statistic",

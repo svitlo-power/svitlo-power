@@ -36,15 +36,14 @@ from shared.services import (
 from shared.services.events import EventsServiceConfig
 from shared.models import (
     Building,
-    DashboardConfig,
     ExtData,
     Station,
     StationData,
     User,
-    OutagesSchedule,
     PushDevice,
     PushTopic,
     SystemSetting,
+    SystemSettingCategory,
 )
 
 
@@ -60,15 +59,14 @@ class BeanieInitializer:
             database=self._client[self._db_name],
             document_models=[
                 Building,
-                DashboardConfig,
                 ExtData,
                 Station,
                 StationData,
                 User,
-                OutagesSchedule,
                 PushDevice,
                 PushTopic,
                 SystemSetting,
+                SystemSettingCategory,
             ],
         )
 

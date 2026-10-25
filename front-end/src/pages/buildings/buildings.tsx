@@ -103,8 +103,9 @@ const Component: FC<ComponentProps> = ({
 
   const fetchOutages = useCallback(
     () => {
-      if (dashboardConfig?.enableOutagesSchedule && dashboardConfig?.outagesScheduleQueue) {
-        dispatch(fetchOutagesSchedule(dashboardConfig.outagesScheduleQueue));
+      const schedule = dashboardConfig?.outagesSchedule;
+      if (schedule?.enable && schedule.queue) {
+        dispatch(fetchOutagesSchedule(schedule.queue));
       }
     },
     [dashboardConfig, dispatch]
@@ -137,8 +138,7 @@ const Component: FC<ComponentProps> = ({
           en: '',
           uk: '',
         },
-        enableOutagesSchedule: false,
-        outagesScheduleQueue: '',
+        outagesSchedule: null,
       },
       title: t('dashboardEdit.dialogTitle'),
     });
@@ -210,9 +210,9 @@ const Component: FC<ComponentProps> = ({
             buildingsSummary={buildingsSummary}
           />
 
-          {dashboardConfig?.enableOutagesSchedule && <PlannedOutages
+          {dashboardConfig?.outagesSchedule?.enable && dashboardConfig.outagesSchedule.queue && <PlannedOutages
             t={t}
-            outageQueue={dashboardConfig.outagesScheduleQueue}
+            outageQueue={dashboardConfig.outagesSchedule.queue}
             data={outagesSchedule}
             loading={loadingOutagesSchedule}
             error={outagesScheduleError}

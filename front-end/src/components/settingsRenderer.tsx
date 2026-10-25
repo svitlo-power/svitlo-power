@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { SystemSettingValue } from "../stores/types/settings";
-import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, ActionIcon, Box, Tooltip } from "@mantine/core";
+import { SettingCategory, SystemSettingValue } from "../stores/types/settings";
+import type { LocalizableValue } from "../schemas/base";
+import { LocalizableValueEditor } from "./localizableValueEditor";
+import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, Box } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { getLocalizedValue } from "../utils/i18n";
 
 interface Setting {
   key: string;
-  label: string;
-  description: string;
-  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select";
+  label: LocalizableValue;
+  description: LocalizableValue;
+  setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select" | "localizable_text";
   default_value: SystemSettingValue;
   value: SystemSettingValue;
   validation?: {
@@ -18,26 +20,33 @@ interface Setting {
     regex?: string;
     options?: Array<{ value: SystemSettingValue; label: string }>;
   };
-  category: string;
+  editable?: boolean;
+  category: SettingCategory;
 }
 
 interface SettingsRendererProps {
   setting: Setting;
   onChange?: (key: string, value: SystemSettingValue) => void;
-  onReset?: (key: string) => void;
   disabled?: boolean;
   showLabel?: boolean;
-  resettable?: boolean;
 }
+
+const isLocalizableValue = (value: SystemSettingValue): value is LocalizableValue =>
+  typeof value === "object" &&
+  value !== null &&
+  !(value instanceof Date) &&
+  Object.values(value).every((translation) => typeof translation === "string");
 
 const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   setting,
   onChange,
-  onReset,
   disabled = false,
-  resettable = false,
 }) => {
-  const { t } = useTranslation();
+  const editable = setting.editable ?? true;
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const label = getLocalizedValue(setting.label, language);
+  const description = getLocalizedValue(setting.description, language);
   const [localValue, setLocalValue] = useState<SystemSettingValue>(setting.value ?? setting.default_value);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,26 +102,24 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
   };
 
-  const handleReset = async () => {
-    setError(null);
-    setLocalValue(setting.default_value);
-
-    if (onReset) {
-      await onReset(setting.key);
-    }
-  };
-
   const renderNumberInput = () => {
+    if (
+      !editable &&
+      typeof localValue === "string" &&
+      !Number.isFinite(Number(localValue))
+    ) {
+      return <TextInput aria-label={label} value={localValue} disabled />;
+    }
     const value = typeof localValue === "number" ? localValue : 0;
     return (
       <NumberInput
-        aria-label={setting.label}
+        aria-label={label}
         error={error}
         value={value}
         onChange={(val) => handleChange(val ?? 0)}
         min={setting.validation?.min}
         max={setting.validation?.max}
-        disabled={disabled}
+        disabled={disabled || !editable}
         step={1}
       />
     );
@@ -122,12 +129,24 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <TextInput
-        aria-label={setting.label}
+        aria-label={label}
         error={error}
         value={value}
         onChange={(e) => handleChange(e.currentTarget.value)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         pattern={setting.validation?.regex}
+      />
+    );
+  };
+
+  const renderLocalizableTextInput = () => {
+    return (
+      <LocalizableValueEditor
+        t={t}
+        label={label}
+        value={isLocalizableValue(localValue) ? localValue : {}}
+        onChange={handleChange}
+        disabled={disabled || !editable}
       />
     );
   };
@@ -143,11 +162,11 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).toISOString() : null)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
@@ -165,11 +184,11 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
     return (
       <DateInput
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).getTime() : null)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
@@ -180,11 +199,11 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "boolean" ? localValue : false;
     return (
       <Switch
-        aria-label={setting.label}
+        aria-label={label}
         checked={value}
         error={error}
         onChange={(e) => handleChange(e.currentTarget.checked)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         size="md"
       />
     );
@@ -194,11 +213,11 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     const value = typeof localValue === "string" ? localValue : "";
     return (
       <Select
-        aria-label={setting.label}
+        aria-label={label}
         value={value}
         error={error}
         onChange={(val) => handleChange(val ?? "")}
-        disabled={disabled}
+        disabled={disabled || !editable}
         data={setting.validation?.options?.map((option) => ({
           value: String(option.value),
           label: option.label,
@@ -214,6 +233,8 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         return renderNumberInput();
       case "text":
         return renderTextInput();
+      case "localizable_text":
+        return renderLocalizableTextInput();
       case "datetime":
         return renderDateTimeInput();
       case "timestamp":
@@ -227,37 +248,15 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
   };
 
-  const isDefaultValue = useMemo(() => localValue === setting.default_value, [localValue, setting]);
-
   return (
     <Stack gap="0">
-      <Text size="sm" fw="bold">{setting.label}</Text>
+      <Text size="sm" fw="bold">{label}</Text>
       <Group wrap="nowrap" gap="xs">
         <Box style={{ flex: 1 }}>
           {renderInput()}
         </Box>
-        {resettable && <Tooltip
-            position="top"
-            disabled={isDefaultValue}
-            label={
-              <Text fw={500} fz={13}>
-                {t('settings.button.resetToDefault')}
-              </Text>
-          }>
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              style={{ flexShrink: 0 }}
-              onClick={handleReset}
-              disabled={isDefaultValue}
-              aria-label={t("settings.resetToDefaults")}
-            >
-              <FontAwesomeIcon icon="rotate-left" size="xs" />
-            </ActionIcon>
-          </Tooltip>}
       </Group>
-      <Text c='dimmed' size="xs">{setting.description}</Text>
+      <Text c='dimmed' size="xs">{description}</Text>
     </Stack>
   );
 };

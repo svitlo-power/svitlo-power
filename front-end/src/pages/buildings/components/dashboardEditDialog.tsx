@@ -1,6 +1,7 @@
-import { ChangeEvent, FC, useMemo } from "react";
+import { ChangeEvent, FC, useCallback } from "react";
 import { modals } from "@mantine/modals";
-import { Button, Group, Select, Stack, Switch } from "@mantine/core";
+import { Button, Group, Stack, Switch } from "@mantine/core";
+import { Controller, FieldErrors, useWatch } from "react-hook-form";
 import { useFormHandler } from "../../../hooks";
 import { useAppDispatch } from "../../../stores/store";
 import {
@@ -8,72 +9,61 @@ import {
   finishEditingDashboardConfig,
   startEditingDashboardConfig,
 } from "../../../stores/slices";
-import { dashboardEditSchema, DashboardEditType } from "../../../schemas/dashboardEdit";
-import { Controller, FieldErrors } from "react-hook-form";
+import { dashboardEditSchema, DashboardEditType, toDashboardEditConfig } from "../../../schemas/dashboardEdit";
 import { usePageTranslation } from "../../../utils";
 import { LocalizableValue } from "../../../schemas";
 import { AVAILABLE_LANGUAGES } from "../../../i18n";
 import { LocalizableValueEditor } from "../../../components";
+import { DashboardConfig } from "../../../stores/types";
+import { OutagesScheduleSelection } from "./outagesScheduleSelection";
 
 type OpenDashboardEditOptions = {
-  dashboardConfig: DashboardEditType;
+  dashboardConfig: DashboardConfig;
   title?: string;
 };
 
 export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboardEditOptions) {
-  
+  const formData = toDashboardEditConfig(dashboardConfig);
+
   const Inner: FC = () => {
     const dispatch = useAppDispatch();
     const t = usePageTranslation('dashboard');
-
-    const outageScheduleQueueOptions = useMemo(() => ([
-      { value: '',     label: 'No queue' },
-      { value: '1.1',  label: '1.1' },
-      { value: '1.2',  label: '1.2' },
-      { value: '2.1',  label: '2.1' },
-      { value: '2.2',  label: '2.2' },
-      { value: '3.1',  label: '3.1' },
-      { value: '3.2',  label: '3.2' },
-      { value: '4.1',  label: '4.1' },
-      { value: '4.2',  label: '4.2' },
-      { value: '5.1',  label: '5.1' },
-      { value: '5.2',  label: '5.2' },
-      { value: '6.1',  label: '6.1' },
-      { value: '6.2',  label: '6.2' },
-      { value: '7.1',  label: '7.1' },
-      { value: '25.1', label: '25.1' },
-      { value: '48.1', label: '48.1'}
-    ]), []);
 
     const getTitleError = (
       fieldErrors: FieldErrors<DashboardEditType>,
       culture: string,
     ): string | null => {
       const error = fieldErrors.title?.[culture];
-      return error?.message ? t(error.message!) : null;
+      return error?.message ? t(error.message) : null;
     };
 
     const {
       handleFormSubmit,
       handleReset,
       renderField,
+      control,
       isDirty,
       isValid,
       errors,
+      setControlValue,
     } = useFormHandler<DashboardEditType>({
       validationSchema: dashboardEditSchema,
       fetchDataAction: () => {
         dispatch(startEditingDashboardConfig());
       },
-      saveAction: (data: DashboardEditType) => {
-        dispatch(finishEditingDashboardConfig(data));
+      saveAction: (data) => {
+        dispatch(finishEditingDashboardConfig({
+          title: data.title,
+          outagesSchedule: data.outagesSchedule.enable ? data.outagesSchedule : null,
+        }));
+        if (id) modals.close(id);
       },
       cleanupAction: () => {
         dispatch(cancelEditingDashboardConfig());
       },
       formKey: "dashboard-edit-form",
       isEdit: true,
-      initialData: dashboardConfig,
+      initialData: formData,
       loading: false,
       useLocationGuard: false,
       errorFormatter: (error) => t(error),
@@ -81,112 +71,87 @@ export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboar
         {
           name: "title",
           title: t('dashboardEdit.title'),
-          render: (context) => {
-            return <Controller
-              name="title"
-              control={context.helpers.control}
-              defaultValue={{}}
-              render={({ field }) => <>
-                <LocalizableValueEditor
-                  t={t}
-                  label={context.title}
-                  value={field.value}
-                  onChange={(value: LocalizableValue) => context.helpers.setControlValue('title', value, true)}
-                  valueErrors={
-                    AVAILABLE_LANGUAGES.reduce(
-                      (prev, curr) => ({
-                        ...prev,
-                        [curr]: getTitleError(errors, curr),
-                      }),
-                      {},
-                    )
-                  }
-                />
-              </>}
-            />
-          }
-        },
-        {
-          name: "enableOutagesSchedule",
-          title: t('dashboardEdit.enableOutagesSchedule'),
-          render: (context) => {
-            const cbProps = {
-              ...context.helpers.registerControl('enableOutagesSchedule'),
-              onChange: (e: ChangeEvent<HTMLInputElement>) =>
-                context.helpers.setControlValue('enableOutagesSchedule', e.target.checked, true),
-              checked: context.helpers.getControlValue('enableOutagesSchedule') as boolean ?? false,
-            };
-            return <Switch
-              pb="xs"
-              label={context.title}
-              {...cbProps}
-            />;
-          },
-         },
-        {
-          name: "outagesScheduleQueue",
-          title: t('dashboardEdit.outagesScheduleQueue'),
-          render: (context) => {
-            return <Controller
-            name="outagesScheduleQueue"
+          render: (context) => <Controller
+            name="title"
             control={context.helpers.control}
-            defaultValue={'0'}
-            render={({ field }) => (
-              <Select
-                required
-                data={outageScheduleQueueOptions}
-                {...field}
-                label={context.title}
-                value={field.value?.toString() ?? ''}
-                error={context.helpers.getFieldError('outagesScheduleQueue')}
-                onChange={(value) => context.helpers.setControlValue('outagesScheduleQueue', value!, true, false)}
-              />
-            )}
-          />;
-          }
+            defaultValue={{}}
+            render={({ field }) => <LocalizableValueEditor
+              t={t}
+              label={context.title}
+              value={field.value}
+              onChange={(value: LocalizableValue) => context.helpers.setControlValue('title', value, true)}
+              valueErrors={AVAILABLE_LANGUAGES.reduce(
+                (previous, language) => ({
+                  ...previous,
+                  [language]: getTitleError(errors, language),
+                }),
+                {},
+              )}
+            />}
+          />,
         },
-      ]
+      ],
     });
-    
+
+    const scheduleConfig = useWatch({ control, name: 'outagesSchedule' })
+      ?? formData.outagesSchedule;
+    const enabled = useWatch({ control, name: 'outagesSchedule.enable' })
+      ?? formData.outagesSchedule.enable;
+    const handleScheduleChange = useCallback((changes: Partial<DashboardEditType['outagesSchedule']>) => {
+      if ('regionId' in changes) setControlValue('outagesSchedule.regionId', changes.regionId ?? null, true);
+      if ('dsoId' in changes) setControlValue('outagesSchedule.dsoId', changes.dsoId ?? null, true);
+      if ('queue' in changes) setControlValue('outagesSchedule.queue', changes.queue ?? null, true);
+    }, [setControlValue]);
+
     const handleSave = () => {
-      if (id) {
-        modals.close(id);
-      }
       handleFormSubmit();
     };
 
     const handleCancel = () => {
-      if (id) {
-        modals.close(id);
-      }
+      if (id) modals.close(id);
       handleReset();
     };
+
+    const hasCompleteSchedule = Boolean(
+      scheduleConfig.regionId && scheduleConfig.dsoId && scheduleConfig.queue,
+    );
 
     return (
       <Stack>
         {renderField('title')}
-        {renderField('enableOutagesSchedule')}
-        {renderField('outagesScheduleQueue')}
+        <Controller
+          name="outagesSchedule.enable"
+          control={control}
+          render={({ field }) => <Switch
+            pb="xs"
+            label={t('dashboardEdit.enableOutagesSchedule')}
+            checked={field.value}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              const value = event.currentTarget.checked;
+              setControlValue('outagesSchedule.enable', value, true);
+            }}
+          />}
+        />
+        {enabled && <OutagesScheduleSelection
+          value={scheduleConfig}
+          t={t}
+          onChange={handleScheduleChange}
+        />}
         <Group justify="flex-end">
           <Button
             onClick={handleSave}
-            disabled={!isDirty || !isValid}
+            disabled={!isDirty || !isValid || (enabled && !hasCompleteSchedule)}
           >
             {t('button.save')}
           </Button>
-          <Button
-            variant="default"
-            onClick={handleCancel}
-          >
-            {t('button.cancel')}
-          </Button>
+          <Button variant="default" onClick={handleCancel}>{t('button.cancel')}</Button>
         </Group>
       </Stack>
     );
   };
-  
+
   const id: string | undefined = modals.open({
-    title: title,
+    title,
     centered: true,
     withCloseButton: false,
     closeOnClickOutside: false,

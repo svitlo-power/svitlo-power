@@ -181,8 +181,12 @@ class TestDashboardRoute:
         from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
-            enable_outages_schedule=True,
-            outages_schedule_queue="test-queue"
+            outages_schedule={
+                "enable": True,
+                "regionId": 25,
+                "dsoId": 902,
+                "queue": "test-queue",
+            },
         )
 
         mock_dashboard = MagicMock()
@@ -196,7 +200,39 @@ class TestDashboardRoute:
         response = client.get("/api/dashboard/config")
         assert response.status_code == 200
         data = response.json()
-        assert data["enableOutagesSchedule"] is True
+        assert data["outagesSchedule"] == {
+            "enable": True,
+            "regionId": 25,
+            "dsoId": 902,
+            "queue": "test-queue",
+        }
+
+    def test_legacy_dashboard_config_alias_keeps_flat_mobile_fields(self):
+        app = FastAPI()
+        register(app)
+        from shared.models.api.dashboard import DashboardConfigResponse
+        mock_dashboard = MagicMock()
+        mock_dashboard.get_config = AsyncMock(return_value=DashboardConfigResponse(
+            title=LocalizableValue({"en": "Test Title"}),
+            outages_schedule={
+                "enable": True,
+                "regionId": 25,
+                "dsoId": 902,
+                "queue": "test-queue",
+            },
+            enableOutagesSchedule=True,
+            outagesScheduleQueue="test-queue",
+        ))
+        app.state.injector = MagicMock(get=MagicMock(return_value=mock_dashboard))
+
+        response = TestClient(app).get("/api/buildings/dashboardConfig")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "title": {"en": "Test Title"},
+            "enableOutagesSchedule": True,
+            "outagesScheduleQueue": "test-queue",
+        }
 
     def test_update_dashboard_config(self):
         """Test update_dashboard_config saves config."""
@@ -206,8 +242,12 @@ class TestDashboardRoute:
         from shared.models.api.dashboard import DashboardConfigResponse
         mock_config = DashboardConfigResponse(
             title=LocalizableValue({"en": "Test Title"}),
-            enable_outages_schedule=True,
-            outages_schedule_queue="test-queue"
+            outages_schedule={
+                "enable": True,
+                "regionId": 25,
+                "dsoId": 902,
+                "queue": "test-queue",
+            },
         )
 
         mock_dashboard = MagicMock()
@@ -222,8 +262,12 @@ class TestDashboardRoute:
         client = TestClient(app)
         response = client.put("/api/dashboard/config", json={
             "title": {"en": "Test Title"},
-            "enableOutagesSchedule": True,
-            "outagesScheduleQueue": "test-queue",
+            "outagesSchedule": {
+                "enable": True,
+                "regionId": 25,
+                "dsoId": 902,
+                "queue": "test-queue",
+            },
         })
         assert response.status_code == 200
 

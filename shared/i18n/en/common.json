@@ -24,7 +24,9 @@
     "close": "Close",
     "confirm": "Confirm",
     "getApp": "Get the app",
-    "create": "Create"
+    "create": "Create",
+    "back": "Back",
+    "next": "Next"
   },
   "validation": {
     "localizableValue.required": "Localized value is required",
@@ -116,13 +118,7 @@
       "loading": "Loading settings...",
       "noSettings": "No settings available",
       "saveChanges": "Save Changes",
-      "resetToDefaults": "Reset to Defaults",
-      "confirmResetTitle": "Settings Reset",
-      "confirmResetContent": "Are you sure you want to reset all settings to their default values?",
       "unsavedChanges": "You have unsaved changes. Click Save to persist them.",
-      "categories": {
-        "power_estimation": "Power Estimation"
-      },
       "validation": {
         "notANumber": "Value must be a number",
         "min": "Value must be at least {{min}}",
@@ -133,9 +129,6 @@
       "error": {
         "saveFailed": "Failed to save setting"
       },
-      "unknownType": "Unknown setting type",
-      "button": {
-        "resetToDefault": "Reset value"
-      }
+      "unknownType": "Unknown setting type"
     }
   }

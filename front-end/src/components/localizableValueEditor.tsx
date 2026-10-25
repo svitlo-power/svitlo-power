@@ -8,14 +8,23 @@ import { TFunction } from 'i18next';
 
 type Props = {
 	t: TFunction,
-	value?: LocalizableValue;
+	value?: Partial<LocalizableValue>;
 	onChange?: (v: LocalizableValue) => void;
 	className?: string;
 	label: string;
 	valueErrors?: Record<string, string>;
+	disabled?: boolean;
 };
 
-export const LocalizableValueEditor: React.FC<Props> = ({ t, value = {}, onChange, className, label, valueErrors = {} }) => {
+export const LocalizableValueEditor: React.FC<Props> = ({
+	t,
+	value = {},
+	onChange,
+	className,
+	label,
+	valueErrors = {},
+	disabled = false,
+}) => {
 	const handleChange = (lang: string, text: string) => {
 		const next: LocalizableValue = { ...value, [lang]: text } as LocalizableValue;
 		onChange?.(next);
@@ -30,6 +39,7 @@ export const LocalizableValueEditor: React.FC<Props> = ({ t, value = {}, onChang
 						value={value[lang] ?? ''}
 						onChange={(e) => handleChange(lang, e.target.value)}
 						error={valueErrors?.[lang]}
+						disabled={disabled}
 						leftSection={<CountryFlag language={lang}/>}
 					/>
 				</div>

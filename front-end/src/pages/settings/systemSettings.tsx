@@ -13,7 +13,7 @@ import {
   selectSettingsError,
   selectSettingsChanged,
 } from "../../stores/selectors/settings";
-import { resetSetting, updateSetting } from "../../stores/slices/settings";
+import { updateSetting } from "../../stores/slices/settings";
 import { Page } from "../../components/page";
 import { SystemSettingValue } from "../../stores/types/settings";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
@@ -21,7 +21,6 @@ import { useLocalizedEffect } from "../../hooks";
 import { ErrorMessage } from "../../components";
 import { CategorySection } from "./components/categorySection";
 import { Accordion } from "@mantine/core";
-import { openConfirmModal } from "@mantine/modals";
 
 export const SystemSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -43,33 +42,18 @@ export const SystemSettingsPage: React.FC = () => {
     await dispatch(saveSettings()).unwrap();
   }, [dispatch]);
 
-  const resetAll = useCallback(async () => {
+  const handleCancel = useCallback(async () => {
     try {
         await dispatch(cancelSettingsEditing()).unwrap();
     } catch (err) {
-        console.error("Failed to reset settings:", err);
+        console.error("Failed to cancel settings editing:", err);
     }
-  }, [dispatch]);
-
-  const handleResetAll = useCallback(() => {
-    openConfirmModal({
-      title: t("settings.confirmResetTitle"),
-      children: t("settings.confirmResetContent"),
-      confirmProps: { color: "red" },
-      labels: { confirm: t('button.yes'), cancel: t('button.no') },
-      onConfirm: resetAll,
-    });
-  }, [resetAll, t]);
-
-  const handleReset = useCallback(async (key: string) => {
-    await dispatch(resetSetting(key));
   }, [dispatch]);
 
   const getHeaderButtons = useCallback((dataChanged: boolean): PageHeaderButton[] => [
     { text: t('button.save'), icon: "save", color: "green", onClick: handleSave, disabled: !dataChanged, },
-    { text: t('button.cancel'), icon: "cancel", color: "black", onClick: resetAll, disabled: !dataChanged, },
-    { text: t('settings.resetToDefaults'), icon: "rotate-left", color: "red", onClick: handleResetAll, disabled: false, },
-  ], [t, handleSave, resetAll, handleResetAll]);
+    { text: t('button.cancel'), icon: "cancel", color: "black", onClick: handleCancel, disabled: !dataChanged, },
+  ], [t, handleSave, handleCancel]);
   const { setHeaderButtons } = useHeaderContent();
   useLocalizedEffect(() => {
     setHeaderButtons(getHeaderButtons(changed));
@@ -91,13 +75,12 @@ export const SystemSettingsPage: React.FC = () => {
           </div>
         ) : (
           <Accordion defaultValue={defExpanded} variant="contained">
-            {Object.entries(settingsByCategory).map(([category, settings]) => (
+            {Object.entries(settingsByCategory).map(([categoryId, { category, settings }]) => (
               <CategorySection
-                key={category}
+                key={categoryId}
                 category={category}
                 settings={settings}
                 onUpdate={handleUpdate}
-                onReset={handleReset}
               />
             ))}
           </Accordion>

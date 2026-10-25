@@ -1,15 +1,55 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Any
 from beanie import PydanticObjectId
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from shared.models.localizable_value import LocalizableValue
+from shared.models.dashboard_config import (
+    LEGACY_YASNO_PROVIDER_NAME,
+    LEGACY_YASNO_REGION_NAME,
+    OutagesScheduleConfig,
+)
 
 
 class DashboardConfigResponse(BaseModel):
     title: LocalizableValue
-    enable_outages_schedule: bool = Field(False, alias="enableOutagesSchedule")
-    outages_schedule_queue: Optional[str] = Field(None, alias="outagesScheduleQueue")
+    outages_schedule: Optional[OutagesScheduleConfig] = Field(None, alias="outagesSchedule")
+    enable_outages_schedule: bool = Field(False, alias="enableOutagesSchedule", exclude=True)
+    outages_schedule_queue: Optional[str] = Field(
+        None,
+        alias="outagesScheduleQueue",
+        exclude=True,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_outages_schedule(cls, value: Any) -> Any:
+        # Preserve flat mobile-client payloads until all supported clients migrate.
+        if not isinstance(value, dict):
+            return value
+
+        schedule = value.get("outagesSchedule", value.get("outages_schedule"))
+        enabled = value.get("enableOutagesSchedule", value.get("enable_outages_schedule"))
+        has_legacy_schedule = (
+            "enableOutagesSchedule" in value
+            or "enable_outages_schedule" in value
+            or "outagesScheduleQueue" in value
+            or "outages_schedule_queue" in value
+        )
+        has_new_schedule = "outagesSchedule" in value or "outages_schedule" in value
+        if schedule is None and has_legacy_schedule and not has_new_schedule:
+            value = dict(value)
+            value["outagesSchedule"] = (
+                {
+                    "enable": True,
+                    "region": LEGACY_YASNO_REGION_NAME,
+                    "dso": LEGACY_YASNO_PROVIDER_NAME,
+                    "queue": value.get("outagesScheduleQueue", value.get("outages_schedule_queue")),
+                }
+                if enabled
+                else {"enable": False, "region": None, "dso": None, "queue": None}
+            )
+        return value
 
     model_config = ConfigDict(
         populate_by_name = True,

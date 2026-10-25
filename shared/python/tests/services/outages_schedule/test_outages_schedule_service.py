@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
+import time
 import aiohttp
 
 from shared.services.outages_schedule.service import OutagesScheduleService
@@ -53,6 +54,146 @@ def sample_schedule():
 
 class TestOutagesScheduleService:
     @pytest.mark.asyncio
+    async def test_fetch_yasno_json_uses_json_request_defaults(
+        self, outages_service, mock_aiohttp_session,
+    ):
+        response = MagicMock()
+        response.__aenter__ = AsyncMock(return_value=response)
+        response.raise_for_status = MagicMock()
+        response.json = AsyncMock(return_value={"ok": True})
+        mock_aiohttp_session.get = MagicMock(return_value=response)
+
+        result = await outages_service._fetch_yasno_json("https://yasno.example/data")
+
+        assert result == {"ok": True}
+        request_args = mock_aiohttp_session.get.call_args
+        assert request_args.args == ("https://yasno.example/data",)
+        assert request_args.kwargs["timeout"] == 10
+        assert request_args.kwargs["headers"]["Accept"] == "application/json"
+        response.raise_for_status.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_fetch_regions_normalizes_supported_payload_shapes(self, outages_service):
+        outages_service._fetch_yasno_json = AsyncMock(return_value={
+            "regions": [
+                {
+                    "id": "25",
+                    "value": "Kyiv",
+                    "dsos": [
+                        {"id": "902", "name": "Yasno"},
+                        {"dsoId": "903", "value": "Other"},
+                        {"id": None, "name": "Missing id"},
+                        "not a provider",
+                    ],
+                },
+                {
+                    "regionId": 26,
+                    "regionName": "Lviv",
+                    "providers": [{"dsoId": 904, "value": "Lviv DSO"}],
+                },
+                {"id": 27},
+                None,
+            ],
+        })
+
+        result = await outages_service.fetch_regions()
+
+        assert result == [
+            {
+                "id": 25,
+                "value": "Kyiv",
+                "label": "Kyiv",
+                "dsos": [
+                    {"id": 902, "name": "Yasno"},
+                    {"id": 903, "name": "Other"},
+                ],
+            },
+            {
+                "id": 26,
+                "value": "Lviv",
+                "label": "Lviv",
+                "dsos": [{"id": 904, "name": "Lviv DSO"}],
+            },
+        ]
+        assert outages_service._regions == result
+
+    @pytest.mark.asyncio
+    async def test_fetch_regions_rejects_unexpected_payload(self, outages_service):
+        outages_service._fetch_yasno_json = AsyncMock(return_value={"regions": "invalid"})
+
+        with pytest.raises(ValueError, match="Unexpected regions response"):
+            await outages_service.fetch_regions()
+
+    @pytest.mark.asyncio
+    async def test_fetch_providers_loads_regions_and_reports_unknown_region(self, outages_service):
+        outages_service._fetch_yasno_json = AsyncMock(return_value=[
+            {"id": 25, "value": "Kyiv", "dsos": [{"id": 902, "name": "Yasno"}]},
+        ])
+
+        assert await outages_service.fetch_providers_for_region("Kyiv") == [
+            {"id": 902, "name": "Yasno"},
+        ]
+        outages_service._fetch_yasno_json.assert_awaited_once()
+
+        with pytest.raises(KeyError, match="Unknown YASNO region"):
+            await outages_service.fetch_providers_for_region("Missing")
+
+    @pytest.mark.asyncio
+    async def test_fetch_providers_reuses_recent_region_cache(self, outages_service):
+        outages_service._regions = [
+            {"id": 25, "value": "Kyiv", "dsos": [{"id": 902, "name": "Yasno"}]},
+        ]
+        outages_service._regions_fetched_at = time.monotonic()
+        outages_service._fetch_yasno_json = AsyncMock()
+
+        result = await outages_service.fetch_providers_for_region("Kyiv")
+
+        assert result == [{"id": 902, "name": "Yasno"}]
+        outages_service._fetch_yasno_json.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_fetch_providers_refreshes_expired_region_cache(self, outages_service):
+        outages_service._regions = [
+            {"id": 25, "value": "Kyiv", "dsos": [{"id": 902, "name": "Yasno"}]},
+        ]
+        outages_service._regions_fetched_at = (
+            time.monotonic() - outages_service.REGIONS_CACHE_TTL_SECONDS - 1
+        )
+        outages_service._fetch_yasno_json = AsyncMock(return_value=[
+            {"id": 26, "value": "Lviv", "dsos": [{"id": 904, "name": "Lviv DSO"}]},
+        ])
+
+        result = await outages_service.fetch_providers_for_region("Lviv")
+
+        assert result == [{"id": 904, "name": "Lviv DSO"}]
+        outages_service._fetch_yasno_json.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_get_providers_requires_regions_to_be_fetched(self, outages_service):
+        with pytest.raises(RuntimeError, match="Regions have not been fetched"):
+            outages_service.get_providers_for_region("Kyiv")
+
+    @pytest.mark.asyncio
+    async def test_fetch_queues_supports_object_and_list_payloads(self, outages_service):
+        outages_service._fetch_yasno_json = AsyncMock(return_value={"1.1": {}, "1.2": {}})
+        assert await outages_service.fetch_queues(25, 902) == ["1.1", "1.2"]
+
+        outages_service._fetch_yasno_json = AsyncMock(return_value=[
+            {"name": "2.1"},
+            {"value": "2.2"},
+            {"name": ""},
+            None,
+        ])
+        assert await outages_service.fetch_queues(25, 902) == ["2.1", "2.2"]
+
+    @pytest.mark.asyncio
+    async def test_fetch_queues_rejects_unexpected_payload(self, outages_service):
+        outages_service._fetch_yasno_json = AsyncMock(return_value="invalid")
+
+        with pytest.raises(ValueError, match="Unexpected queues response"):
+            await outages_service.fetch_queues(25, 902)
+
+    @pytest.mark.asyncio
     async def test_get_schedule_async(self, outages_service, mock_outages_repo, sample_schedule):
         mock_outages_repo.get_schedule.return_value = sample_schedule
         
@@ -98,6 +239,10 @@ class TestOutagesScheduleService:
             result = outages_service.get_schedule("queue_1")
             
             assert result is None
+
+    def test_get_schedule_sync_without_event_loop(self, outages_service):
+        with patch("asyncio.get_event_loop", side_effect=RuntimeError("no event loop")):
+            assert outages_service.get_schedule("queue_1") is None
 
     @pytest.mark.asyncio
     async def test_update_success(self, outages_service, mock_aiohttp_session, mock_outages_repo, mock_events_service):
@@ -145,6 +290,15 @@ class TestOutagesScheduleService:
         mock_events_service.broadcast_public.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_update_client_error(self, outages_service, mock_aiohttp_session, mock_events_service):
+        mock_aiohttp_session.get.side_effect = aiohttp.ClientError("request failed")
+
+        result = await outages_service.update(region=1, dso=1)
+
+        assert result is None
+        mock_events_service.broadcast_public.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_update_timeout(self, outages_service, mock_aiohttp_session, mock_events_service):
         import asyncio
         mock_aiohttp_session.get.side_effect = asyncio.TimeoutError()
@@ -156,10 +310,13 @@ class TestOutagesScheduleService:
 
     @pytest.mark.asyncio
     async def test_update_validation_error(self, outages_service, mock_aiohttp_session, mock_events_service):
-        from pydantic import ValidationError
         mock_response = AsyncMock()
         mock_response.status = 200
-        mock_response.json.return_value = {"invalid": "data"}
+        mock_response.json.return_value = {
+            "queue_1": {
+                "today": {"date": "not a date", "slots": []},
+            },
+        }
         mock_aiohttp_session.get.return_value.__aenter__.return_value = mock_response
         
         result = await outages_service.update(region=1, dso=1)

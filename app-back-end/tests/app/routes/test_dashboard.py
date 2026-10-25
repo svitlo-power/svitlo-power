@@ -10,6 +10,7 @@ from shared.models.api.dashboard import (
     DashboardConfigResponse,
     EditBuildingResponse,
 )
+from shared.models.localizable_value import LocalizableValue
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.events import EventsService
@@ -66,6 +67,19 @@ def mock_aiohttp_session():
 
 
 @pytest.fixture
+def mock_settings_service():
+    mock_settings = AsyncMock(spec=SettingsService)
+    mock_settings.get_number = AsyncMock(return_value=25)
+    mock_settings.get_localizable_text = AsyncMock(
+        return_value=LocalizableValue({"en": "Test Dashboard"})
+    )
+    mock_settings.get_boolean = AsyncMock(return_value=True)
+    mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
+    mock_settings.get_text = AsyncMock(return_value="queue_1")
+    return mock_settings
+
+
+@pytest.fixture
 def dashboard_service(
     mock_events_service,
     mock_dashboard_repo,
@@ -73,9 +87,8 @@ def dashboard_service(
     mock_stations_repo,
     mock_stations_data_repo,
     mock_users_repo,
+    mock_settings_service,
 ):
-    mock_settings = AsyncMock(spec=SettingsService)
-    mock_settings.get_number = AsyncMock(return_value=25)
     return ReadOnlyDashboardService(
         events=mock_events_service,
         dashboard=mock_dashboard_repo,
@@ -83,7 +96,7 @@ def dashboard_service(
         stations=mock_stations_repo,
         stations_data=mock_stations_data_repo,
         users=mock_users_repo,
-        settings=mock_settings,
+        settings=mock_settings_service,
     )
 
 
@@ -121,15 +134,6 @@ def sample_building():
 
 
 @pytest.fixture
-def sample_dashboard_config():
-    config = MagicMock()
-    config.title = {"en": "Test Dashboard"}
-    config.enable_outages_schedule = True
-    config.outages_schedule_queue = "queue_1"
-    return config
-
-
-@pytest.fixture
 def sample_ext_data():
     ext_data = MagicMock()
     ext_data.user_id = PydanticObjectId()
@@ -154,15 +158,13 @@ def sample_station_data():
 
 class TestReadOnlyDashboardService:
     @pytest.mark.asyncio
-    async def test_get_config(self, dashboard_service, mock_dashboard_repo, sample_dashboard_config):
-        mock_dashboard_repo.get_config.return_value = sample_dashboard_config
-        
+    async def test_get_config(self, dashboard_service):
         result = await dashboard_service.get_config()
         
         assert isinstance(result, DashboardConfigResponse)
         assert result.title.get_culture_value("en") == "Test Dashboard"
-        assert result.enable_outages_schedule is True
-        assert result.outages_schedule_queue == "queue_1"
+        assert result.outages_schedule.enable is True
+        assert result.outages_schedule.queue == "queue_1"
 
     @pytest.mark.asyncio
     async def test_get_buildings(self, dashboard_service, mock_dashboard_repo, sample_building):

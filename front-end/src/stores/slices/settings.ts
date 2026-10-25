@@ -1,5 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { SettingsState, Setting, SystemSettingValue, ServerSettingItem } from "../types/settings";
+import {
+  FetchedSetting,
+  SettingsState,
+  Setting,
+  SystemSettingValue,
+} from "../types/settings";
 import { fetchSettings, saveSettings, cancelSettingsEditing } from "../thunks/settings";
 
 const initialState: SettingsState = {
@@ -33,15 +38,6 @@ export const settingsSlice = createSlice({
         setting.changed = false;
       }
     },
-    resetSetting(state, { payload }: PayloadAction<string>) {
-      const setting = state.items.find(s => s.key === payload);
-      if (setting) {
-        const changed = setting.value !== setting.default_value;
-        setting.value = setting.default_value;
-        setting.changed = state.changed || changed;
-        state.changed = state.items.some(s => s.changed);
-      }
-    },
     startEditingSetting(state) {
       state.creating = true;
     },
@@ -57,6 +53,7 @@ export const settingsSlice = createSlice({
         setting_type: payload.setting_type,
         default_value: payload.default_value,
         value: payload.default_value,
+        editable: payload.editable,
         validation: payload.validation,
         category: payload.category,
         created_at: new Date().toISOString(),
@@ -75,7 +72,7 @@ export const settingsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<ServerSettingItem[]>) => {
+      .addCase(fetchSettings.fulfilled, (state, action: PayloadAction<FetchedSetting[]>) => {
         state.items = action.payload.map(item => ({ ...item, changed: false, created: false }));
         state.loading = false;
         state.creating = false;
@@ -114,5 +111,5 @@ export const settingsSlice = createSlice({
   },
 });
 
-export const { updateSetting, settingSaved, resetSetting, startEditingSetting, cancelEditingSetting, createSetting, clearError } = settingsSlice.actions;
+export const { updateSetting, settingSaved, startEditingSetting, cancelEditingSetting, createSetting, clearError } = settingsSlice.actions;
 export const settingsReducer = settingsSlice.reducer;

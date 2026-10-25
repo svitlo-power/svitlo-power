@@ -1,8 +1,10 @@
 from typing import List, Optional
 from datetime import datetime
+from beanie import PydanticObjectId
 from injector import inject, singleton
 
-from shared.models.system_setting import SystemSetting, SystemSettingValue
+from shared.models.localizable_value import LocalizableValue
+from shared.models.system_setting import SystemSetting, SystemSettingCategory, SystemSettingValue
 
 
 @singleton
@@ -44,6 +46,22 @@ class SettingsService:
         """Get a setting value as text."""
         value = await self.get_value(key, default)
         return str(value) if value is not None else default
+
+    async def get_localizable_text(
+        self,
+        key: str,
+        default: LocalizableValue,
+    ) -> LocalizableValue:
+        """Get a setting value as localized text."""
+        value = await self.get_value(key, default)
+        if value is None:
+            return default
+        if isinstance(value, LocalizableValue):
+            return value if value.root else default
+        if isinstance(value, dict):
+            localized_value = LocalizableValue.model_validate(value)
+            return localized_value if localized_value.root else default
+        raise TypeError(f"Setting '{key}' does not contain localized text")
 
     async def get_boolean(self, key: str, default: bool = False) -> bool:
         """Get a setting value as boolean."""
@@ -94,7 +112,8 @@ class SettingsService:
             existing.default_value = setting.default_value
             existing.value = setting.value
             existing.validation = setting.validation
-            existing.category = setting.category
+            existing.editable = setting.editable
+            existing.category_id = setting.category_id
             existing.updated_at = datetime.utcnow()
             await existing.save()
             return existing
@@ -106,18 +125,37 @@ class SettingsService:
         """Get all settings."""
         return await SystemSetting.find_all().to_list()
 
-    async def get_settings_by_category(self, category: str) -> List[SystemSetting]:
+    async def get_settings_by_category(
+        self,
+        category_id: PydanticObjectId,
+    ) -> List[SystemSetting]:
         """Get settings by category."""
-        return await SystemSetting.find(SystemSetting.category == category).to_list()
+        return await SystemSetting.find(
+            SystemSetting.category_id == category_id
+        ).to_list()
 
     async def get_settings_grouped_by_category(self) -> dict:
         """Get all settings grouped by category."""
         settings = await self.get_all_settings()
+        for setting in settings:
+            if setting.category_id is None:
+                raise RuntimeError(
+                    f"Setting '{setting.key}' has no category reference"
+                )
+        categories = await SystemSettingCategory.find_all().to_list()
+        categories_by_id = {str(category.id): category for category in categories}
         grouped = {}
         for setting in settings:
-            if setting.category not in grouped:
-                grouped[setting.category] = []
-            grouped[setting.category].append(setting)
+            category_id = str(setting.category_id)
+            category = categories_by_id.get(category_id)
+            if category is None:
+                raise RuntimeError(
+                    f"Setting '{setting.key}' references missing category "
+                    f"'{category_id}'"
+                )
+            if category_id not in grouped:
+                grouped[category_id] = {"category": category, "settings": []}
+            grouped[category_id]["settings"].append(setting)
         return grouped
 
     async def bulk_update(self, updates: dict[str, SystemSettingValue]) -> dict[str, bool]:
@@ -127,14 +165,3 @@ class SettingsService:
             setting = await self.set_value(key, value)
             results[key] = setting is not None
         return results
-
-    async def reset_to_defaults(self) -> int:
-            """Reset all settings to their default values."""
-            settings = await self.get_all_settings()
-            count = 0
-            for setting in settings:
-                setting.value = None
-                setting.updated_at = datetime.utcnow()
-                await setting.save()
-                count += 1
-            return count

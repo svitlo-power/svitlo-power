@@ -55,6 +55,44 @@ class TestOutagesScheduleServiceGetSchedule:
 
 class TestOutagesScheduleServiceUpdate:
     @pytest.mark.asyncio
+    async def test_fetch_regions_and_queues(self):
+        mock_events = MagicMock()
+        mock_session = MagicMock()
+        mock_repo = MagicMock(spec=IOutagesScheduleRepository)
+        service = OutagesScheduleService(mock_events, mock_session, mock_repo)
+
+        regions_response = MagicMock()
+        regions_response.__aenter__ = AsyncMock(return_value=regions_response)
+        regions_response.__aexit__ = AsyncMock(return_value=None)
+        regions_response.raise_for_status = MagicMock()
+        regions_response.json = AsyncMock(return_value=[
+            {
+                "id": 25,
+                "name": "Kyiv",
+                "dsos": [{"id": 902, "name": "Yasno"}],
+            }
+        ])
+        queues_response = MagicMock()
+        queues_response.__aenter__ = AsyncMock(return_value=queues_response)
+        queues_response.__aexit__ = AsyncMock(return_value=None)
+        queues_response.raise_for_status = MagicMock()
+        queues_response.json = AsyncMock(return_value={"1.1": {}, "1.2": {}})
+        mock_session.get = MagicMock(side_effect=[regions_response, queues_response])
+
+        regions = await service.fetch_regions()
+        providers = await service.fetch_providers_for_region("Kyiv")
+        queues = await service.fetch_queues(25, 902)
+
+        assert regions == [{
+            "id": 25,
+            "value": "Kyiv",
+            "label": "Kyiv",
+            "dsos": [{"id": 902, "name": "Yasno"}],
+        }]
+        assert providers == [{"id": 902, "name": "Yasno"}]
+        assert queues == ["1.1", "1.2"]
+
+    @pytest.mark.asyncio
     async def test_update_success(self):
         mock_events = MagicMock()
         mock_events.broadcast_public = AsyncMock()

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import List
 from beanie import PydanticObjectId
@@ -26,8 +27,19 @@ from shared.models import (
     PeriodResponse,
     PowerLogsResponse,
 )
+from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.localizable_value import LocalizableValue
 from shared.utils import get_estimate_charge_time, get_estimate_discharge_time
 from shared.services.settings.service import SettingsService
+from shared.services.dashboard.config_settings import (
+    DASHBOARD_TITLE_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
+    DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @inject
@@ -56,12 +68,60 @@ class ReadOnlyDashboardService(BaseService):
         self._settings = settings
 
     async def get_config(self) -> DashboardConfigResponse:
-        config = await self._dashboard.get_config()
-        return DashboardConfigResponse(
-            title=config.title,
-            enable_outages_schedule=config.enable_outages_schedule,
-            outages_schedule_queue=config.outages_schedule_queue,
+        title = await self._settings.get_localizable_text(
+            DASHBOARD_TITLE_SETTING_KEY,
+            LocalizableValue({"en": "Dashboard", "uk": "Панель керування"}),
         )
+        enabled = await self._settings.get_boolean(
+            DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY,
+            False,
+        )
+        region_id = await self._settings.get_value(
+            DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY,
+            None,
+        )
+        dso_id = await self._settings.get_value(
+            DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
+            None,
+        )
+        queue = await self._settings.get_text(
+            DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
+            "",
+        )
+        region_id = self._normalize_schedule_id(region_id)
+        dso_id = self._normalize_schedule_id(dso_id)
+        schedule_is_configured = bool(
+            region_id is not None and dso_id is not None and queue.strip()
+        )
+        if enabled and not schedule_is_configured:
+            logger.warning(
+                "Outage schedule is enabled but its region, provider, or queue is missing"
+            )
+        schedule = OutagesScheduleConfig(
+            enable=enabled and schedule_is_configured,
+            region_id=region_id,
+            dso_id=dso_id,
+            queue=queue or None,
+        )
+        return DashboardConfigResponse(
+            title=title,
+            outages_schedule=schedule,
+            enable_outages_schedule=enabled and schedule_is_configured,
+            outages_schedule_queue=queue or None,
+        )
+
+    @staticmethod
+    def _normalize_schedule_id(value):
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value if value > 0 else None
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+            return int(value) if value.isdecimal() and int(value) > 0 else value
+        return None
 
     def _process_building(self, building: Building) -> BuildingResponse:
         return BuildingResponse(

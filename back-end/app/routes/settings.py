@@ -5,10 +5,18 @@ from shared.services.settings.service import SettingsService
 from app.utils.jwt_dependencies import jwt_required
 from app.models.api import (
     SettingsGroupedResponse,
+    CategorySettingsResponse,
     SettingResponse,
     SettingUpdateRequest,
     SettingBulkUpdateRequest
 )
+async def reject_read_only_setting_update(settings_service: SettingsService, key: str):
+    setting = await settings_service.get_setting(key)
+    if setting is not None and not setting.editable:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Setting '{key}' is read-only",
+        )
 
 
 def register(app: FastAPI):
@@ -27,8 +35,16 @@ def register(app: FastAPI):
 
         grouped = await settings_service.get_settings_grouped_by_category()
         result = {}
-        for category, settings in grouped.items():
-            result[category] = [SettingResponse.from_model(s) for s in settings]
+        for category_id, data in grouped.items():
+            category = data["category"]
+            result[category_id] = CategorySettingsResponse(
+                id=category_id,
+                label=category.label,
+                settings=[
+                    SettingResponse.from_model(setting)
+                    for setting in data["settings"]
+                ],
+            )
 
         return SettingsGroupedResponse(categories=result)
 
@@ -70,6 +86,7 @@ def register(app: FastAPI):
         #         detail="Admin access required"
         #     )
         
+        await reject_read_only_setting_update(settings_service, key)
         setting = await settings_service.set_value(key, request.value)
         if not setting:
             raise HTTPException(
@@ -93,21 +110,7 @@ def register(app: FastAPI):
         #         detail="Admin access required"
         #     )
         
+        for key in request.updates:
+            await reject_read_only_setting_update(settings_service, key)
         results = await settings_service.bulk_update(request.updates)
         return results
-
-
-    @app.post("/api/settings/reset", response_model=Dict[str, int])
-    async def reset_settings(
-        current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
-    ):
-        """Reset all settings to their default values."""
-        # if not current_user.is_admin:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Admin access required"
-        #     )
-        
-        count = await settings_service.reset_to_defaults()
-        return {"reset_count": count}

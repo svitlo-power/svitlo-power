@@ -1,19 +1,31 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from beanie import PydanticObjectId
 from fastapi import FastAPI, HTTPException
 from fastapi_injector import Injected
+from pydantic import BaseModel, ConfigDict, Field
 
 from shared.services import ReadOnlyDashboardService
+from shared.models.localizable_value import LocalizableValue
 from shared.models.api.dashboard import (
     BuildingResponse,
     BuildingSummaryResponse,
     BuildingWithSummaryResponse,
     BuildingsSummaryRequest,
-    DashboardConfigResponse,
     PowerLogsRequest,
     PowerLogsResponse
 )
+
+
+class AppDashboardConfigResponse(BaseModel):
+    title: LocalizableValue
+    enable_outages_schedule: bool = Field(False, alias="enableOutagesSchedule")
+    outages_schedule_queue: Optional[str] = Field(None, alias="outagesScheduleQueue")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
 
 def register(app: FastAPI):
@@ -44,9 +56,15 @@ def register(app: FastAPI):
     @app.get("/api/buildings/dashboardConfig")
     async def get_dashboard_config(
         dashboard=Injected(ReadOnlyDashboardService),
-    ) -> DashboardConfigResponse:
+    ) -> AppDashboardConfigResponse:
         """Dashboard configuration (title, outages schedule) - Android endpoint"""
-        return await dashboard.get_config()
+        config = await dashboard.get_config()
+        schedule = config.outages_schedule
+        return AppDashboardConfigResponse(
+            title=config.title,
+            enable_outages_schedule=bool(schedule and schedule.enable),
+            outages_schedule_queue=schedule.queue if schedule else None,
+        )
 
     @app.post("/api/dashboard/buildings/{building_id}/power-logs")
     @app.post("/api/buildings/{building_id}/power-logs")
