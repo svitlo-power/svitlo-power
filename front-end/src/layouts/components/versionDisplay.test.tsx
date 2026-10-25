@@ -20,13 +20,13 @@ describe("VersionDisplay", () => {
   it("renders version from store", () => {
     renderWithProviders();
     // The default version is "0000.00.00"
-    expect(screen.getByTestId("navbar-version-label")).toHaveTextContent("v0000.00.00");
+    expect(screen.getByTestId("navbar-version-label")).toHaveTextContent("v0000.00.00/v0000.00.00");
   });
 
   it("renders version with v prefix", () => {
     renderWithProviders();
     const versionElement = screen.getByTestId("navbar-version-label");
-    expect(versionElement.textContent).toMatch(/^v\d{4}\.\d{2}\.\d{2}$/);
+    expect(versionElement.textContent).toMatch(/^v\d{4}\.\d{2}\.\d{2}\/v\d{4}\.\d{2}\.\d{2}$/);
   });
 
   it("renders version in compact mode", () => {
@@ -38,6 +38,6 @@ describe("VersionDisplay", () => {
       </Provider>
     );
 
-    expect(screen.getByTestId("navbar-version-label")).toHaveTextContent("v0000.00.00");
+    expect(screen.getByTestId("navbar-version-label")).toHaveTextContent("v0000.00.00/v0000.00.00");
   });
 });
