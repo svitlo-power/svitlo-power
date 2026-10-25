@@ -7,14 +7,9 @@ import { SystemSettingsPage } from "./systemSettings";
 
 const { mockGet, translate, mockLanguage } = vi.hoisted(() => {
   const translations: Record<string, string> = {
-    "settings.resetToDefaults": "Reset to Defaults",
     "settings.noSettings": "No settings available",
     "button.save": "Save",
     "button.cancel": "Cancel",
-    "button.yes": "Yes",
-    "button.no": "No",
-    "settings.confirmResetTitle": "Settings Reset",
-    "settings.confirmResetContent": "Are you sure you want to reset all settings to their default values?",
   };
   return {
     mockGet: vi.fn(),
@@ -29,10 +24,6 @@ vi.mock("../../utils/apiClient", () => ({
 
 vi.mock("../../components/page", () => ({
   Page: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
-vi.mock("@mantine/modals", () => ({
-  openConfirmModal: vi.fn(),
 }));
 
 vi.mock("react-i18next", async () => {
@@ -144,18 +135,10 @@ describe("SystemSettingsPage", () => {
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/settings"));
   });
 
-  it("shows reset button in header", async () => {
-    const changedSetting = { ...setting, changed: true, value: 20 };
-    renderPage([changedSetting]);
-
-    expect((await screen.findAllByRole("button", { name: "Reset to Defaults" })).length).toBeGreaterThan(1);
-  });
-
-  it("shows individual reset button for each setting", () => {
+  it("does not show reset-to-default controls", async () => {
     renderPage();
-    
-    // Check that the reset icon/button is rendered for the setting
-    const resetButtons = screen.getAllByLabelText("Reset to Defaults");
-    expect(resetButtons.length).toBeGreaterThan(0);
+
+    expect(await screen.findByRole("textbox", { name: "Discharge target" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset to Defaults" })).not.toBeInTheDocument();
   });
 });

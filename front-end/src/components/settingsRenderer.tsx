@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingCategory, SystemSettingValue } from "../stores/types/settings";
 import type { LocalizableValue } from "../schemas/base";
 import { LocalizableValueEditor } from "./localizableValueEditor";
-import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, ActionIcon, Box, Tooltip } from "@mantine/core";
+import { NumberInput, TextInput, Select, Switch, Stack, Text, Group, Box } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getLocalizedValue } from "../utils/i18n";
 
 interface Setting {
@@ -28,10 +27,8 @@ interface Setting {
 interface SettingsRendererProps {
   setting: Setting;
   onChange?: (key: string, value: SystemSettingValue) => void;
-  onReset?: (key: string) => void;
   disabled?: boolean;
   showLabel?: boolean;
-  resettable?: boolean;
 }
 
 const isLocalizableValue = (value: SystemSettingValue): value is LocalizableValue =>
@@ -43,9 +40,7 @@ const isLocalizableValue = (value: SystemSettingValue): value is LocalizableValu
 const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   setting,
   onChange,
-  onReset,
   disabled = false,
-  resettable = false,
 }) => {
   const editable = setting.editable ?? true;
   const { t, i18n } = useTranslation();
@@ -104,15 +99,6 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
 
     if (onChange) {
       await onChange(setting.key, newValue);
-    }
-  };
-
-  const handleReset = async () => {
-    setError(null);
-    setLocalValue(setting.default_value);
-
-    if (onReset) {
-      await onReset(setting.key);
     }
   };
 
@@ -262,20 +248,6 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
     }
   };
 
-  const isDefaultValue = useMemo(() => {
-    const defaultValue = setting.default_value;
-    if (
-      setting.setting_type === "localizable_text" &&
-      isLocalizableValue(localValue) &&
-      isLocalizableValue(defaultValue)
-    ) {
-      const keys = Object.keys(localValue);
-      return keys.length === Object.keys(defaultValue).length &&
-        keys.every((key) => localValue[key] === defaultValue[key]);
-    }
-    return localValue === defaultValue;
-  }, [localValue, setting.default_value, setting.setting_type]);
-
   return (
     <Stack gap="0">
       <Text size="sm" fw="bold">{label}</Text>
@@ -283,26 +255,6 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         <Box style={{ flex: 1 }}>
           {renderInput()}
         </Box>
-        {resettable && editable && <Tooltip
-            position="top"
-            disabled={isDefaultValue}
-            label={
-              <Text fw={500} fz={13}>
-                {t('settings.button.resetToDefault')}
-              </Text>
-          }>
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              size="sm"
-              style={{ flexShrink: 0 }}
-              onClick={handleReset}
-              disabled={isDefaultValue}
-              aria-label={t("settings.resetToDefaults")}
-            >
-              <FontAwesomeIcon icon="rotate-left" size="xs" />
-            </ActionIcon>
-          </Tooltip>}
       </Group>
       <Text c='dimmed' size="xs">{description}</Text>
     </Stack>

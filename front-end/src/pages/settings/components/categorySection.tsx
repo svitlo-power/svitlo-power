@@ -9,14 +9,12 @@ interface CategorySectionProps {
   category: SettingCategory;
   settings: Setting[];
   onUpdate: (key: string, value: SystemSettingValue) => void;
-  onReset: (key: string) => void;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
   category,
   settings,
   onUpdate,
-  onReset,
 }) => {
   const { i18n } = useTranslation();
 
@@ -35,8 +33,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               <SettingsRenderer
                 setting={setting}
                 onChange={onUpdate}
-                onReset={onReset}
-                resettable
               />
             </Card>
           ))}

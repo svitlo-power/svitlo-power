@@ -118,9 +118,6 @@
       "loading": "Loading settings...",
       "noSettings": "No settings available",
       "saveChanges": "Save Changes",
-      "resetToDefaults": "Reset to Defaults",
-      "confirmResetTitle": "Settings Reset",
-      "confirmResetContent": "Are you sure you want to reset all settings to their default values?",
       "unsavedChanges": "You have unsaved changes. Click Save to persist them.",
       "validation": {
         "notANumber": "Value must be a number",
@@ -132,9 +129,6 @@
       "error": {
         "saveFailed": "Failed to save setting"
       },
-      "unknownType": "Unknown setting type",
-      "button": {
-        "resetToDefault": "Reset value"
-      }
+      "unknownType": "Unknown setting type"
     }
   }

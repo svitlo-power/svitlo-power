@@ -139,34 +139,3 @@ async def test_get_settings_grouped_by_category_rejects_missing_category_referen
 
     with pytest.raises(RuntimeError, match="has no category reference"):
         await service.get_settings_grouped_by_category()
-
-
-@pytest.mark.asyncio
-async def test_reset_to_defaults_skips_non_editable_settings():
-    editable = SystemSetting(
-        key="charge_target_soc",
-        label="Charge target SOC",
-        description="Charge target SOC",
-        setting_type="number",
-        default_value=80,
-        value=70,
-        editable=True,
-    )
-    read_only = SystemSetting(
-        key="dashboard_outages_schedule_region",
-        label="Schedule region",
-        description="Schedule region ID",
-        setting_type="number",
-        default_value=0,
-        value=25,
-        editable=False,
-    )
-    service = SettingsService()
-    service.get_all_settings = AsyncMock(return_value=[editable, read_only])
-
-    with patch.object(SystemSetting, "save", new_callable=AsyncMock) as save:
-        assert await service.reset_to_defaults() == 1
-
-    assert editable.value is None
-    assert read_only.value == 25
-    assert save.await_count == 1

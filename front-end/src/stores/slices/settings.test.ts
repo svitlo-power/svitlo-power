@@ -1,4 +1,4 @@
-import { settingsReducer, resetSetting } from "./settings";
+import { settingsReducer, updateSetting } from "./settings";
 
 const setting = {
   key: "discharge",
@@ -17,22 +17,13 @@ const setting = {
 };
 
 describe("settings slice", () => {
-  it("resets a setting to its default and marks it as changed", () => {
+  it("updates a setting and marks it as changed", () => {
     const state = settingsReducer(
       { items: [setting], loading: false, creating: false, changed: false, error: null },
-      resetSetting(setting.key),
+      updateSetting({ key: setting.key, value: 30 }),
     );
 
-    expect(state.items[0]).toMatchObject({ value: 10, changed: true });
+    expect(state.items[0]).toMatchObject({ value: 30, changed: true });
     expect(state.changed).toBe(true);
-  });
-
-  it("leaves state unchanged when resetting an unknown setting", () => {
-    const state = settingsReducer(
-      { items: [setting], loading: false, creating: false, changed: false, error: null },
-      resetSetting("unknown"),
-    );
-
-    expect(state).toMatchObject({ items: [setting], changed: false });
   });
 });

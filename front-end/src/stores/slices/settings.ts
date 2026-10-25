@@ -38,15 +38,6 @@ export const settingsSlice = createSlice({
         setting.changed = false;
       }
     },
-    resetSetting(state, { payload }: PayloadAction<string>) {
-      const setting = state.items.find(s => s.key === payload);
-      if (setting) {
-        const changed = setting.value !== setting.default_value;
-        setting.value = setting.default_value;
-        setting.changed = state.changed || changed;
-        state.changed = state.items.some(s => s.changed);
-      }
-    },
     startEditingSetting(state) {
       state.creating = true;
     },
@@ -120,5 +111,5 @@ export const settingsSlice = createSlice({
   },
 });
 
-export const { updateSetting, settingSaved, resetSetting, startEditingSetting, cancelEditingSetting, createSetting, clearError } = settingsSlice.actions;
+export const { updateSetting, settingSaved, startEditingSetting, cancelEditingSetting, createSetting, clearError } = settingsSlice.actions;
 export const settingsReducer = settingsSlice.reducer;

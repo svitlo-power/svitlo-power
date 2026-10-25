@@ -114,19 +114,3 @@ def register(app: FastAPI):
             await reject_read_only_setting_update(settings_service, key)
         results = await settings_service.bulk_update(request.updates)
         return results
-
-
-    @app.post("/api/settings/reset", response_model=Dict[str, int])
-    async def reset_settings(
-        current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
-    ):
-        """Reset all settings to their default values."""
-        # if not current_user.is_admin:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail="Admin access required"
-        #     )
-        
-        count = await settings_service.reset_to_defaults()
-        return {"reset_count": count}

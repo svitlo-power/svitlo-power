@@ -100,36 +100,17 @@ describe("SettingsRenderer", () => {
     });
   });
 
-  it("compares localized values by content when enabling reset", () => {
-    renderWithStore(
-      <SettingsRenderer
-        setting={{
-          ...setting,
-          setting_type: "localizable_text",
-          default_value: { en: "Dashboard", uk: "Панель" },
-          value: { en: "Dashboard", uk: "Панель" },
-        }}
-        resettable
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
-  });
-
   it("disables the rendered control when requested", () => {
     renderWithStore(<SettingsRenderer setting={setting} disabled />);
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
   });
 
-  it("disables a setting marked read-only and hides its reset action", () => {
+  it("disables a setting marked read-only", () => {
     const onChange = vi.fn();
-    const onReset = vi.fn();
     renderWithStore(
       <SettingsRenderer
         setting={{ ...setting, editable: false, value: 20 }}
         onChange={onChange}
-        onReset={onReset}
-        resettable
       />,
     );
 
@@ -146,26 +127,5 @@ describe("SettingsRenderer", () => {
 
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toHaveValue("Kyiv");
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
-  });
-
-  it("resets a non-default value through the supplied reset handler", async () => {
-    const onReset = vi.fn().mockResolvedValue(undefined);
-    renderWithStore(
-      <SettingsRenderer
-        setting={{ ...setting, value: 20 }}
-        onReset={onReset}
-        resettable
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
-
-    await waitFor(() => expect(onReset).toHaveBeenCalledWith("test_setting"));
-    expect(screen.getByRole("textbox", { name: "Test Setting" })).toHaveValue("10");
-  });
-
-  it("disables reset when the value already matches the default", () => {
-    renderWithStore(<SettingsRenderer setting={setting} resettable />);
-    expect(screen.getByRole("button", { name: "Reset to Defaults" })).toBeDisabled();
   });
 });

@@ -165,16 +165,3 @@ class SettingsService:
             setting = await self.set_value(key, value)
             results[key] = setting is not None
         return results
-
-    async def reset_to_defaults(self) -> int:
-        """Reset editable settings to their default values."""
-        settings = await self.get_all_settings()
-        count = 0
-        for setting in settings:
-            if not setting.editable:
-                continue
-            setting.value = None
-            setting.updated_at = datetime.utcnow()
-            await setting.save()
-            count += 1
-        return count

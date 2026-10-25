@@ -59,3 +59,9 @@ def test_bulk_setting_update_rejects_read_only_flag_before_updating():
 
     assert response.status_code == 409
     settings_service.bulk_update.assert_not_awaited()
+
+
+def test_reset_to_defaults_endpoint_is_not_registered():
+    response = make_test_client(MagicMock()).post("/api/settings/reset")
+
+    assert response.status_code == 405
