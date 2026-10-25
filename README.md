@@ -1,15 +1,3 @@
-## Docker Images ##
-
-| Image | Version |
-|-------|---------|
-| `svitlo-power-back-end` | ![svitlo-power-back-end](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/svitlo-power/svitlo-power/main/.github/badges/svitlo-power-back-end.json&logo=docker) |
-| `svitlo-power-front-end` | ![svitlo-power-front-end](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/svitlo-power/svitlo-power/main/.github/badges/svitlo-power-front-end.json&logo=docker) |
-| `svitlo-power-sse-back-end` | ![svitlo-power-sse-back-end](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/svitlo-power/svitlo-power/main/.github/badges/svitlo-power-sse-back-end.json&logo=docker) |
-| `svitlo-power-grid-reporter` | ![svitlo-power-grid-reporter](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/svitlo-power/svitlo-power/main/.github/badges/svitlo-power-grid-reporter.json&logo=docker) |
-| `svitlo-power-app-back-end` | ![svitlo-power-app-back-end](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/svitlo-power/svitlo-power/main/.github/badges/svitlo-power-app-back-end.json&logo=docker) |
-
-*Badges update automatically every 6 hours via GitHub Actions workflow.*
-
 ## Before start ##
 
 1. register deye account at [developer.deyecloud.com](https://developer.deyecloud.com/) 
