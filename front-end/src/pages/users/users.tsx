@@ -614,4 +614,3 @@ const Component: FC<ComponentProps> = ({ users, loading, error, changed }: Compo
 }
 
 export const UsersPage = connect(mapStateToProps)(Component);
-

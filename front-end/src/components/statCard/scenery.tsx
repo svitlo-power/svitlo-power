@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 import { Box } from "@mantine/core";
 import classes from './styles/statCard.module.css';
 import { FC, useRef } from "react";

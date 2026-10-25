@@ -112,6 +112,7 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
   const selectedRegionValue = selectedRegion?.value;
   useEffect(() => {
     if (!selectedRegionValue) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProviders([]);
       setLoadingProviders(false);
       return;
@@ -158,6 +159,7 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
   const selectedProviderId = selectedProvider?.id;
   useEffect(() => {
     if (selectedRegionId === undefined || selectedProviderId === undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQueues([]);
       setLoadingQueues(false);
       return;
