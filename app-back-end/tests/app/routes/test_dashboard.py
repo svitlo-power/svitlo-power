@@ -74,7 +74,8 @@ def mock_settings_service():
         return_value=LocalizableValue({"en": "Test Dashboard"})
     )
     mock_settings.get_boolean = AsyncMock(return_value=True)
-    mock_settings.get_text = AsyncMock(side_effect=["Kyiv", "Yasno", "queue_1"])
+    mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
+    mock_settings.get_text = AsyncMock(return_value="queue_1")
     return mock_settings
 
 

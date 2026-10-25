@@ -8,8 +8,8 @@ describe("dashboardEditSchema", () => {
       title: { en: "Dashboard", uk: "Панель" },
       outagesSchedule: {
         enable: true,
-        region: "Kyiv",
-        dso: "Yasno",
+        regionId: 25,
+        dsoId: 902,
         queue: "1.1",
       },
     });
@@ -22,8 +22,8 @@ describe("dashboardEditSchema", () => {
       title: { en: "Dashboard", uk: "Панель" },
       outagesSchedule: {
         enable: true,
-        region: null,
-        dso: null,
+        regionId: null,
+        dsoId: null,
         queue: null,
       },
     });
@@ -40,8 +40,8 @@ describe("dashboardEditSchema", () => {
       title: { en: "Dashboard", uk: "Панель" },
       outagesSchedule: {
         enable: true,
-        region: "Kyiv",
-        dso: "Yasno",
+        regionId: "Kyiv",
+        dsoId: "Yasno",
         queue: "1.1",
       },
     });
@@ -53,8 +53,8 @@ describe("dashboardEditSchema", () => {
       outagesSchedule: null,
     }).outagesSchedule).toEqual({
       enable: false,
-      region: null,
-      dso: null,
+      regionId: null,
+      dsoId: null,
       queue: null,
     });
   });

@@ -32,8 +32,8 @@ class TestDashboardConfig:
         })
 
         assert config.outages_schedule.enable is True
-        assert config.outages_schedule.region == "Kyiv"
-        assert config.outages_schedule.dso == "Yasno"
+        assert config.outages_schedule.region_id == "Kyiv"
+        assert config.outages_schedule.dso_id == "Yasno"
         assert config.outages_schedule.queue == "1.1"
 
     def test_legacy_disabled_config_is_migrated(self):
@@ -44,8 +44,8 @@ class TestDashboardConfig:
         })
 
         assert config.outages_schedule.enable is False
-        assert config.outages_schedule.region is None
-        assert config.outages_schedule.dso is None
+        assert config.outages_schedule.region_id is None
+        assert config.outages_schedule.dso_id is None
         assert config.outages_schedule.queue is None
 
     def test_nested_config_is_preserved(self):
@@ -59,8 +59,8 @@ class TestDashboardConfig:
             },
         })
 
-        assert config.outages_schedule.region == "Lviv"
-        assert config.outages_schedule.dso == "Lviv DSO"
+        assert config.outages_schedule.region_id == "Lviv"
+        assert config.outages_schedule.dso_id == "Lviv DSO"
         assert config.outages_schedule.queue == "2.1"
 
     @pytest.mark.parametrize(

@@ -28,8 +28,8 @@ describe("dashboard config thunks", () => {
       title: { en: "Dashboard", uk: "Панель" },
       outagesSchedule: {
         enable: true,
-        region: "Kyiv",
-        dso: "Yasno",
+        regionId: "Kyiv",
+        dsoId: "Yasno",
         queue: "1.1",
       },
     });
@@ -42,8 +42,8 @@ describe("dashboard config thunks", () => {
         title: { en: "Dashboard", uk: "Панель" },
         outagesSchedule: {
           enable: false,
-          region: null,
-          dso: null,
+          regionId: null,
+          dsoId: null,
           queue: null,
         },
       },
@@ -61,8 +61,8 @@ describe("dashboard config thunks", () => {
       title: { en: "Dashboard", uk: "Панель" },
       outagesSchedule: {
         enable: true,
-        region: "Київ",
-        dso: "ДТЕК",
+        regionId: 25,
+        dsoId: 902,
         queue: "1.1",
       },
     };

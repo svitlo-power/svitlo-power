@@ -3,6 +3,7 @@ from typing import List
 from beanie import PydanticObjectId
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi_injector import Injected
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.services import DashboardService
 from app.utils.jwt_dependencies import get_current_jwt_optional, jwt_required
@@ -16,6 +17,15 @@ from shared.models.api.dashboard import (
     EditBuildingResponse,
     SaveDashboardConfigRequest,
 )
+from shared.models.localizable_value import LocalizableValue
+
+
+class LegacyDashboardConfigResponse(BaseModel):
+    title: LocalizableValue
+    enable_outages_schedule: bool = Field(alias="enableOutagesSchedule")
+    outages_schedule_queue: str | None = Field(alias="outagesScheduleQueue")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 def register(app: FastAPI):
@@ -44,13 +54,23 @@ def register(app: FastAPI):
         return await dashboard.get_buildings_with_summary()
 
 
-    @app.get("/api/dashboard/config")
     @app.get("/api/buildings/dashboardConfig")
+    async def get_legacy_dashboard_config(
+        dashboard = Injected(DashboardService),
+    ) -> LegacyDashboardConfigResponse:
+        configs = await dashboard.get_config()
+        return LegacyDashboardConfigResponse(
+            title=configs.title,
+            enable_outages_schedule=configs.enable_outages_schedule,
+            outages_schedule_queue=configs.outages_schedule_queue,
+        )
+
+
+    @app.get("/api/dashboard/config")
     async def get_dashboard_config(
         dashboard = Injected(DashboardService),
     ) -> DashboardConfigResponse:
-        configs = await dashboard.get_config()
-        return configs
+        return await dashboard.get_config()
 
 
     @app.put("/api/dashboard/config")

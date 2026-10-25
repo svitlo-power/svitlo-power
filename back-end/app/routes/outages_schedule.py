@@ -2,9 +2,10 @@ import asyncio
 import logging
 
 import aiohttp
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import FastAPI, HTTPException, Path, Depends
 from fastapi_injector import Injected
 from shared.services import OutagesScheduleService
+from app.utils.jwt_dependencies import jwt_required
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 def register(app: FastAPI):
     @app.get("/api/outagesSchedule/regions")
     async def get_outage_regions(
+        _ = Depends(jwt_required),
         outages_schedule = Injected(OutagesScheduleService),
     ):
         try:
@@ -26,8 +28,9 @@ def register(app: FastAPI):
             logger.warning("YASNO regions request failed: %s", error)
             raise HTTPException(status_code=502, detail="Unable to fetch YASNO regions") from error
 
-    @app.get("/api/outagesSchedule/providers/{region_name}")
+    @app.get("/api/outagesSchedule/providers/{region_name:path}")
     async def get_outage_providers(
+        _ = Depends(jwt_required),
         region_name: str = Path(..., description="YASNO region name"),
         outages_schedule = Injected(OutagesScheduleService),
     ):
@@ -49,6 +52,7 @@ def register(app: FastAPI):
     async def get_outage_queues(
         region_id: int,
         dso_id: int,
+        _ = Depends(jwt_required),
         outages_schedule = Injected(OutagesScheduleService),
     ):
         try:

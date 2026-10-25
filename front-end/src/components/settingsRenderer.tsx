@@ -21,6 +21,7 @@ interface Setting {
     regex?: string;
     options?: Array<{ value: SystemSettingValue; label: string }>;
   };
+  editable?: boolean;
   category: SettingCategory;
 }
 
@@ -46,6 +47,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   disabled = false,
   resettable = false,
 }) => {
+  const editable = setting.editable ?? true;
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const label = getLocalizedValue(setting.label, language);
@@ -115,6 +117,13 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
   };
 
   const renderNumberInput = () => {
+    if (
+      !editable &&
+      typeof localValue === "string" &&
+      !Number.isFinite(Number(localValue))
+    ) {
+      return <TextInput aria-label={label} value={localValue} disabled />;
+    }
     const value = typeof localValue === "number" ? localValue : 0;
     return (
       <NumberInput
@@ -124,7 +133,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         onChange={(val) => handleChange(val ?? 0)}
         min={setting.validation?.min}
         max={setting.validation?.max}
-        disabled={disabled}
+        disabled={disabled || !editable}
         step={1}
       />
     );
@@ -138,7 +147,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         error={error}
         value={value}
         onChange={(e) => handleChange(e.currentTarget.value)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         pattern={setting.validation?.regex}
       />
     );
@@ -151,6 +160,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         label={label}
         value={isLocalizableValue(localValue) ? localValue : {}}
         onChange={handleChange}
+        disabled={disabled || !editable}
       />
     );
   };
@@ -170,7 +180,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).toISOString() : null)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
@@ -192,7 +202,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         value={value}
         error={error}
         onChange={(val) => handleChange(val ? new Date(val).getTime() : null)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         withTime
         valueFormat="YYYY-MM-DDTHH:mm"
       />
@@ -207,7 +217,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         checked={value}
         error={error}
         onChange={(e) => handleChange(e.currentTarget.checked)}
-        disabled={disabled}
+        disabled={disabled || !editable}
         size="md"
       />
     );
@@ -221,7 +231,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         value={value}
         error={error}
         onChange={(val) => handleChange(val ?? "")}
-        disabled={disabled}
+        disabled={disabled || !editable}
         data={setting.validation?.options?.map((option) => ({
           value: String(option.value),
           label: option.label,
@@ -273,7 +283,7 @@ const SettingsRenderer: React.FC<SettingsRendererProps> = ({
         <Box style={{ flex: 1 }}>
           {renderInput()}
         </Box>
-        {resettable && <Tooltip
+        {resettable && editable && <Tooltip
             position="top"
             disabled={isDefaultValue}
             label={

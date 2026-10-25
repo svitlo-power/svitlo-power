@@ -63,8 +63,8 @@ describe("BuildingsPage outage schedule", () => {
 
   const renderPage = (outagesSchedule: {
     enable: boolean;
-    region: string | null;
-    dso: string | null;
+    regionId: number | string | null;
+    dsoId: number | string | null;
     queue: string | null;
   } | null) => {
     const store = createTestStore({
@@ -89,15 +89,15 @@ describe("BuildingsPage outage schedule", () => {
   };
 
   it("fetches and renders the configured outage queue", async () => {
-    renderPage({ enable: true, region: "Київ", dso: "ДТЕК", queue: "1.1" });
+    renderPage({ enable: true, regionId: 25, dsoId: 902, queue: "1.1" });
 
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/outagesSchedule/outagesSchedule/1.1"));
     expect(screen.getByTestId("planned-outages")).toHaveAttribute("data-queue", "1.1");
   });
 
   it.each([
-    ["disabled schedule", { enable: false, region: null, dso: null, queue: null }],
-    ["missing queue", { enable: true, region: "Київ", dso: "ДТЕК", queue: null }],
+    ["disabled schedule", { enable: false, regionId: null, dsoId: null, queue: null }],
+    ["missing queue", { enable: true, regionId: 25, dsoId: 902, queue: null }],
     ["missing schedule config", null],
   ])("does not fetch or render outages for %s", async (_description, schedule) => {
     renderPage(schedule);

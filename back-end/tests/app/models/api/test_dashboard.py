@@ -25,15 +25,15 @@ class TestSaveDashboardConfigRequest:
             title=LocalizableValue({"en": "My Dashboard"}),
             outagesSchedule={
                 "enable": True,
-                "region": "Kyiv",
-                "dso": "Yasno",
+                "regionId": 25,
+                "dsoId": 902,
                 "queue": "1.1",
             },
         )
 
         assert req.outages_schedule.enable is True
-        assert req.outages_schedule.region == "Kyiv"
-        assert req.outages_schedule.dso == "Yasno"
+        assert req.outages_schedule.region_id == 25
+        assert req.outages_schedule.dso_id == 902
         assert req.outages_schedule.queue == "1.1"
 
     def test_rejects_incomplete_enabled_schedule(self):
@@ -76,8 +76,8 @@ class TestDashboardConfigResponse:
             title=LocalizableValue({"en": "Test"}),
             outagesSchedule={
                 "enable": True,
-                "region": "Kyiv",
-                "dso": "Yasno",
+                "regionId": 25,
+                "dsoId": 902,
                 "queue": "1.1",
             },
             enableOutagesSchedule=True,
@@ -86,8 +86,8 @@ class TestDashboardConfigResponse:
 
         assert resp.model_dump(by_alias=True)["outagesSchedule"] == {
             "enable": True,
-            "region": "Kyiv",
-            "dso": "Yasno",
+            "regionId": 25,
+            "dsoId": 902,
             "queue": "1.1",
         }
         assert "enableOutagesSchedule" not in resp.model_dump(by_alias=True)

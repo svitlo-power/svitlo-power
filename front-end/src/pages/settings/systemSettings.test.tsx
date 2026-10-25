@@ -61,6 +61,7 @@ const setting = {
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
+  editable: true,
   category_id: "category-id",
   created_at: "2024-01-01T00:00:00.000Z",
   updated_at: "2024-01-01T00:00:00.000Z",

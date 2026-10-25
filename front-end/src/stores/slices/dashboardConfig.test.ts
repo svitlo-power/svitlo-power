@@ -9,8 +9,8 @@ const config = {
   title: { en: "Dashboard", uk: "Панель" },
   outagesSchedule: {
     enable: true,
-    region: "Київ",
-    dso: "ДТЕК",
+    regionId: 25,
+    dsoId: 902,
     queue: "1.1",
   },
 };

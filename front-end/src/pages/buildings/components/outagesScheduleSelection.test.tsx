@@ -72,22 +72,55 @@ describe("OutagesScheduleSelection", () => {
 
   it("loads and walks through region, provider, and queue selections", async () => {
     const user = userEvent.setup();
-    render(<Harness initialValue={{ enable: true, region: null, dso: null, queue: null }} />);
+    render(<Harness initialValue={{ enable: true, regionId: null, dsoId: null, queue: null }} />);
 
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/outagesSchedule/regions"));
-    await user.click(screen.getByRole("combobox", { name: "Region" }));
+    await user.click(await screen.findByRole("combobox", { name: "Region" }));
     fireEvent.click(screen.getByRole("option", { name: "Київ", hidden: true }));
 
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith(
       "/outagesSchedule/providers/%D0%9A%D0%B8%D1%97%D0%B2",
     ));
     await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/outagesSchedule/queues/25/902"));
+    expect(mockGet.mock.calls.filter(([url]) => url.startsWith("/outagesSchedule/providers/"))).toHaveLength(1);
 
     expect(await screen.findByRole("combobox", { name: "Queue" })).toBeInTheDocument();
     await user.click(screen.getByRole("combobox", { name: "Queue" }));
     fireEvent.click(screen.getByText("1.2"));
 
     expect(screen.getByText("Київ · ДТЕК · Queue 1.2")).toBeInTheDocument();
+    expect(mockGet.mock.calls.filter(([url]) => url.startsWith("/outagesSchedule/queues/"))).toHaveLength(1);
+  });
+
+  it("uses the region step's Next button when multiple providers are available", async () => {
+    const user = userEvent.setup();
+    mockGet.mockImplementation((url: string) => {
+      if (url === "/outagesSchedule/regions") {
+        return Promise.resolve({
+          data: [{ id: 25, value: "Київ", label: "Київ" }],
+        });
+      }
+      if (url === "/outagesSchedule/providers/%D0%9A%D0%B8%D1%97%D0%B2") {
+        return Promise.resolve({
+          data: [
+            { id: 902, name: "ДТЕК" },
+            { id: 903, name: "Yasno" },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    render(<Harness initialValue={{ enable: true, regionId: null, dsoId: null, queue: null }} />);
+    await user.click(await screen.findByRole("combobox", { name: "Region" }));
+    fireEvent.click(screen.getByRole("option", { name: "Київ", hidden: true }));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith(
+      "/outagesSchedule/providers/%D0%9A%D0%B8%D1%97%D0%B2",
+    ));
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(screen.getByRole("combobox", { name: "Provider" })).toBeInTheDocument();
   });
 
   it("shows a loader instead of the empty initial step while loading regions", async () => {
@@ -95,7 +128,7 @@ describe("OutagesScheduleSelection", () => {
     mockGet.mockReturnValueOnce(new Promise((resolve) => {
       resolveRegions = resolve;
     }));
-    render(<Harness initialValue={{ enable: true, region: null, dso: null, queue: null }} />);
+    render(<Harness initialValue={{ enable: true, regionId: null, dsoId: null, queue: null }} />);
 
     expect(screen.getByText("Loading...")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Region" })).not.toBeInTheDocument();
@@ -104,23 +137,55 @@ describe("OutagesScheduleSelection", () => {
     expect(await screen.findByRole("combobox", { name: "Region" })).toBeInTheDocument();
   });
 
+  it("resolves legacy region and provider names to IDs and displays discovery labels", async () => {
+    render(<Harness initialValue={{
+      enable: true,
+      regionId: "Kyiv",
+      dsoId: "Yasno",
+      queue: "1.1",
+    }} />);
+
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalledWith("/outagesSchedule/queues/25/902");
+    });
+    expect(await screen.findByText("Київ · ДТЕК · Queue 1.1")).toBeInTheDocument();
+  });
+
   it("supports navigating back to the previous step", async () => {
     const user = userEvent.setup();
-    render(<Harness initialValue={{ enable: true, region: null, dso: null, queue: null }} />);
+    mockGet.mockImplementation((url: string) => {
+      if (url === "/outagesSchedule/regions") {
+        return Promise.resolve({
+          data: [{ id: 25, value: "Київ", label: "Київ" }],
+        });
+      }
+      if (url === "/outagesSchedule/providers/%D0%9A%D0%B8%D1%97%D0%B2") {
+        return Promise.resolve({
+          data: [
+            { id: 902, name: "ДТЕК" },
+            { id: 903, name: "Yasno" },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    render(<Harness initialValue={{ enable: true, regionId: null, dsoId: null, queue: null }} />);
 
-    await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/outagesSchedule/regions"));
-    await user.click(screen.getByRole("combobox", { name: "Region" }));
+    await user.click(await screen.findByRole("combobox", { name: "Region" }));
     fireEvent.click(screen.getByRole("option", { name: "Київ", hidden: true }));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith(
+      "/outagesSchedule/providers/%D0%9A%D0%B8%D1%97%D0%B2",
+    ));
+    await user.click(await screen.findByRole("button", { name: "Next" }));
     await screen.findByRole("combobox", { name: "Provider" });
 
-    await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByRole("combobox", { name: "Region" })).toBeInTheDocument();
   });
 
   it("shows an error when region discovery fails", async () => {
     mockGet.mockRejectedValueOnce(new Error("YASNO unavailable"));
-    render(<Harness initialValue={{ enable: true, region: null, dso: null, queue: null }} />);
+    render(<Harness initialValue={{ enable: true, regionId: null, dsoId: null, queue: null }} />);
 
     expect(await screen.findByText("YASNO unavailable")).toBeInTheDocument();
   });

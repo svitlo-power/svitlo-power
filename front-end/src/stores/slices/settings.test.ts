@@ -7,6 +7,7 @@ const setting = {
   setting_type: "number" as const,
   default_value: 10,
   value: 20,
+  editable: true,
   category: {
     id: "power_estimation",
     label: { en: "Power Estimation", uk: "Оцінка потужності" },

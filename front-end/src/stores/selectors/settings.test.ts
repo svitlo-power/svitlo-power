@@ -9,9 +9,9 @@ import {
 } from "./settings";
 
 const items = [
-  { key: "discharge", label: { en: "Discharge", uk: "Розрядження" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 10, value: 10, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: false, created: false },
-  { key: "charge", label: { en: "Charge", uk: "Заряджання" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 97, value: 97, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: true, created: false },
-  { key: "email", label: { en: "Email", uk: "Електронна пошта" }, description: { en: "", uk: "" }, setting_type: "text" as const, default_value: "a@b.c", value: "a@b.c", category: { id: "notifications", label: { en: "Notifications", uk: "Сповіщення" } }, created_at: "", updated_at: "", changed: false, created: false },
+  { key: "discharge", label: { en: "Discharge", uk: "Розрядження" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 10, value: 10, editable: true, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: false, created: false },
+  { key: "charge", label: { en: "Charge", uk: "Заряджання" }, description: { en: "", uk: "" }, setting_type: "number" as const, default_value: 97, value: 97, editable: true, category: { id: "power", label: { en: "Power", uk: "Потужність" } }, created_at: "", updated_at: "", changed: true, created: false },
+  { key: "email", label: { en: "Email", uk: "Електронна пошта" }, description: { en: "", uk: "" }, setting_type: "text" as const, default_value: "a@b.c", value: "a@b.c", editable: true, category: { id: "notifications", label: { en: "Notifications", uk: "Сповіщення" } }, created_at: "", updated_at: "", changed: false, created: false },
 ];
 
 const state = createTestStore({

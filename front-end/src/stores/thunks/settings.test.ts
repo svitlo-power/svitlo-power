@@ -20,6 +20,7 @@ const serverSetting = {
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
+  editable: true,
   validation: { min: 0, max: 100 },
   category_id: "power",
   created_at: "2024-01-01T00:00:00.000Z",

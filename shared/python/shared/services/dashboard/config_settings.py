@@ -1,3 +1,11 @@
+from shared.models.dashboard_config import (
+    LEGACY_YASNO_PROVIDER_ID,
+    LEGACY_YASNO_PROVIDER_NAME,
+    LEGACY_YASNO_REGION_ID,
+    LEGACY_YASNO_REGION_NAME,
+)
+
+
 DASHBOARD_TITLE_SETTING_KEY = "dashboard_title"
 DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY = "dashboard_outages_schedule_enabled"
 DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY = "dashboard_outages_schedule_region"

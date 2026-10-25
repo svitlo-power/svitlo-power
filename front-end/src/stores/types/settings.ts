@@ -21,6 +21,7 @@ export type BaseServerSettingItem = {
   setting_type: "number" | "text" | "datetime" | "timestamp" | "boolean" | "select" | "localizable_text";
   default_value: SystemSettingValue;
   value: SystemSettingValue;
+  editable: boolean;
   validation?: {
     min?: number;
     max?: number;

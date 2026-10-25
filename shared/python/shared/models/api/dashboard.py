@@ -4,7 +4,11 @@ from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from shared.models.localizable_value import LocalizableValue
-from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.dashboard_config import (
+    LEGACY_YASNO_PROVIDER_NAME,
+    LEGACY_YASNO_REGION_NAME,
+    OutagesScheduleConfig,
+)
 
 
 class DashboardConfigResponse(BaseModel):
@@ -20,6 +24,7 @@ class DashboardConfigResponse(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def migrate_legacy_outages_schedule(cls, value: Any) -> Any:
+        # Preserve flat mobile-client payloads until all supported clients migrate.
         if not isinstance(value, dict):
             return value
 
@@ -37,8 +42,8 @@ class DashboardConfigResponse(BaseModel):
             value["outagesSchedule"] = (
                 {
                     "enable": True,
-                    "region": "Kyiv",
-                    "dso": "Yasno",
+                    "region": LEGACY_YASNO_REGION_NAME,
+                    "dso": LEGACY_YASNO_PROVIDER_NAME,
                     "queue": value.get("outagesScheduleQueue", value.get("outages_schedule_queue")),
                 }
                 if enabled

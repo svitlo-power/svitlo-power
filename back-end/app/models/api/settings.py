@@ -13,6 +13,7 @@ class SettingResponse(BaseModel):
     default_value: SystemSettingValue
     value: Optional[SystemSettingValue]
     validation: Optional[Dict[str, Any]]
+    editable: bool = True
     category_id: str
     created_at: str
     updated_at: str
@@ -29,6 +30,7 @@ class SettingResponse(BaseModel):
             default_value=setting.default_value,
             value=setting.value,
             validation=setting.validation,
+            editable=setting.editable,
             category_id=str(setting.category_id),
             created_at=setting.created_at.isoformat() if setting.created_at else "",
             updated_at=setting.updated_at.isoformat() if setting.updated_at else "",

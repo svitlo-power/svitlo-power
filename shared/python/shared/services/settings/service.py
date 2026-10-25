@@ -4,11 +4,7 @@ from beanie import PydanticObjectId
 from injector import inject, singleton
 
 from shared.models.localizable_value import LocalizableValue
-from shared.models.system_setting import (
-    SystemSetting,
-    SystemSettingCategory,
-    SystemSettingValue,
-)
+from shared.models.system_setting import SystemSetting, SystemSettingCategory, SystemSettingValue
 
 
 @singleton
@@ -61,9 +57,10 @@ class SettingsService:
         if value is None:
             return default
         if isinstance(value, LocalizableValue):
-            return value
+            return value if value.root else default
         if isinstance(value, dict):
-            return LocalizableValue.model_validate(value)
+            localized_value = LocalizableValue.model_validate(value)
+            return localized_value if localized_value.root else default
         raise TypeError(f"Setting '{key}' does not contain localized text")
 
     async def get_boolean(self, key: str, default: bool = False) -> bool:
@@ -115,6 +112,7 @@ class SettingsService:
             existing.default_value = setting.default_value
             existing.value = setting.value
             existing.validation = setting.validation
+            existing.editable = setting.editable
             existing.category_id = setting.category_id
             existing.updated_at = datetime.utcnow()
             await existing.save()
@@ -169,12 +167,14 @@ class SettingsService:
         return results
 
     async def reset_to_defaults(self) -> int:
-            """Reset all settings to their default values."""
-            settings = await self.get_all_settings()
-            count = 0
-            for setting in settings:
-                setting.value = None
-                setting.updated_at = datetime.utcnow()
-                await setting.save()
-                count += 1
-            return count
+        """Reset editable settings to their default values."""
+        settings = await self.get_all_settings()
+        count = 0
+        for setting in settings:
+            if not setting.editable:
+                continue
+            setting.value = None
+            setting.updated_at = datetime.utcnow()
+            await setting.save()
+            count += 1
+        return count

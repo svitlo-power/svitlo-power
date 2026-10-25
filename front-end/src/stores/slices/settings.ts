@@ -62,6 +62,7 @@ export const settingsSlice = createSlice({
         setting_type: payload.setting_type,
         default_value: payload.default_value,
         value: payload.default_value,
+        editable: payload.editable,
         validation: payload.validation,
         category: payload.category,
         created_at: new Date().toISOString(),

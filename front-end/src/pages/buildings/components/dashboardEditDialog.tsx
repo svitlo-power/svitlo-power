@@ -56,6 +56,7 @@ export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboar
           title: data.title,
           outagesSchedule: data.outagesSchedule.enable ? data.outagesSchedule : null,
         }));
+        if (id) modals.close(id);
       },
       cleanupAction: () => {
         dispatch(cancelEditingDashboardConfig());
@@ -97,13 +98,12 @@ export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboar
     const enabled = useWatch({ control, name: 'outagesSchedule.enable' })
       ?? formData.outagesSchedule.enable;
     const handleScheduleChange = useCallback((changes: Partial<DashboardEditType['outagesSchedule']>) => {
-      if ('region' in changes) setControlValue('outagesSchedule.region', changes.region ?? null, true);
-      if ('dso' in changes) setControlValue('outagesSchedule.dso', changes.dso ?? null, true);
+      if ('regionId' in changes) setControlValue('outagesSchedule.regionId', changes.regionId ?? null, true);
+      if ('dsoId' in changes) setControlValue('outagesSchedule.dsoId', changes.dsoId ?? null, true);
       if ('queue' in changes) setControlValue('outagesSchedule.queue', changes.queue ?? null, true);
     }, [setControlValue]);
 
     const handleSave = () => {
-      if (id) modals.close(id);
       handleFormSubmit();
     };
 
@@ -113,7 +113,7 @@ export function openDashboardEditDialog({ dashboardConfig, title }: OpenDashboar
     };
 
     const hasCompleteSchedule = Boolean(
-      scheduleConfig.region && scheduleConfig.dso && scheduleConfig.queue,
+      scheduleConfig.regionId && scheduleConfig.dsoId && scheduleConfig.queue,
     );
 
     return (

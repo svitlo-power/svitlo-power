@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
+import time
 import aiohttp
 
 from shared.services.outages_schedule.service import OutagesScheduleService
@@ -136,6 +137,36 @@ class TestOutagesScheduleService:
 
         with pytest.raises(KeyError, match="Unknown YASNO region"):
             await outages_service.fetch_providers_for_region("Missing")
+
+    @pytest.mark.asyncio
+    async def test_fetch_providers_reuses_recent_region_cache(self, outages_service):
+        outages_service._regions = [
+            {"id": 25, "value": "Kyiv", "dsos": [{"id": 902, "name": "Yasno"}]},
+        ]
+        outages_service._regions_fetched_at = time.monotonic()
+        outages_service._fetch_yasno_json = AsyncMock()
+
+        result = await outages_service.fetch_providers_for_region("Kyiv")
+
+        assert result == [{"id": 902, "name": "Yasno"}]
+        outages_service._fetch_yasno_json.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_fetch_providers_refreshes_expired_region_cache(self, outages_service):
+        outages_service._regions = [
+            {"id": 25, "value": "Kyiv", "dsos": [{"id": 902, "name": "Yasno"}]},
+        ]
+        outages_service._regions_fetched_at = (
+            time.monotonic() - outages_service.REGIONS_CACHE_TTL_SECONDS - 1
+        )
+        outages_service._fetch_yasno_json = AsyncMock(return_value=[
+            {"id": 26, "value": "Lviv", "dsos": [{"id": 904, "name": "Lviv DSO"}]},
+        ])
+
+        result = await outages_service.fetch_providers_for_region("Lviv")
+
+        assert result == [{"id": 904, "name": "Lviv DSO"}]
+        outages_service._fetch_yasno_json.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_get_providers_requires_regions_to_be_fetched(self, outages_service):

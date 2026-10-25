@@ -57,24 +57,13 @@ class DashboardService(ReadOnlyDashboardService):
             DASHBOARD_OUTAGES_SCHEDULE_ENABLED_SETTING_KEY: bool(
                 schedule and schedule.enable
             ),
-            DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY: (
-                schedule.region if schedule else None
-            ),
-            DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY: (
-                schedule.dso if schedule else None
-            ),
-            DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY: (
-                schedule.queue if schedule else None
-            ),
         }
-        missing_settings = [
-            key for key in updates if await self._settings.get_setting(key) is None
-        ]
-        if missing_settings:
-            raise RuntimeError(
-                f"Dashboard settings are missing: {', '.join(missing_settings)}"
-            )
-
+        if schedule and schedule.enable:
+            updates.update({
+                DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY: schedule.region_id,
+                DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY: schedule.dso_id,
+                DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY: schedule.queue,
+            })
         results = await self._settings.bulk_update(updates)
         failed_settings = [key for key in updates if not results.get(key, False)]
         if failed_settings:

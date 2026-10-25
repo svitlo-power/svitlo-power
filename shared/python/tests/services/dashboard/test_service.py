@@ -55,14 +55,63 @@ class TestReadOnlyDashboardServiceGetConfig:
             return_value=LocalizableValue({"en": "My Dashboard"})
         )
         mock_settings.get_boolean = AsyncMock(return_value=True)
-        mock_settings.get_text = AsyncMock(side_effect=["Kyiv", "Yasno", "queue1"])
+        mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
+        mock_settings.get_text = AsyncMock(return_value="queue1")
         service = ReadOnlyDashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
         result = await service.get_config()
         assert isinstance(result, DashboardConfigResponse)
         assert result.enable_outages_schedule is True
         assert result.outages_schedule_queue == "queue1"
-        assert result.outages_schedule.region == "Kyiv"
-        assert result.outages_schedule.dso == "Yasno"
+        assert result.outages_schedule.region_id == "Kyiv"
+        assert result.outages_schedule.dso_id == "Yasno"
+
+    @pytest.mark.asyncio
+    async def test_incomplete_enabled_schedule_is_returned_disabled(self):
+        settings = AsyncMock()
+        settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "Dashboard"})
+        )
+        settings.get_boolean = AsyncMock(return_value=True)
+        settings.get_value = AsyncMock(side_effect=[None, "Yasno"])
+        settings.get_text = AsyncMock(return_value="")
+        service = ReadOnlyDashboardService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            settings,
+        )
+
+        response = await service.get_config()
+
+        assert response.outages_schedule.enable is False
+        assert response.enable_outages_schedule is False
+
+    @pytest.mark.asyncio
+    async def test_get_config_normalizes_numeric_string_ids(self):
+        settings = AsyncMock()
+        settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "Dashboard"})
+        )
+        settings.get_boolean = AsyncMock(return_value=True)
+        settings.get_value = AsyncMock(side_effect=["25", "902"])
+        settings.get_text = AsyncMock(return_value="1.1")
+        service = ReadOnlyDashboardService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            settings,
+        )
+
+        response = await service.get_config()
+
+        assert response.outages_schedule.region_id == 25
+        assert response.outages_schedule.dso_id == 902
 
 
 class TestReadOnlyDashboardServiceProcessBuilding:

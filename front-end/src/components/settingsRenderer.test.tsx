@@ -10,6 +10,7 @@ const setting = {
   setting_type: "number" as const,
   default_value: 10,
   value: 10,
+  editable: true,
   validation: { min: 0, max: 100 },
   category: {
     id: "test_category",
@@ -117,6 +118,33 @@ describe("SettingsRenderer", () => {
 
   it("disables the rendered control when requested", () => {
     renderWithStore(<SettingsRenderer setting={setting} disabled />);
+    expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
+  });
+
+  it("disables a setting marked read-only and hides its reset action", () => {
+    const onChange = vi.fn();
+    const onReset = vi.fn();
+    renderWithStore(
+      <SettingsRenderer
+        setting={{ ...setting, editable: false, value: 20 }}
+        onChange={onChange}
+        onReset={onReset}
+        resettable
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Reset to Defaults" })).not.toBeInTheDocument();
+  });
+
+  it("shows a legacy name stored in a read-only numeric setting until it is resolved", () => {
+    renderWithStore(
+      <SettingsRenderer
+        setting={{ ...setting, editable: false, value: "Kyiv" }}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Test Setting" })).toHaveValue("Kyiv");
     expect(screen.getByRole("textbox", { name: "Test Setting" })).toBeDisabled();
   });
 

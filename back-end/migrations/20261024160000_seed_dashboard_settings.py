@@ -2,7 +2,14 @@ from beanie import free_fall_migration
 
 from shared.models.localizable_value import LocalizableValue
 from shared.models.system_setting import SystemSetting
-from shared.services.dashboard.config_settings import DASHBOARD_SETTING_KEYS
+
+DASHBOARD_SETTING_KEYS = (
+    "dashboard_title",
+    "dashboard_outages_schedule_enabled",
+    "dashboard_outages_schedule_region",
+    "dashboard_outages_schedule_dso",
+    "dashboard_outages_schedule_queue",
+)
 
 
 def dashboard_settings():
@@ -13,7 +20,7 @@ def dashboard_settings():
             description="Localized title shown on the dashboard",
             setting_type="localizable_text",
             default_value=LocalizableValue({"en": "Dashboard", "uk": "Панель керування"}),
-            value=LocalizableValue({}),
+            value=None,
             category="dashboard",
         ),
         SystemSetting(
@@ -22,7 +29,7 @@ def dashboard_settings():
             description="Show outage schedules on the dashboard",
             setting_type="boolean",
             default_value=False,
-            value=False,
+            value=None,
             category="dashboard",
         ),
         SystemSetting(
@@ -31,7 +38,7 @@ def dashboard_settings():
             description="Region used to fetch outage schedules",
             setting_type="text",
             default_value="",
-            value="",
+            value=None,
             category="dashboard",
         ),
         SystemSetting(
@@ -40,7 +47,7 @@ def dashboard_settings():
             description="Distribution system operator used to fetch outage schedules",
             setting_type="text",
             default_value="",
-            value="",
+            value=None,
             category="dashboard",
         ),
         SystemSetting(
@@ -49,7 +56,7 @@ def dashboard_settings():
             description="Queue configured for the outage schedule",
             setting_type="text",
             default_value="",
-            value="",
+            value=None,
             category="dashboard",
         ),
     ]

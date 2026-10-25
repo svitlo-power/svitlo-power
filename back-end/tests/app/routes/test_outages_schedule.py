@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from yarl import URL
 
 from app.routes.outages_schedule import register
+from app.utils.jwt_dependencies import get_current_jwt
 
 
 class TestOutagesScheduleRoute:
@@ -18,7 +19,7 @@ class TestOutagesScheduleRoute:
         routes = [r.path for r in app.routes]
         assert "/api/outagesSchedule/outagesSchedule/{queue}" in routes
         assert "/api/outagesSchedule/regions" in routes
-        assert "/api/outagesSchedule/providers/{region_name}" in routes
+        assert "/api/outagesSchedule/providers/{region_name:path}" in routes
         assert "/api/outagesSchedule/queues/{region_id}/{dso_id}" in routes
 
     def test_discovery_endpoints_return_yasno_options(self):
@@ -37,6 +38,7 @@ class TestOutagesScheduleRoute:
         )
         mock_service.fetch_queues = AsyncMock(return_value=["1.1", "1.2"])
         app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+        app.dependency_overrides[get_current_jwt] = lambda: {"sub": "test-user"}
 
         client = TestClient(app)
         assert client.get("/api/outagesSchedule/regions").json()[0]["value"] == "Kyiv"
@@ -44,6 +46,30 @@ class TestOutagesScheduleRoute:
             {"id": 902, "name": "Yasno"},
         ]
         assert client.get("/api/outagesSchedule/queues/25/902").json() == ["1.1", "1.2"]
+        mock_service.fetch_providers_for_region.assert_awaited_with("Kyiv")
+        app.dependency_overrides.clear()
+
+    def test_provider_endpoint_accepts_region_names_containing_slashes(self):
+        app = FastAPI()
+        register(app)
+        mock_service = MagicMock()
+        mock_service.fetch_providers_for_region = AsyncMock(return_value=[])
+        app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+        app.dependency_overrides[get_current_jwt] = lambda: {"sub": "test-user"}
+
+        response = TestClient(app).get("/api/outagesSchedule/providers/Region%2FName")
+
+        assert response.status_code == 200
+        mock_service.fetch_providers_for_region.assert_awaited_once_with("Region/Name")
+        app.dependency_overrides.clear()
+
+    def test_discovery_endpoints_require_authentication(self):
+        app = FastAPI()
+        register(app)
+
+        response = TestClient(app).get("/api/outagesSchedule/regions")
+
+        assert response.status_code in (401, 403)
 
     @pytest.mark.parametrize(
         ("method", "path", "upstream_error", "status_code"),
@@ -79,10 +105,12 @@ class TestOutagesScheduleRoute:
         mock_service = MagicMock()
         setattr(mock_service, method, AsyncMock(side_effect=upstream_error))
         app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+        app.dependency_overrides[get_current_jwt] = lambda: {"sub": "test-user"}
 
         response = TestClient(app).get(path)
 
         assert response.status_code == status_code
+        app.dependency_overrides.clear()
 
     def test_provider_endpoint_maps_unknown_region_to_not_found(self):
         app = FastAPI()
@@ -92,11 +120,13 @@ class TestOutagesScheduleRoute:
             side_effect=KeyError("Unknown YASNO region: Missing"),
         )
         app.state.injector = MagicMock(get=MagicMock(return_value=mock_service))
+        app.dependency_overrides[get_current_jwt] = lambda: {"sub": "test-user"}
 
         response = TestClient(app).get("/api/outagesSchedule/providers/Missing")
 
         assert response.status_code == 404
         assert "Unknown YASNO region: Missing" in response.json()["detail"]
+        app.dependency_overrides.clear()
 
     def test_get_outages_schedule_returns_data(self):
         """Test that get_outages_schedule returns schedule data."""

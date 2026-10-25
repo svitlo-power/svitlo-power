@@ -31,10 +31,10 @@ class Forward:
                     schedule and schedule.enable
                 ),
                 DASHBOARD_OUTAGES_SCHEDULE_REGION_SETTING_KEY: (
-                    schedule.region if schedule and schedule.region else ""
+                    schedule.region_id if schedule and schedule.region_id else ""
                 ),
                 DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY: (
-                    schedule.dso if schedule and schedule.dso else ""
+                    schedule.dso_id if schedule and schedule.dso_id else ""
                 ),
                 DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY: (
                     schedule.queue if schedule and schedule.queue else ""
@@ -69,8 +69,8 @@ class Backward:
             title=title if isinstance(title, LocalizableValue) else LocalizableValue.model_validate(title),
             outages_schedule=OutagesScheduleConfig(
                 enable=bool(enabled),
-                region=region or None,
-                dso=dso or None,
+                region_id=region or None,
+                dso_id=dso or None,
                 queue=queue or None,
             ),
         ).insert(session=session)

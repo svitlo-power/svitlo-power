@@ -35,6 +35,8 @@ def test_dashboard_setting_migration_definitions():
         "en": "Dashboard",
         "uk": "Панель керування",
     }
+    assert settings[0].value is None
+    assert all(setting.value is None for setting in settings)
     assert all(setting.category_id is None for setting in settings)
 
 
@@ -175,8 +177,8 @@ async def test_dashboard_config_migration_backward_restores_document_from_settin
     assert restored_configs[0].title == setting_values[0]
     assert restored_configs[0].outages_schedule == OutagesScheduleConfig(
         enable=True,
-        region="Kyiv",
-        dso="Yasno",
+        region_id="Kyiv",
+        dso_id="Yasno",
         queue="1.3",
     )
 
@@ -240,3 +242,53 @@ async def test_localizable_settings_migration_localizes_and_links_settings():
     assert first_update.args[1]["$unset"] == {"category": ""}
     second_update = collection.update_one.await_args_list[1]
     assert second_update.args[1]["$set"]["category_id"] == categories["dashboard"].id
+
+
+@pytest.mark.asyncio
+async def test_schedule_settings_migration_makes_location_ids_and_queue_read_only():
+    migration = load_migration(
+        "20261025002700_schedule_ids_and_setting_editability.py",
+        "schedule_ids_and_setting_editability",
+    )
+    settings = {
+        migration.REGION_SETTING_KEY: MagicMock(
+            value="Київ",
+            default_value="",
+            setting_type="text",
+            editable=True,
+            save=AsyncMock(),
+        ),
+        migration.DSO_SETTING_KEY: MagicMock(
+            value="ДТЕК",
+            default_value="",
+            setting_type="text",
+            editable=True,
+            save=AsyncMock(),
+        ),
+        migration.QUEUE_SETTING_KEY: MagicMock(
+            value="1.1",
+            setting_type="text",
+            editable=True,
+            save=AsyncMock(),
+        ),
+    }
+
+    with patch.object(
+        SystemSetting,
+        "find_one",
+        new_callable=AsyncMock,
+        side_effect=list(settings.values()),
+    ):
+        await migration.Forward.use_ids_for_schedule_location.function(
+            migration.Forward(),
+            "session",
+        )
+
+    assert settings[migration.REGION_SETTING_KEY].value == "Київ"
+    assert settings[migration.REGION_SETTING_KEY].editable is False
+    assert settings[migration.REGION_SETTING_KEY].setting_type == "number"
+    assert settings[migration.DSO_SETTING_KEY].editable is False
+    assert settings[migration.DSO_SETTING_KEY].setting_type == "number"
+    assert settings[migration.QUEUE_SETTING_KEY].editable is False
+    for setting in settings.values():
+        setting.save.assert_awaited_once_with(session="session")

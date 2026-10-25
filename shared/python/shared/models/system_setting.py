@@ -42,6 +42,7 @@ class SystemSetting(Document):
     default_value: SystemSettingValue = Field(..., description="Default value")
     value: Optional[SystemSettingValue] = Field(None, description="Current value (overrides default)")
     validation: Optional[dict] = Field(None, description="Validation rules (min/max for numbers, regex for text, options for select)")
+    editable: bool = Field(True, description="Whether this setting can be changed in the generic settings UI")
     category_id: Optional[PydanticObjectId] = Field(
         None,
         description="Referenced system setting category",
@@ -76,6 +77,7 @@ class SystemSetting(Document):
                 "default_value": 10,
                 "value": 10,
                 "validation": {"min": 0, "max": 100},
+                "editable": True,
                 "category_id": "64a1a1a1a1a1a1a1a1a1a1a1",
             }
         }

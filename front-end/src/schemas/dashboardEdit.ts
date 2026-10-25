@@ -1,10 +1,14 @@
 import * as v from 'valibot';
 import { localizableValueSchema, LocalizableValue } from './base';
+import {
+  LEGACY_YASNO_PROVIDER_NAME,
+  LEGACY_YASNO_REGION_NAME,
+} from '../constants/outagesSchedule';
 
 export const outagesScheduleSchema = v.object({
   enable: v.boolean(),
-  region: v.nullable(v.string()),
-  dso: v.nullable(v.string()),
+  regionId: v.nullable(v.union([v.number(), v.string()])),
+  dsoId: v.nullable(v.union([v.number(), v.string()])),
   queue: v.nullable(v.string()),
 });
 
@@ -15,8 +19,8 @@ export const dashboardEditSchema = v.pipe(
   }),
   v.check(
     ({ outagesSchedule }) => !outagesSchedule.enable || Boolean(
-      outagesSchedule.region?.trim()
-      && outagesSchedule.dso?.trim()
+      outagesSchedule.regionId !== null
+      && outagesSchedule.dsoId !== null
       && outagesSchedule.queue?.trim(),
     ),
     'validation.outagesScheduleSelectionRequired',
@@ -37,8 +41,8 @@ export const toDashboardEditConfig = (config: DashboardConfigInput): DashboardEd
   title: config.title,
   outagesSchedule: config.outagesSchedule ?? {
     enable: config.enableOutagesSchedule ?? false,
-    region: config.enableOutagesSchedule ? 'Kyiv' : null,
-    dso: config.enableOutagesSchedule ? 'Yasno' : null,
+    regionId: config.enableOutagesSchedule ? LEGACY_YASNO_REGION_NAME : null,
+    dsoId: config.enableOutagesSchedule ? LEGACY_YASNO_PROVIDER_NAME : null,
     queue: config.enableOutagesSchedule ? config.outagesScheduleQueue ?? null : null,
   },
 });

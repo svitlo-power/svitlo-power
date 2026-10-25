@@ -1,9 +1,15 @@
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Group, Loader, Select, Stack, Stepper, Text } from "@mantine/core";
 import { TFunction } from "i18next";
 import { OutagesScheduleConfig } from "../../../schemas/dashboardEdit";
 import { getErrorMessage } from "../../../utils";
 import apiClient from "../../../utils/apiClient";
+import {
+  LEGACY_YASNO_PROVIDER_ID,
+  LEGACY_YASNO_PROVIDER_NAME,
+  LEGACY_YASNO_REGION_ID,
+  LEGACY_YASNO_REGION_NAME,
+} from "../../../constants/outagesSchedule";
 
 type RegionOption = {
   id: number;
@@ -16,6 +22,14 @@ type ProviderOption = {
   name: string;
 };
 
+const matchesIdOrLegacyName = (
+  savedValue: number | string | null,
+  id: number,
+  legacyName: string,
+) => savedValue === id
+  || savedValue === String(id)
+  || savedValue === legacyName;
+
 type OutagesScheduleSelectionProps = {
   value: OutagesScheduleConfig;
   t: TFunction;
@@ -27,7 +41,7 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
   t,
   onChange,
 }) => {
-  const { region, dso, queue } = value;
+  const { regionId, dsoId, queue } = value;
   const [regions, setRegions] = useState<RegionOption[]>([]);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [queues, setQueues] = useState<string[]>([]);
@@ -36,50 +50,54 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [loadingQueues, setLoadingQueues] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const currentValue = useRef(value);
+  const onChangeRef = useRef(onChange);
+  const translateRef = useRef(t);
+
+  useEffect(() => {
+    currentValue.current = value;
+    onChangeRef.current = onChange;
+    translateRef.current = t;
+  }, [onChange, t, value]);
 
   const selectedRegion = useMemo(
-    () => regions.find((item) => item.value === region),
-    [regions, region],
+    () => regions.find((item) => matchesIdOrLegacyName(regionId, item.id, item.value)),
+    [regions, regionId],
   );
   const selectedProvider = useMemo(
-    () => providers.find((item) => item.name === dso),
-    [providers, dso],
+    () => providers.find((item) => matchesIdOrLegacyName(dsoId, item.id, item.name)),
+    [providers, dsoId],
   );
-  const matchesInitialRegion = Boolean(
-    selectedRegion
-    && (
-      selectedRegion.value === region
-      || (region === 'Kyiv' && selectedRegion.id === 25)
-    ),
-  );
-  const matchesInitialProvider = Boolean(
-    selectedProvider
-    && (
-      selectedProvider.name === dso
-      || (dso === 'Yasno' && selectedProvider.id === 902)
-    ),
-  );
-
   useEffect(() => {
     let active = true;
     apiClient.get<RegionOption[]>('/outagesSchedule/regions')
       .then(({ data }) => {
         if (!active) return;
         setRegions(data);
-        if (region) {
-          const savedRegion = data.find((item) => item.value === region)
-            ?? (region === 'Kyiv' ? data.find((item) => item.id === 25) : undefined);
+        const currentRegion = currentValue.current.regionId;
+        if (currentRegion) {
+          const savedRegion = data.find((item) =>
+            matchesIdOrLegacyName(currentRegion, item.id, item.value))
+            ?? (currentRegion === LEGACY_YASNO_REGION_NAME
+              ? data.find((item) => item.id === LEGACY_YASNO_REGION_ID)
+              : undefined);
           if (savedRegion) {
-            if (savedRegion.value !== region) {
-              onChange({ region: savedRegion.value });
+            if (savedRegion.id !== currentRegion) {
+              onChangeRef.current({ regionId: savedRegion.id });
             }
             setLoadingProviders(true);
-            setStep(dso && queue ? 2 : 1);
+            setStep(
+              currentValue.current.dsoId && currentValue.current.queue ? 2 : 1,
+            );
           }
         }
       })
       .catch((error: unknown) => {
-        if (active) setDiscoveryError(getErrorMessage(error) || t('dashboardEdit.discoveryError'));
+        if (active) {
+          setDiscoveryError(
+            getErrorMessage(error) || translateRef.current('dashboardEdit.discoveryError'),
+          );
+        }
       })
       .finally(() => {
         if (active) setLoadingRegions(false);
@@ -91,30 +109,42 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selectedRegionValue = selectedRegion?.value;
   useEffect(() => {
-    if (!selectedRegion) return;
+    if (!selectedRegionValue) {
+      setProviders([]);
+      setLoadingProviders(false);
+      return;
+    }
     let active = true;
+    setLoadingProviders(true);
     apiClient.get<ProviderOption[]>(
-      `/outagesSchedule/providers/${encodeURIComponent(selectedRegion.value)}`,
+      `/outagesSchedule/providers/${encodeURIComponent(selectedRegionValue)}`,
     )
       .then(({ data }) => {
         if (!active) return;
         setProviders(data);
-        const savedProvider = matchesInitialRegion
-          ? data.find((provider) => provider.name === dso)
-            ?? (dso === 'Yasno' ? data.find((provider) => provider.id === 902) : undefined)
-          : undefined;
-        const nextProvider = savedProvider ?? (data.length === 1 ? data[0] : undefined);
+        const currentDso = currentValue.current.dsoId;
+        const nextProvider = data.find((provider) =>
+          matchesIdOrLegacyName(currentDso, provider.id, provider.name))
+          ?? (currentDso === LEGACY_YASNO_PROVIDER_NAME
+            ? data.find((provider) => provider.id === LEGACY_YASNO_PROVIDER_ID)
+            : undefined)
+          ?? (!currentDso && data.length === 1 ? data[0] : undefined);
         if (nextProvider) {
-          if (nextProvider.name !== dso) {
-            onChange({ dso: nextProvider.name });
+          if (nextProvider.id !== currentDso) {
+            onChangeRef.current({ dsoId: nextProvider.id });
           }
           setLoadingQueues(true);
           if (data.length === 1) setStep(2);
         }
       })
       .catch((error: unknown) => {
-        if (active) setDiscoveryError(getErrorMessage(error) || t('dashboardEdit.discoveryError'));
+        if (active) {
+          setDiscoveryError(
+            getErrorMessage(error) || translateRef.current('dashboardEdit.discoveryError'),
+          );
+        }
       })
       .finally(() => {
         if (active) setLoadingProviders(false);
@@ -122,23 +152,35 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
     return () => {
       active = false;
     };
-  }, [dso, matchesInitialRegion, onChange, region, selectedRegion, t]);
+  }, [selectedRegionValue]);
 
+  const selectedRegionId = selectedRegion?.id;
+  const selectedProviderId = selectedProvider?.id;
   useEffect(() => {
-    if (!selectedRegion || !selectedProvider) return;
+    if (selectedRegionId === undefined || selectedProviderId === undefined) {
+      setQueues([]);
+      setLoadingQueues(false);
+      return;
+    }
     let active = true;
+    setLoadingQueues(true);
     apiClient.get<string[]>(
-      `/outagesSchedule/queues/${selectedRegion.id}/${selectedProvider.id}`,
+      `/outagesSchedule/queues/${selectedRegionId}/${selectedProviderId}`,
     )
       .then(({ data }) => {
         if (!active) return;
         setQueues(data);
-        if (matchesInitialRegion && matchesInitialProvider && queue && !data.includes(queue)) {
-          onChange({ queue: null });
+        const currentQueue = currentValue.current.queue;
+        if (currentQueue && !data.includes(currentQueue)) {
+          onChangeRef.current({ queue: null });
         }
       })
       .catch((error: unknown) => {
-        if (active) setDiscoveryError(getErrorMessage(error) || t('dashboardEdit.discoveryError'));
+        if (active) {
+          setDiscoveryError(
+            getErrorMessage(error) || translateRef.current('dashboardEdit.discoveryError'),
+          );
+        }
       })
       .finally(() => {
         if (active) setLoadingQueues(false);
@@ -146,36 +188,29 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
     return () => {
       active = false;
     };
-  }, [
-    matchesInitialProvider,
-    matchesInitialRegion,
-    onChange,
-    selectedProvider,
-    selectedRegion,
-    queue,
-    region,
-    t,
-  ]);
+  }, [selectedProviderId, selectedRegionId]);
 
-  const handleRegionChange = (regionName: string | null) => {
+  const handleRegionChange = (regionIdValue: string | null) => {
+    const regionId = regionIdValue === null ? null : Number(regionIdValue);
     onChange({
-      region: regionName,
-      dso: null,
+      regionId,
+      dsoId: null,
       queue: null,
     });
-    setLoadingProviders(Boolean(regionName));
+    setLoadingProviders(regionId !== null);
     setLoadingQueues(false);
     setProviders([]);
     setQueues([]);
-    setStep(1);
+    setStep((currentStep) => currentStep === 2 ? 1 : currentStep);
   };
 
-  const handleProviderChange = (providerName: string | null) => {
+  const handleProviderChange = (providerIdValue: string | null) => {
+    const dsoId = providerIdValue === null ? null : Number(providerIdValue);
     onChange({
-      dso: providerName,
+      dsoId,
       queue: null,
     });
-    setLoadingQueues(Boolean(providerName));
+    setLoadingQueues(dsoId !== null);
     setQueues([]);
     setStep(2);
   };
@@ -188,69 +223,77 @@ export const OutagesScheduleSelection: FC<OutagesScheduleSelectionProps> = ({
           <Text>{t('dashboardEdit.loading')}</Text>
         </Group>
       ) : (
-      <Stepper
-        active={step}
-        onStepClick={setStep}
-        allowNextStepsSelect={false}
-        size="xs"
-        iconSize={16}
-      >
-        <Stepper.Step label={t('dashboardEdit.region')}>
-          <Select
-            label={t('dashboardEdit.region')}
-            placeholder={t('dashboardEdit.selectRegion')}
-            data={regions}
-            value={region}
-            onChange={handleRegionChange}
-            searchable
-          />
-        </Stepper.Step>
-        <Stepper.Step label={t('dashboardEdit.provider')}>
-          <Stack gap="xs">
+        <Stepper
+          active={step}
+          onStepClick={setStep}
+          allowNextStepsSelect={false}
+          size="xs"
+          iconSize={16}
+        >
+          <Stepper.Step label={t('dashboardEdit.region')}>
             <Select
-              label={t('dashboardEdit.provider')}
-              placeholder={t('dashboardEdit.selectProvider')}
-              data={providers.map((provider) => ({ value: provider.name, label: provider.name }))}
-              value={dso}
-              onChange={handleProviderChange}
-              disabled={loadingProviders || !selectedRegion}
-              rightSection={loadingProviders ? <Loader size="xs" /> : undefined}
+              label={t('dashboardEdit.region')}
+              placeholder={t('dashboardEdit.selectRegion')}
+              data={regions.map((item) => ({ value: String(item.id), label: item.label }))}
+              value={selectedRegion ? String(selectedRegion.id) : null}
+              onChange={handleRegionChange}
+              searchable
             />
-            <Group justify="space-between">
-              <Button variant="default" onClick={() => setStep(0)}>{t('button.back')}</Button>
-              <Button onClick={() => setStep(2)} disabled={!dso}>{t('button.next')}</Button>
+            <Group justify="flex-end" mt="xs">
+              <Button
+                onClick={() => setStep(1)}
+                disabled={!regionId || loadingProviders}
+                loading={loadingProviders}
+              >
+                {t('button.next')}
+              </Button>
             </Group>
-          </Stack>
-        </Stepper.Step>
-        <Stepper.Step label={t('dashboardEdit.queue')}>
-          <Stack gap="xs">
-            <Select
-              label={t('dashboardEdit.queue')}
-              placeholder={t('dashboardEdit.selectQueue')}
-              data={queues}
-              value={queue}
-              onChange={(queue) => onChange({ queue })}
-              disabled={loadingQueues || !selectedProvider}
-              rightSection={loadingQueues ? <Loader size="xs" /> : undefined}
-            />
-            <Text size="sm" c="dimmed">
-              {t('dashboardEdit.selectionSummary', {
-                region: region || '-',
-                provider: dso || '-',
-                queue: queue || '-',
-              })}
-            </Text>
-            <Group justify="space-between">
-              <Button variant="default" onClick={() => setStep(1)}>{t('button.back')}</Button>
-            </Group>
-          </Stack>
-        </Stepper.Step>
-        <Stepper.Completed>{null}</Stepper.Completed>
-      </Stepper>
+          </Stepper.Step>
+          <Stepper.Step label={t('dashboardEdit.provider')}>
+            <Stack gap="xs">
+              <Select
+                label={t('dashboardEdit.provider')}
+                placeholder={t('dashboardEdit.selectProvider')}
+                data={providers.map((provider) => ({ value: String(provider.id), label: provider.name }))}
+                value={selectedProvider ? String(selectedProvider.id) : null}
+                onChange={handleProviderChange}
+                disabled={loadingProviders || !selectedRegion}
+                rightSection={loadingProviders ? <Loader size="xs" /> : undefined}
+              />
+              <Group justify="space-between">
+                <Button variant="default" onClick={() => setStep(0)}>{t('button.back')}</Button>
+                <Button onClick={() => setStep(2)} disabled={!dsoId}>
+                  {t('button.next')}
+                </Button>
+              </Group>
+            </Stack>
+          </Stepper.Step>
+          <Stepper.Step label={t('dashboardEdit.queue')}>
+            <Stack gap="xs">
+              <Select
+                label={t('dashboardEdit.queue')}
+                placeholder={t('dashboardEdit.selectQueue')}
+                data={queues}
+                value={queue}
+                onChange={(queue) => onChange({ queue })}
+                disabled={loadingQueues || !selectedProvider}
+                rightSection={loadingQueues ? <Loader size="xs" /> : undefined}
+              />
+              <Text size="sm" c="dimmed">
+                {t('dashboardEdit.selectionSummary', {
+                  region: selectedRegion?.label || '-',
+                  provider: selectedProvider?.name || '-',
+                  queue: queue || '-',
+                })}
+              </Text>
+              <Group justify="space-between">
+                <Button variant="default" onClick={() => setStep(1)}>{t('button.back')}</Button>
+              </Group>
+            </Stack>
+          </Stepper.Step>
+          <Stepper.Completed>{null}</Stepper.Completed>
+        </Stepper>
       )}
-      {step === 0 && <Group justify="flex-end">
-        {!loadingRegions && <Button onClick={() => setStep(1)} disabled={!region}>{t('button.next')}</Button>}
-      </Group>}
       {discoveryError && <Alert color="red">{discoveryError}</Alert>}
     </Stack>
   );
