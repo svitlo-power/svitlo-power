@@ -9,7 +9,7 @@ on:
     - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch:  # Manual trigger
 
-# Force workflow refresh
+# Force workflow refresh - 2026-10-25
 # Updated: 2026-10-25
 
 permissions:
