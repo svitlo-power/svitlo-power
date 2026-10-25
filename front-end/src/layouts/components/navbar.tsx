@@ -230,7 +230,7 @@ export const Navbar: FC<NavbarProps> = ({ t, user, isNavbarCollapsed, toggleNavb
                 </Menu.Dropdown>
               </Menu>
               <ThemePicker isNavbarCollapsed={isNavbarCollapsed} />
-              <VersionDisplay />
+              {!isNavbarCollapsed && <VersionDisplay />}
             </Stack>
           </Group>
         </Stack>

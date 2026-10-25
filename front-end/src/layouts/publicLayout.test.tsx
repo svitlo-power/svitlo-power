@@ -99,13 +99,20 @@ describe("PublicLayout", () => {
 
   it("renders VersionDisplay in footer on desktop", () => {
     renderPublicLayout();
-    expect(screen.getByTestId("navbar-version-label")).toBeInTheDocument();
+    expect(screen.getAllByTestId("navbar-version-label")).toHaveLength(2);
   });
 
-  it("renders Authors and VisitTracker in footer", () => {
+  it("renders the shared footer in both responsive layouts", () => {
     renderPublicLayout();
-    expect(screen.getByTestId("authors")).toBeInTheDocument();
-    expect(screen.getByTestId("visit-tracker")).toBeInTheDocument();
+    const mobileFooter = screen.getByTestId("mobile-public-footer");
+    const desktopFooter = screen.getByTestId("desktop-public-footer");
+
+    expect(mobileFooter).toHaveClass("mantine-hidden-from-md");
+    expect(mobileFooter.closest(".mantine-AppShell-main")).not.toBeNull();
+    expect(desktopFooter).toHaveClass("mantine-AppShell-footer", "mantine-visible-from-md");
+    expect(desktopFooter.closest(".mantine-AppShell-main")).toBeNull();
+    expect(screen.getAllByTestId("authors")).toHaveLength(2);
+    expect(screen.getAllByTestId("visit-tracker")).toHaveLength(2);
   });
 
   // Skip complex interaction tests - they require specific DOM state that is hard to replicate in jsdom

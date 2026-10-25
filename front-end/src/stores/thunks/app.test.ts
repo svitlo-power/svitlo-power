@@ -1,14 +1,15 @@
 import { vi } from "vitest";
-import { setVersion } from "../slices/app";
+import { setBackendVersion, setVersion } from "../slices/app";
 
-const { mockGet } = vi.hoisted(() => ({
+const { mockGet, mockBackendGet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
+  mockBackendGet: vi.fn(),
 }));
 
 vi.mock("axios", () => ({
   default: {
-    create: vi.fn(() => ({
-      get: mockGet,
+    create: vi.fn(({ baseURL }: { baseURL: string }) => ({
+      get: baseURL === "/api" ? mockBackendGet : mockGet,
     })),
   },
 }));
@@ -21,6 +22,8 @@ describe("fetchAppVersion thunk", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGet.mockResolvedValue({ data: "2026.10.01", status: 200 });
+    mockBackendGet.mockResolvedValue({ data: "2026.10.02", status: 200 });
   });
 
   const createThunkAPI = () => ({
@@ -47,6 +50,8 @@ describe("fetchAppVersion thunk", () => {
 
     expect(mockGet).toHaveBeenCalledWith("/version");
     expect(mockDispatch).toHaveBeenCalledWith(setVersion("2026.10.01"));
+    expect(mockBackendGet).toHaveBeenCalledWith("/version");
+    expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
   });
 
   it("should not dispatch setVersion on failed fetch", async () => {
@@ -57,11 +62,16 @@ describe("fetchAppVersion thunk", () => {
     expect(mockDispatch).not.toHaveBeenCalledWith(
       setVersion(expect.anything())
     );
+    expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
   });
 
-  it("should not dispatch setVersion on non-200 status", async () => {
+  it("should not dispatch a version on non-200 status", async () => {
     mockGet.mockResolvedValue({
       data: "2026.10.01",
+      status: 404,
+    });
+    mockBackendGet.mockResolvedValue({
+      data: "2026.10.02",
       status: 404,
     });
 
@@ -69,6 +79,9 @@ describe("fetchAppVersion thunk", () => {
 
     expect(mockDispatch).not.toHaveBeenCalledWith(
       setVersion(expect.anything())
+    );
+    expect(mockDispatch).not.toHaveBeenCalledWith(
+      setBackendVersion(expect.anything())
     );
   });
 });

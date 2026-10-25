@@ -1,7 +1,7 @@
-import { appReducer, setVersion } from "./app";
+import { appReducer, setBackendVersion, setVersion } from "./app";
 
 describe("app slice", () => {
-  const initialState = { version: "0000.00.00" };
+  const initialState = { version: "0000.00.00", backendVersion: "0000.00.00" };
 
   it("should return initial state", () => {
     expect(appReducer(undefined, { type: "unknown" })).toEqual(initialState);
@@ -12,6 +12,11 @@ describe("app slice", () => {
     const action = setVersion(newVersion);
     const state = appReducer(initialState, action);
     expect(state.version).toBe(newVersion);
+  });
+
+  it("should set backend version", () => {
+    const state = appReducer(initialState, setBackendVersion("2026.10.02"));
+    expect(state.backendVersion).toBe("2026.10.02");
   });
 
   it("should handle multiple version updates", () => {

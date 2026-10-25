@@ -1,17 +1,14 @@
 import { FC, ReactNode, useEffect, useState } from "react";
-import { Anchor, AppShell, Box, Container, Group, Image, SimpleGrid, Stack, Transition, useMantineColorScheme, Button, Menu, ActionIcon } from "@mantine/core";
+import { Anchor, AppShell, Box, Container, Group, Image, Transition, useMantineColorScheme, Button, Menu, ActionIcon } from "@mantine/core";
 import { CountryFlag, LangPicker, ThemePicker } from "../components";
 import classes from './styles/publicLayout.module.css';
-import { VisitTracker } from "./components/visitTracker";
-import { Authors } from "./components/authors";
+import { PublicFooter } from "./components/publicFooter";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import iconDark from "../assets/icon_dark_with_text.png";
 import iconLight from "../assets/icon_light_with_text.png";
 import { usePageTranslation } from "../utils";
 import { useSubscribeEvent } from "../hooks";
 import { EventType } from "../types";
-import { VersionDisplay } from "./components/versionDisplay";
-import { useTranslation } from "react-i18next";
 
 type PublicLayoutProps = {
   children: ReactNode;
@@ -51,11 +48,9 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
   });
 
   const t = usePageTranslation('common');
-  const { t: privacyPolicyT } = useTranslation('privacyPolicy');
-  const currentYear = new Date().getFullYear();
-
   return <AppShell
       header={{ height: 60 }}
+      footer={{ height: { base: 0, md: 40 } }}
       layout="default"
     >
       <AppShell.Header
@@ -129,20 +124,12 @@ export const PublicLayout: FC<PublicLayoutProps> = ({ children }) => {
         <Box className={classes.main} pt="md" pb="md">
           {children}
         </Box>
-        <footer className={classes.footer}>
-          <SimpleGrid className={'mantine-AppShell-footer'} h="100%" verticalSpacing={0} spacing={0} p={0} ta="center" cols={{ base: 1, md: 3 }} style={{ alignItems: "center" }}>
-            <Authors />
-            <Stack gap={0} align="center" justify="center">
-              <Group gap={6} justify="center" align="center">
-                <Anchor href="/privacy-policy" size="xs">{privacyPolicyT('title')}</Anchor>
-                <Box fz="xs">|</Box>
-                <Box fz="xs">© Svitlo Power {currentYear}</Box>
-              </Group>
-              <VersionDisplay compact />
-            </Stack>
-            <VisitTracker />
-          </SimpleGrid>
-        </footer>
+        <Box component="footer" className={classes.footer} hiddenFrom="md" data-testid="mobile-public-footer">
+          <PublicFooter />
+        </Box>
       </AppShell.Main>
+      <AppShell.Footer className={classes.footer} visibleFrom="md" data-testid="desktop-public-footer">
+        <PublicFooter />
+      </AppShell.Footer>
     </AppShell>;
 };
