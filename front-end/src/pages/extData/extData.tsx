@@ -1,13 +1,35 @@
-import { FC, useCallback, useEffect, useMemo, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { ExtDataItem } from "../../stores/types";
-import { connect } from "react-redux";
-import { RootState, useAppDispatch } from "../../stores/store";
-import { createExtData, deleteExtData, ExtDataRequest, fetchExtData } from "../../stores/thunks";
+import { shallowEqual } from "react-redux";
+import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import {
+  createExtData,
+  deleteExtData,
+  ExtDataRequest,
+  fetchExtData,
+} from "../../stores/thunks";
 import { DataTable, ErrorMessage, Page } from "../../components";
-import { ColumnDataType, EventType, FilterConfig, LookupSchema, PagingConfig, PagingInfo, SortingConfig } from "../../types";
+import {
+  ColumnDataType,
+  EventType,
+  FilterConfig,
+  LookupSchema,
+  PagingConfig,
+  PagingInfo,
+  SortingConfig,
+} from "../../types";
 import { usePageTranslation } from "../../utils";
 import { Column } from "@tanstack/react-table";
-import { Button, Group, Modal, Select, Stack, Switch, Text, Tooltip } from "@mantine/core";
+import {
+  Button,
+  Group,
+  Modal,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { modals } from "@mantine/modals";
 import { DateTimePicker } from "@mantine/dates";
@@ -29,9 +51,14 @@ const mapStateToProps = (state: RootState): ComponentProps => ({
   error: state.extData.error,
 });
 
-const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) => {
+const Component: FC<ComponentProps> = ({
+  extData,
+  pagingInfo,
+  loading,
+  error,
+}) => {
   const dispatch = useAppDispatch();
-  const t = usePageTranslation('extData');
+  const t = usePageTranslation("extData");
   const [modalOpened, setModalOpened] = useState(false);
   const [formData, setFormData] = useState({
     user_id: null as ObjectId | null,
@@ -40,21 +67,27 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
   });
 
   const fetchData = useCallback(
-    (paging?: PagingConfig, sorting?: SortingConfig, filters?: FilterConfig[]) => {
+    (
+      paging?: PagingConfig,
+      sorting?: SortingConfig,
+      filters?: FilterConfig[],
+    ) => {
       const request: ExtDataRequest = {
         paging: paging!,
         sorting: sorting!,
         filters: filters!,
       };
-      dispatch(fetchExtData(request))
+      dispatch(fetchExtData(request));
     },
     [dispatch],
   );
 
-  const { loading: lookupLoading, data: userLookup } = useLookup(LookupSchema.ReporterUser);
+  const { loading: lookupLoading, data: userLookup } = useLookup(
+    LookupSchema.ReporterUser,
+  );
 
   const userLookupOptions = useMemo(() => {
-    return userLookup.map(user => ({
+    return userLookup.map((user) => ({
       value: String(user.value),
       label: user.text,
     }));
@@ -62,10 +95,10 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
 
   const UserFilter = (column: Column<ExtDataItem, unknown>) => {
     const value = column.getFilterValue() as string | undefined;
-    
+
     return (
       <Select
-        placeholder={t('filters.allUsers')}
+        placeholder={t("filters.allUsers")}
         data={userLookupOptions}
         value={value || null}
         onChange={(val) => column.setFilterValue(val || undefined)}
@@ -77,13 +110,13 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
 
   const GridStateFilter = (column: Column<ExtDataItem, unknown>) => {
     const value = column.getFilterValue() as string | undefined;
-    
+
     return (
       <Select
-        placeholder={t('filters.all')}
+        placeholder={t("filters.all")}
         data={[
-          { value: 'true', label: t('gridState.optionOn') },
-          { value: 'false', label: t('gridState.optionOff') }
+          { value: "true", label: t("gridState.optionOn") },
+          { value: "false", label: t("gridState.optionOff") },
         ]}
         value={value || null}
         onChange={(val) => column.setFilterValue(val || undefined)}
@@ -110,7 +143,11 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
   const handleCreate = useCallback(() => {
     if (!formData.user_id) return;
 
-    const data: { user_id: ObjectId; grid_state: boolean; received_at?: string } = {
+    const data: {
+      user_id: ObjectId;
+      grid_state: boolean;
+      received_at?: string;
+    } = {
       user_id: formData.user_id,
       grid_state: formData.grid_state,
     };
@@ -132,43 +169,67 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
         handleCloseModal();
       })
       .catch((err) => {
-        console.error('Failed to create ext data:', err);
+        console.error("Failed to create ext data:", err);
       });
-  }, [formData.user_id, formData.grid_state, formData.received_at, dispatch, handleCloseModal]);
+  }, [
+    formData.user_id,
+    formData.grid_state,
+    formData.received_at,
+    dispatch,
+    handleCloseModal,
+  ]);
 
-  const getUserName = useCallback((userId?: ObjectId): string => {
-    return userLookup?.find(f => f.value === userId)?.text ?? 'unknown';
-  }, [userLookup]);
+  const getUserName = useCallback(
+    (userId?: ObjectId): string => {
+      return userLookup?.find((f) => f.value === userId)?.text ?? "unknown";
+    },
+    [userLookup],
+  );
 
-  const handleDelete = useCallback((item: ExtDataItem) => {
-    if (!item.id) {
-      return;
-    }
-    modals.openConfirmModal({
-      title: t('modal.deleteConfirmTitle'),
-      children: t('modal.deleteConfirmMessage', {
-        user: getUserName(item.userId),
-        state: item.gridState ? t('gridState.on') : t('gridState.off')
-      }),
-      labels: { confirm: t('button.delete') ?? 'Delete', cancel: t('button.cancel') ?? 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => {
-        dispatch(deleteExtData(item.id!))
-          .unwrap()
-          .then(() => refresh())
-          .catch((err) => {
-            console.error('Failed to delete ext data:', err);
-          });
+  const handleDelete = useCallback(
+    (item: ExtDataItem) => {
+      if (!item.id) {
+        return;
+      }
+      modals.openConfirmModal({
+        title: t("modal.deleteConfirmTitle"),
+        children: t("modal.deleteConfirmMessage", {
+          user: getUserName(item.userId),
+          state: item.gridState ? t("gridState.on") : t("gridState.off"),
+        }),
+        labels: {
+          confirm: t("button.delete") ?? "Delete",
+          cancel: t("button.cancel") ?? "Cancel",
+        },
+        confirmProps: { color: "red" },
+        onConfirm: () => {
+          dispatch(deleteExtData(item.id!))
+            .unwrap()
+            .then(() => refresh())
+            .catch((err) => {
+              console.error("Failed to delete ext data:", err);
+            });
+        },
+      });
+    },
+    [dispatch, getUserName, refresh, t],
+  );
+
+  const getHeaderButtons = useCallback(
+    (): PageHeaderButton[] => [
+      {
+        text: t("button.createEvent"),
+        icon: "add",
+        color: "teal",
+        onClick: handleOpenCreateModal,
+        disabled: false,
       },
-    });
-  }, [dispatch, getUserName, refresh, t]);
-
-  const getHeaderButtons = useCallback((): PageHeaderButton[] => [
-    { text: t('button.createEvent'), icon: "add", color: "teal", onClick: handleOpenCreateModal, disabled: false },
-  ], [handleOpenCreateModal, t]);
+    ],
+    [handleOpenCreateModal, t],
+  );
 
   const { setHeaderButtons } = useHeaderContent();
-  
+
   useEffect(() => {
     setHeaderButtons(getHeaderButtons());
     return () => setHeaderButtons([]);
@@ -189,7 +250,7 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
           data={extData}
           fetchAction={fetchData}
           refreshKey={refreshKey}
-          defSort={[{ id: 'received_at', desc: true }]}
+          defSort={[{ id: "received_at", desc: true }]}
           useFilters={true}
           usePagination={true}
           manualPagination={true}
@@ -197,26 +258,26 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
           manualSorting={true}
           pagingInfo={pagingInfo}
           columns={[
-              {
-                id: 'user_id',
-                header: t('table.user'),
-                accessorKey: 'userId',
-                enableSorting: true,
-                enableColumnFilter: true,
-                meta: {
-                  dataType: ColumnDataType.Id,
-                  filterOptions: {
-                    customFilterCell: UserFilter,
-                  },
-                },
-                cell: ({ row }) => {
-                  return <Text>{getUserName(row.original.userId)}</Text>
-                }
-              },
             {
-              id: 'grid_state',
-              header: t('table.gridState'),
-              accessorKey: 'gridState',
+              id: "user_id",
+              header: t("table.user"),
+              accessorKey: "userId",
+              enableSorting: true,
+              enableColumnFilter: true,
+              meta: {
+                dataType: ColumnDataType.Id,
+                filterOptions: {
+                  customFilterCell: UserFilter,
+                },
+              },
+              cell: ({ row }) => {
+                return <Text>{getUserName(row.original.userId)}</Text>;
+              },
+            },
+            {
+              id: "grid_state",
+              header: t("table.gridState"),
+              accessorKey: "gridState",
               enableColumnFilter: true,
               enableSorting: true,
               meta: {
@@ -230,12 +291,18 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
                 const gridState = row.original.gridState;
                 return (
                   <Group justify="center">
-                    <Tooltip label={gridState ? t('gridState.tooltipOn') : t('gridState.tooltipOff')}>
-                      <FontAwesomeIcon 
+                    <Tooltip
+                      label={
+                        gridState
+                          ? t("gridState.tooltipOn")
+                          : t("gridState.tooltipOff")
+                      }
+                    >
+                      <FontAwesomeIcon
                         icon="lightbulb"
                         size="lg"
                         style={{
-                          color: gridState ? '#ffd700' : '#909296',
+                          color: gridState ? "#ffd700" : "#909296",
                           opacity: gridState ? 1 : 0.3,
                         }}
                       />
@@ -245,26 +312,25 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
               },
             },
             {
-              id: 'received_at',
-              header: t('table.receivedAt'),
-              accessorKey: 'receivedAt',
+              id: "received_at",
+              header: t("table.receivedAt"),
+              accessorKey: "receivedAt",
               enableSorting: true,
               enableColumnFilter: true,
               meta: {
                 dataType: ColumnDataType.DateTime,
-                filterOptions: {
-                }
+                filterOptions: {},
               },
             },
             {
-              id: 'actions',
+              id: "actions",
               meta: {
-                dataType: 'actions',
+                dataType: "actions",
                 actions: [
                   {
-                    icon: 'trash',
-                    color: 'red',
-                    text: t('button.delete'),
+                    icon: "trash",
+                    color: "red",
+                    text: t("button.delete"),
                     onlyIcon: true,
                     clickHandler: (row) => handleDelete(row),
                   },
@@ -276,11 +342,15 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
         />
       </Page>
 
-      <Modal opened={modalOpened} onClose={handleCloseModal} title={t('modal.createTitle')}>
+      <Modal
+        opened={modalOpened}
+        onClose={handleCloseModal}
+        title={t("modal.createTitle")}
+      >
         <Stack>
           <Select
-            label={t('modal.userLabel')}
-            placeholder={t('modal.selectUserPlaceholder')}
+            label={t("modal.userLabel")}
+            placeholder={t("modal.selectUserPlaceholder")}
             data={userLookupOptions}
             value={formData.user_id ? String(formData.user_id) : null}
             onChange={(val) => setFormData({ ...formData, user_id: val })}
@@ -289,15 +359,17 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
             disabled={lookupLoading}
           />
           <Switch
-            label={t('modal.gridStateLabel')}
+            label={t("modal.gridStateLabel")}
             checked={formData.grid_state}
-            onChange={(e) => setFormData({ ...formData, grid_state: e.currentTarget.checked })}
+            onChange={(e) =>
+              setFormData({ ...formData, grid_state: e.currentTarget.checked })
+            }
             onLabel={<FontAwesomeIcon icon="lightbulb" />}
             offLabel={<FontAwesomeIcon icon="lightbulb" />}
           />
           <DateTimePicker
-            label={t('modal.receivedAtLabel')}
-            placeholder={t('modal.selectReceivedAtPlaceholder')}
+            label={t("modal.receivedAtLabel")}
+            placeholder={t("modal.selectReceivedAtPlaceholder")}
             value={formData.received_at}
             onChange={(val) => setFormData({ ...formData, received_at: val })}
             clearable
@@ -305,10 +377,10 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
           />
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={handleCloseModal}>
-              {t('button.cancel')}
+              {t("button.cancel")}
             </Button>
             <Button onClick={handleCreate} disabled={!formData.user_id}>
-              {t('button.create')}
+              {t("button.create")}
             </Button>
           </Group>
         </Stack>
@@ -317,5 +389,9 @@ const Component: FC<ComponentProps> = ({ extData, pagingInfo, loading, error }) 
   );
 };
 
-export const ExtDataPage = connect(mapStateToProps)(Component);
+const ConnectedComponent: FC = () => {
+  const props = useAppSelector(mapStateToProps, shallowEqual);
+  return <Component {...props} />;
+};
 
+export const ExtDataPage = ConnectedComponent;

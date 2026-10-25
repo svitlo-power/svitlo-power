@@ -11,10 +11,22 @@
     "kill:all": "taskkill /F /IM node.exe /IM python.exe 2>nul || true",
     "run:docker": "docker compose up -d --build",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "prepare": "husky"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0"
+  },
+  "lint-staged": {
+    "front-end/**/*.{js,jsx,ts,tsx}": [
+      "npm --prefix front-end exec -- eslint --fix",
+      "npm --prefix front-end exec -- prettier --write"
+    ],
+    "front-end/**/*.{css,json,md,html}": [
+      "npm --prefix front-end exec -- prettier --write"
+    ]
   }
 }

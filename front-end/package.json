@@ -49,6 +49,7 @@
     "recharts": "^3.10.1",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
+    "svitlo-power": "file:..",
     "valibot": "^1.4.2"
   },
   "devDependencies": {
@@ -74,6 +75,7 @@
     "postcss": "^8.5.25",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
+    "prettier": "^3.9.10",
     "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.2",

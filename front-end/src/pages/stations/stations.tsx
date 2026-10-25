@@ -1,20 +1,32 @@
-import { FC, useCallback, useEffect, useState } from "react"
+import { FC, useCallback, useEffect, useState } from "react";
 import { StationItem } from "../../stores/types";
-import { RootState, useAppDispatch } from "../../stores/store";
-import { connect } from "react-redux";
+import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { shallowEqual } from "react-redux";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
-import { cancelStationsEditing, fetchStations, saveStations } from "../../stores/thunks";
+import {
+  cancelStationsEditing,
+  fetchStations,
+  saveStations,
+} from "../../stores/thunks";
 import { createSelector } from "@reduxjs/toolkit";
-import { updateStationAlias, updateStationBatteryCapacity, updateStationOrder, updateStationState } from "../../stores/slices";
+import {
+  updateStationAlias,
+  updateStationBatteryCapacity,
+  updateStationOrder,
+  updateStationState,
+} from "../../stores/slices";
 import { DataTable, ErrorMessage, OrderControl, Page } from "../../components";
 import { ColumnDataType, EventType } from "../../types";
 import { Anchor } from "@mantine/core";
-import { AliasCell, BatteryCapacityCell, openConnectionsDialog } from "./components";
+import {
+  AliasCell,
+  BatteryCapacityCell,
+  openConnectionsDialog,
+} from "./components";
 import { usePageTranslation } from "../../utils";
 import { useNavigate } from "react-router-dom";
 import { LocalizableValue, ObjectId } from "../../schemas";
 import { useSubscribeEvent } from "../../hooks";
-
 
 type ComponentProps = {
   stations: StationItem[];
@@ -26,14 +38,12 @@ type ComponentProps = {
 
 const selectStations = (state: RootState) => state.stations.stations;
 
-const selectChanged = createSelector(
-  [selectStations],
-  (stations) => stations.some(s => s.changed),
+const selectChanged = createSelector([selectStations], (stations) =>
+  stations.some((s) => s.changed),
 );
-const selectMaxOrder = createSelector(
-  [selectStations],
-  (stations) => Math.max(...stations.map(s => s.order)),
-)
+const selectMaxOrder = createSelector([selectStations], (stations) =>
+  Math.max(...stations.map((s) => s.order)),
+);
 
 const mapStateToProps = (state: RootState): ComponentProps => ({
   stations: state.stations.stations,
@@ -43,22 +53,49 @@ const mapStateToProps = (state: RootState): ComponentProps => ({
   error: state.stations.error,
 });
 
-const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, error }: ComponentProps) => {
+const Component: FC<ComponentProps> = ({
+  stations,
+  maxOrder,
+  changed,
+  loading,
+  error,
+}: ComponentProps) => {
   const dispatch = useAppDispatch();
-  const t = usePageTranslation('stations');
+  const t = usePageTranslation("stations");
   const navigate = useNavigate();
   const [initiallyChanged, setInitiallyChanged] = useState(false);
 
-  const getHeaderButtons = useCallback((dataChanged: boolean): PageHeaderButton[] => [
-    { text: t('button.connections'), icon: "plug", color: "teal", onClick: () => openConnectionsDialog({ t }), disabled: false, },
-    { text: t('button.save'), icon: "save", color: "green", onClick: () => dispatch(saveStations()), disabled: !dataChanged, },
-    { text: t('button.cancel'), icon: "cancel", color: "black", onClick: () => dispatch(cancelStationsEditing()), disabled: !dataChanged, },
-  ], [dispatch, t]);
+  const getHeaderButtons = useCallback(
+    (dataChanged: boolean): PageHeaderButton[] => [
+      {
+        text: t("button.connections"),
+        icon: "plug",
+        color: "teal",
+        onClick: () => openConnectionsDialog({ t }),
+        disabled: false,
+      },
+      {
+        text: t("button.save"),
+        icon: "save",
+        color: "green",
+        onClick: () => dispatch(saveStations()),
+        disabled: !dataChanged,
+      },
+      {
+        text: t("button.cancel"),
+        icon: "cancel",
+        color: "black",
+        onClick: () => dispatch(cancelStationsEditing()),
+        disabled: !dataChanged,
+      },
+    ],
+    [dispatch, t],
+  );
   const { setHeaderButtons, updateButtonAttributes } = useHeaderContent();
   useEffect(() => {
     setHeaderButtons(getHeaderButtons(changed));
     return () => setHeaderButtons([]);
-  }, [setHeaderButtons, getHeaderButtons, changed]);  
+  }, [setHeaderButtons, getHeaderButtons, changed]);
 
   const fetchData = useCallback(() => dispatch(fetchStations()), [dispatch]);
 
@@ -78,10 +115,10 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
   };
   const onSetAlias = (id: ObjectId, alias: LocalizableValue) => {
     dispatch(updateStationAlias({ id, alias }));
-  }
+  };
   const onSetBatteryCapacity = (id: ObjectId, batteryCapacity: number) => {
     dispatch(updateStationBatteryCapacity({ id, batteryCapacity }));
-  }
+  };
 
   if (changed != initiallyChanged) {
     setInitiallyChanged(!initiallyChanged);
@@ -91,109 +128,125 @@ const Component: FC<ComponentProps> = ({ stations, maxOrder, changed, loading, e
     }, 1);
   }
 
-  return <Page loading={loading}>
-    <DataTable<StationItem>
-      data={stations}
-      fetchAction={fetchData}
-      tableKey="stations"
-      useSorting={false}
-      columns={[
-        {
-          id: 'stationName',
-          header: t('table.name'),
-          accessorKey: "stationName",
-          cell: ({ row }) => {
-            return (
-              <Anchor
-                component="button"
-                onClick={() => navigate(`/stations/details/${row.original.id}`)}
-                fw={500}
-              >
-                {row.original.stationName}
-              </Anchor>
-            );
-          }
-        },
-        {
-          id: 'stationAlias',
-          header: t('table.alias'),
-          accessorKey: 'stationAlias',
-          cell: ({ row }) => <AliasCell
-              t={t}
-              id={row.original.id}
-              value={row.original.stationAlias}
-              name={row.original.stationName}
-              onAliasChange={onSetAlias}
-            />
-        },
-        {
-          id: 'connection',
-          header: t('table.connection'),
-          accessorKey: 'connectionName',
-        },
-        {
-          id: 'connectionStatus',
-          header: t('table.connectionStatus'),
-          accessorKey: 'connectionStatus',
-        },
-        {
-          id: 'mode',
-          header: t('table.mode'),
-          accessorKey: 'gridInterconnectionType',
-        },
-        {
-          id: 'lastUpdate',
-          header: t('table.lastUpdated'),
-          accessorKey: 'lastUpdateTime',
-          meta: {  
-            dataType: ColumnDataType.DateTime,
+  return (
+    <Page loading={loading}>
+      <DataTable<StationItem>
+        data={stations}
+        fetchAction={fetchData}
+        tableKey="stations"
+        useSorting={false}
+        columns={[
+          {
+            id: "stationName",
+            header: t("table.name"),
+            accessorKey: "stationName",
+            cell: ({ row }) => {
+              return (
+                <Anchor
+                  component="button"
+                  onClick={() =>
+                    navigate(`/stations/details/${row.original.id}`)
+                  }
+                  fw={500}
+                >
+                  {row.original.stationName}
+                </Anchor>
+              );
+            },
           },
-        },
-        {
-          id: 'enabled',
-          header: t('table.enabled'),
-          accessorKey: 'enabled',
-          meta: {
-            dataType: ColumnDataType.Boolean,
-            textAlign: 'center',
-            checkedChange: (row, state) => onStationEnableChange(row.id, state),
+          {
+            id: "stationAlias",
+            header: t("table.alias"),
+            accessorKey: "stationAlias",
+            cell: ({ row }) => (
+              <AliasCell
+                t={t}
+                id={row.original.id}
+                value={row.original.stationAlias}
+                name={row.original.stationName}
+                onAliasChange={onSetAlias}
+              />
+            ),
           },
-        },
-        {
-          id: 'battery capacity',
-          header: t('table.batteryCapacity'),
-          accessorKey: 'batteryCapacity',
-          meta: {
-            dataType: ColumnDataType.Number,
+          {
+            id: "connection",
+            header: t("table.connection"),
+            accessorKey: "connectionName",
           },
-          cell: ({ row }) => <BatteryCapacityCell
-              t={t}
-              id={row.original.id}
-              value={row.original.batteryCapacity}
-              onBatteryCapacityChange={onSetBatteryCapacity}
-            />
-        },
-        {
-          id: 'order',
-          header: t('table.order'),
-          accessorKey: 'order',
-          meta: {
-            dataType: ColumnDataType.Number,
-            textAlign: 'center',
+          {
+            id: "connectionStatus",
+            header: t("table.connectionStatus"),
+            accessorKey: "connectionStatus",
           },
-          cell: ({ row }) => {
-            return <OrderControl
-              order={row.original.order}
-              maxOrder={maxOrder}
-              onOrderChange={(currentOrder, change) => {
-                onStationOrderChange(currentOrder, change);
-              }}
-            />;
+          {
+            id: "mode",
+            header: t("table.mode"),
+            accessorKey: "gridInterconnectionType",
           },
-        }
-      ]}
-    />
-  </Page>
+          {
+            id: "lastUpdate",
+            header: t("table.lastUpdated"),
+            accessorKey: "lastUpdateTime",
+            meta: {
+              dataType: ColumnDataType.DateTime,
+            },
+          },
+          {
+            id: "enabled",
+            header: t("table.enabled"),
+            accessorKey: "enabled",
+            meta: {
+              dataType: ColumnDataType.Boolean,
+              textAlign: "center",
+              checkedChange: (row, state) =>
+                onStationEnableChange(row.id, state),
+            },
+          },
+          {
+            id: "battery capacity",
+            header: t("table.batteryCapacity"),
+            accessorKey: "batteryCapacity",
+            meta: {
+              dataType: ColumnDataType.Number,
+            },
+            cell: ({ row }) => (
+              <BatteryCapacityCell
+                t={t}
+                id={row.original.id}
+                value={row.original.batteryCapacity}
+                onBatteryCapacityChange={onSetBatteryCapacity}
+              />
+            ),
+          },
+          {
+            id: "order",
+            header: t("table.order"),
+            accessorKey: "order",
+            meta: {
+              dataType: ColumnDataType.Number,
+              textAlign: "center",
+            },
+            cell: ({ row }) => {
+              return (
+                <OrderControl
+                  order={row.original.order}
+                  maxOrder={maxOrder}
+                  onOrderChange={(currentOrder, change) => {
+                    onStationOrderChange(currentOrder, change);
+                  }}
+                />
+              );
+            },
+          },
+        ]}
+      />
+    </Page>
+  );
 };
 
-export const StationsPage = connect(mapStateToProps)(Component);
+const ConnectedComponent: FC = () => {
+  const props = useAppSelector(mapStateToProps, shallowEqual);
+  return <Component {...props} />;
+};
+
+export const StationsPage = ConnectedComponent;

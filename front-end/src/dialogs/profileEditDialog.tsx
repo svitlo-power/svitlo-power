@@ -1,13 +1,22 @@
 import { FC, useEffect } from "react";
 import { modals } from "@mantine/modals";
-import { Button, Divider,  Group, Stack, TextInput } from "@mantine/core";
+import { Button, Divider, Group, Stack, TextInput } from "@mantine/core";
 import { useFormHandler } from "../hooks";
-import { RootState, useAppDispatch } from "../stores/store";
+import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
 import { ProfileEdit, withUniqueNameValidation } from "../schemas";
-import { fetchUsers, requestPasswordReset, saveProfile } from "../stores/thunks";
+import {
+  fetchUsers,
+  requestPasswordReset,
+  saveProfile,
+} from "../stores/thunks";
 import { createSelector } from "@reduxjs/toolkit";
-import { editProfile, finishEditingProfile, logout, startEditingProfile } from "../stores/slices";
-import { connect } from "react-redux";
+import {
+  editProfile,
+  finishEditingProfile,
+  logout,
+  startEditingProfile,
+} from "../stores/slices";
+import { shallowEqual } from "react-redux";
 import { createSearchParams } from "react-router-dom";
 import { TFunction } from "i18next";
 
@@ -24,15 +33,17 @@ export function openProfileEditDialog(t: TFunction) {
 
   const selectLoading = createSelector(
     [selectAuth, selectUsers],
-    (auth, users) => auth.loading || users.loading
+    (auth, users) => auth.loading || users.loading,
   );
 
-  const selectUserNames = createSelector(
-    [selectUsers],
-    (users) => users.users.map(m => m.name),
+  const selectUserNames = createSelector([selectUsers], (users) =>
+    users.users.map((m) => m.name),
   );
 
-  const mapStateToProps = (state: RootState, ownProps: { t: TFunction }): InnerProps => ({
+  const mapStateToProps = (
+    state: RootState,
+    ownProps: { t: TFunction },
+  ): InnerProps => ({
     profile: state.auth.editingProfile!,
     userNames: selectUserNames(state),
     loading: selectLoading(state),
@@ -63,7 +74,7 @@ export function openProfileEditDialog(t: TFunction) {
       cleanupAction: () => {
         dispatch(finishEditingProfile());
       },
-      formKey: 'profile',
+      formKey: "profile",
       isEdit: true,
       initialData: profile,
       loading: loading,
@@ -73,16 +84,18 @@ export function openProfileEditDialog(t: TFunction) {
       },
       useLocationGuard: false,
       defaultRender: (name, title, context) => {
-        return <TextInput
-          required
-          label={title}
-          {...context.helpers.registerControl(name)}
-        />;
+        return (
+          <TextInput
+            required
+            label={title}
+            {...context.helpers.registerControl(name)}
+          />
+        );
       },
       fields: [
         {
           name: "userName",
-          title: t ? t('profile.loginLabel') : 'Login',
+          title: t ? t("profile.loginLabel") : "Login",
           required: true,
         },
       ],
@@ -111,51 +124,53 @@ export function openProfileEditDialog(t: TFunction) {
         .unwrap()
         .then((token) => {
           const search = createSearchParams({
-              username: userName,
-              token: token,
+            username: userName,
+            token: token,
           }).toString();
           const url = `/changePassword?${search}`;
           dispatch(logout());
           window.location.href = url;
         })
         .catch((error) => {
-          setValidationErrors({ 'repeatNewPassword': error });
-        });;
+          setValidationErrors({ repeatNewPassword: error });
+        });
     };
-  
-    return <Stack>
-      {renderField("userName")}
-      <Divider />
-      <Group justify="space-between">
-        <Button
-          color='orange'
-          onClick={handleChangePassword}
-          disabled={isDirty}
-        >
-          {t ? t('profile.changePassword') : 'Change password'}
-        </Button>
-        <Group justify="flex-end">
+
+    return (
+      <Stack>
+        {renderField("userName")}
+        <Divider />
+        <Group justify="space-between">
           <Button
-            onClick={handleSave}
-            disabled={!isDirty || !isValid}
+            color="orange"
+            onClick={handleChangePassword}
+            disabled={isDirty}
           >
-            {t ? t('button.save') : 'Save'}
+            {t ? t("profile.changePassword") : "Change password"}
           </Button>
-          <Button
-            variant="default"
-            onClick={handleCancel}
-          >
-            {t ? t('button.cancel') : 'Cancel'}
-          </Button>
+          <Group justify="flex-end">
+            <Button onClick={handleSave} disabled={!isDirty || !isValid}>
+              {t ? t("button.save") : "Save"}
+            </Button>
+            <Button variant="default" onClick={handleCancel}>
+              {t ? t("button.cancel") : "Cancel"}
+            </Button>
+          </Group>
         </Group>
-      </Group>
-    </Stack>;
+      </Stack>
+    );
   };
 
-  const ConnectedInner = connect(mapStateToProps)(Inner);
+  const ConnectedInner: FC<{ t: TFunction }> = (ownProps) => {
+    const props = useAppSelector(
+      (state) => mapStateToProps(state, ownProps),
+      shallowEqual,
+    );
+    return <Inner {...props} />;
+  };
 
   const id: string | undefined = modals.open({
-    title: t('profile.editTitle'),
+    title: t("profile.editTitle"),
     centered: true,
     withCloseButton: false,
     closeOnClickOutside: false,

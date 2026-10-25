@@ -2,11 +2,11 @@ import { Outlet, useLocation } from "react-router-dom";
 import { FC, Suspense, useCallback, useEffect } from "react";
 import { RootRoutes } from "../routes";
 import { useHeaderContent } from "../providers";
-import { RootState, useAppDispatch } from "../stores/store";
-import { connect } from "react-redux";
+import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
+import { shallowEqual } from "react-redux";
 import { AppShell } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import classes from './styles/authenticatedLayout.module.css';
+import classes from "./styles/authenticatedLayout.module.css";
 import { Header } from "./components/header";
 import { Navbar } from "./components/navbar";
 import useLocalStorage from "../hooks/useLocalStorage";
@@ -30,8 +30,8 @@ const mapStateToProps = (state: RootState): ComponentProps => ({
 });
 
 const Component: FC<ComponentProps> = ({ authData, profile }) => {
-  const dispatch = useAppDispatch()
-  const { t } = useTranslation('common');
+  const dispatch = useAppDispatch();
+  const { t } = useTranslation("common");
 
   const location = useLocation();
 
@@ -45,10 +45,14 @@ const Component: FC<ComponentProps> = ({ authData, profile }) => {
 
   const { headerButtons, headerText } = useHeaderContent();
 
-  
-  const caption = headerText ? headerText : RootRoutes.find(f => f.path === location.pathname)?.name;
+  const caption = headerText
+    ? headerText
+    : RootRoutes.find((f) => f.path === location.pathname)?.name;
 
-  const [ isNavbarCollapsed, setNavbarCollapsed ] = useLocalStorage('dmb-nv-collapsed', false);
+  const [isNavbarCollapsed, setNavbarCollapsed] = useLocalStorage(
+    "dmb-nv-collapsed",
+    false,
+  );
   const toggleNavbar = useCallback(() => {
     setNavbarCollapsed(!isNavbarCollapsed);
   }, [isNavbarCollapsed, setNavbarCollapsed]);
@@ -107,12 +111,15 @@ const Component: FC<ComponentProps> = ({ authData, profile }) => {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        <Suspense>
-          { authData?.accessToken && profile && <Outlet /> }
-        </Suspense>
+        <Suspense>{authData?.accessToken && profile && <Outlet />}</Suspense>
       </AppShell.Main>
     </AppShell>
   );
 };
 
-export const AuthenticatedLayout = connect(mapStateToProps)(Component);
+const ConnectedComponent: FC = () => {
+  const props = useAppSelector(mapStateToProps, shallowEqual);
+  return <Component {...props} />;
+};
+
+export const AuthenticatedLayout = ConnectedComponent;

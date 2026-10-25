@@ -1,12 +1,29 @@
 import { FC, useEffect } from "react";
 import { TFunction } from "i18next";
-import { connect } from "react-redux";
+import { shallowEqual } from "react-redux";
 import { modals } from "@mantine/modals";
-import { ActionIcon, Button, Center, Group, Loader, Stack, Table, Text, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Center,
+  Group,
+  Loader,
+  Stack,
+  Table,
+  Text,
+  Tooltip,
+} from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { RootState, useAppDispatch } from "../../../stores/store";
+import {
+  RootState,
+  useAppDispatch,
+  useAppSelector,
+} from "../../../stores/store";
 import { ServerStationConnectionItem } from "../../../stores/types";
-import { deleteStationConnection, fetchStationConnections } from "../../../stores/thunks";
+import {
+  deleteStationConnection,
+  fetchStationConnections,
+} from "../../../stores/thunks";
 import { ErrorMessage } from "../../../components";
 import { openConnectionEditDialog } from "./connectionEditDialog";
 
@@ -36,15 +53,15 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
 
     const handleDelete = (connection: ServerStationConnectionItem) => {
       modals.openConfirmModal({
-        title: t('connections.deleteTitle'),
+        title: t("connections.deleteTitle"),
         centered: true,
         children: (
           <Text size="sm">
-            {t('connections.deleteConfirm', { name: connection.name })}
+            {t("connections.deleteConfirm", { name: connection.name })}
           </Text>
         ),
-        labels: { confirm: t('button.delete'), cancel: t('button.cancel') },
-        confirmProps: { color: 'red' },
+        labels: { confirm: t("button.delete"), cancel: t("button.cancel") },
+        confirmProps: { color: "red" },
         onConfirm: () => dispatch(deleteStationConnection(connection.id)),
       });
     };
@@ -60,9 +77,11 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>{t('connections.table.name')}</Table.Th>
-                <Table.Th>{t('connections.table.email')}</Table.Th>
-                <Table.Th ta="center">{t('connections.table.syncOnPoll')}</Table.Th>
+                <Table.Th>{t("connections.table.name")}</Table.Th>
+                <Table.Th>{t("connections.table.email")}</Table.Th>
+                <Table.Th ta="center">
+                  {t("connections.table.syncOnPoll")}
+                </Table.Th>
                 <Table.Th />
               </Table.Tr>
             </Table.Thead>
@@ -72,19 +91,23 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
                   <Table.Td>{connection.name}</Table.Td>
                   <Table.Td>{connection.email}</Table.Td>
                   <Table.Td ta="center">
-                    {connection.syncStationsOnPoll && <FontAwesomeIcon icon="check" />}
+                    {connection.syncStationsOnPoll && (
+                      <FontAwesomeIcon icon="check" />
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs" justify="flex-end" wrap="nowrap">
-                      <Tooltip label={t('button.edit')}>
+                      <Tooltip label={t("button.edit")}>
                         <ActionIcon
                           color="teal"
-                          onClick={() => openConnectionEditDialog({ connection, t })}
+                          onClick={() =>
+                            openConnectionEditDialog({ connection, t })
+                          }
                         >
                           <FontAwesomeIcon icon="edit" />
                         </ActionIcon>
                       </Tooltip>
-                      <Tooltip label={t('button.delete')}>
+                      <Tooltip label={t("button.delete")}>
                         <ActionIcon
                           color="red"
                           onClick={() => handleDelete(connection)}
@@ -104,10 +127,10 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
             leftSection={<FontAwesomeIcon icon="add" />}
             onClick={() => openConnectionEditDialog({ create: true, t })}
           >
-            {t('connections.add')}
+            {t("connections.add")}
           </Button>
           <Button variant="default" onClick={handleClose}>
-            {t('button.close')}
+            {t("button.close")}
           </Button>
         </Group>
       </Stack>
@@ -120,11 +143,14 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
     }
   };
 
-  const ConnectedInner = connect(mapStateToProps)(Inner);
+  const ConnectedInner: FC = () => {
+    const props = useAppSelector(mapStateToProps, shallowEqual);
+    return <Inner {...props} />;
+  };
 
   const id: string | undefined = modals.open({
-    title: t('connections.title'),
-    size: 'lg',
+    title: t("connections.title"),
+    size: "lg",
     centered: true,
     children: <ConnectedInner />,
   });

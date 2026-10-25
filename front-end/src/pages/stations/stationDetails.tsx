@@ -1,7 +1,7 @@
 import { FC, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { RootState, useAppDispatch } from "../../stores/store";
-import { connect } from "react-redux";
+import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { shallowEqual } from "react-redux";
 import { ErrorMessage, Page } from "../../components";
 import {
   Box,
@@ -65,7 +65,7 @@ const Component: FC<ComponentProps> = ({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { stationId } = useParams<{ stationId: ObjectId }>();
-  const t = usePageTranslation('stations');
+  const t = usePageTranslation("stations");
 
   // 24 hours default
   const [timeRange, setTimeRange] = useLocalStorage<string>(
@@ -79,7 +79,7 @@ const Component: FC<ComponentProps> = ({
         fetchStationDetails({
           stationId: stationId,
           lastSeconds: parseInt(timeRange),
-        })
+        }),
       );
     }
   }, [dispatch, stationId, timeRange]);
@@ -99,7 +99,7 @@ const Component: FC<ComponentProps> = ({
     if (!detailsData?.data) return [];
 
     return detailsData.data.map((d) => ({
-      time: toLocalDateTime(d.lastUpdateTime).split(" ")[1].substring(0, 5), 
+      time: toLocalDateTime(d.lastUpdateTime).split(" ")[1].substring(0, 5),
       batterySoc: d.batterySoc ?? 0,
       batteryPower: (d.batteryPower ?? 0) / 1000,
       chargePower: Math.abs((d.chargePower ?? 0) / 1000),
@@ -121,7 +121,7 @@ const Component: FC<ComponentProps> = ({
 
     const calcStats = (values: (number | null)[]) => {
       const validValues = values.filter(
-        (v): v is number => v !== null && !isNaN(v)
+        (v): v is number => v !== null && !isNaN(v),
       );
       if (validValues.length === 0)
         return { min: 0, max: 0, avg: 0, current: 0 };
@@ -139,7 +139,7 @@ const Component: FC<ComponentProps> = ({
       timeRange:
         validData.length > 1
           ? `${toLocalDateTime(validData[0].lastUpdateTime)} - ${toLocalDateTime(
-              validData[validData.length - 1].lastUpdateTime
+              validData[validData.length - 1].lastUpdateTime,
             )}`
           : "N/A",
       batterySoc: calcStats(data.map((d) => d.batterySoc)),
@@ -167,19 +167,19 @@ const Component: FC<ComponentProps> = ({
             variant="light"
             onClick={goBack}
           >
-            {t('back')}
+            {t("back")}
           </Button>
           <Select
-            label={t('timeRange.label')}
+            label={t("timeRange.label")}
             value={timeRange}
             onChange={(value) => setTimeRange(value || "86400")}
             data={[
-              { value: "3600", label: t('timeRange.options.lastHour') },
-              { value: "21600", label: t('timeRange.options.last6h') },
-              { value: "43200", label: t('timeRange.options.last12h') },
-              { value: "86400", label: t('timeRange.options.last24h') },
-              { value: "172800", label: t('timeRange.options.last2Days') },
-              { value: "604800", label: t('timeRange.options.lastWeek') },
+              { value: "3600", label: t("timeRange.options.lastHour") },
+              { value: "21600", label: t("timeRange.options.last6h") },
+              { value: "43200", label: t("timeRange.options.last12h") },
+              { value: "86400", label: t("timeRange.options.last24h") },
+              { value: "172800", label: t("timeRange.options.last2Days") },
+              { value: "604800", label: t("timeRange.options.lastWeek") },
             ]}
             style={{ width: 200 }}
           />
@@ -194,14 +194,14 @@ const Component: FC<ComponentProps> = ({
               </Title>
               <Grid>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-                      <Text size="sm" c="dimmed">
-                        {t('stationInfo.stationId')}
-                      </Text>
+                  <Text size="sm" c="dimmed">
+                    {t("stationInfo.stationId")}
+                  </Text>
                   <Text fw={500}>{detailsData.station.stationId}</Text>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                        {t('stationInfo.connectionStatus')}
+                    {t("stationInfo.connectionStatus")}
                   </Text>
                   <Badge
                     color={
@@ -215,7 +215,7 @@ const Component: FC<ComponentProps> = ({
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                    {t('stationInfo.gridType')}
+                    {t("stationInfo.gridType")}
                   </Text>
                   <Text fw={500}>
                     {detailsData.station.gridInterconnectionType || "N/A"}
@@ -223,23 +223,25 @@ const Component: FC<ComponentProps> = ({
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                    {t('stationInfo.installedCapacity')}
+                    {t("stationInfo.installedCapacity")}
                   </Text>
                   <Text fw={500}>
-                    {detailsData.station.installedCapacity || 0} {t('units.kW') ?? 'kW'}
+                    {detailsData.station.installedCapacity || 0}{" "}
+                    {t("units.kW") ?? "kW"}
                   </Text>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                    {t('stationInfo.batteryCapacity')}
+                    {t("stationInfo.batteryCapacity")}
                   </Text>
                   <Text fw={500}>
-                    {detailsData.station.batteryCapacity || 0} {t('units.kWh') ?? 'kWh'}
+                    {detailsData.station.batteryCapacity || 0}{" "}
+                    {t("units.kWh") ?? "kWh"}
                   </Text>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                    {t('stationInfo.lastUpdate')}
+                    {t("stationInfo.lastUpdate")}
                   </Text>
                   <Text fw={500}>
                     {detailsData.station.lastUpdateTime
@@ -249,7 +251,7 @@ const Component: FC<ComponentProps> = ({
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                   <Text size="sm" c="dimmed">
-                    {t('stationInfo.recordsProcessed')}
+                    {t("stationInfo.recordsProcessed")}
                   </Text>
                   <Text fw={700} size="lg" c="blue">
                     {detailsData.dataCount}
@@ -261,37 +263,37 @@ const Component: FC<ComponentProps> = ({
             {chartData.length > 0 && statistics ? (
               <>
                 {/* Current Stats */}
-                <Title order={3}>{t('currentValues')}</Title>
+                <Title order={3}>{t("currentValues")}</Title>
                 <Grid>
                   <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                     <StatCard
-                      title={t('stat.batterySoc')}
+                      title={t("stat.batterySoc")}
                       value={statistics.batterySoc.current}
-                      unit={t('units.percent') ?? '%'}
+                      unit={t("units.percent") ?? "%"}
                       color="blue"
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                     <StatCard
-                      title={t('stat.generationPower')}
+                      title={t("stat.generationPower")}
                       value={statistics.generationPower.current / 1000}
-                      unit={t('units.kW') ?? 'kW'}
+                      unit={t("units.kW") ?? "kW"}
                       color="green"
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                     <StatCard
-                      title={t('stat.consumptionPower')}
+                      title={t("stat.consumptionPower")}
                       value={statistics.consumptionPower.current / 1000}
-                      unit={t('units.kW') ?? 'kW'}
+                      unit={t("units.kW") ?? "kW"}
                       color="orange"
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
                     <StatCard
-                      title={t('stat.gridPower')}
+                      title={t("stat.gridPower")}
                       value={statistics.gridPower.current / 1000}
-                      unit={t('units.kW') ?? 'kW'}
+                      unit={t("units.kW") ?? "kW"}
                       color="violet"
                     />
                   </Grid.Col>
@@ -300,7 +302,7 @@ const Component: FC<ComponentProps> = ({
                 {/* Power Charts */}
                 <Card withBorder radius="md" p="md">
                   <Title order={4} mb="md">
-                    {t('charts.powerDetails')}
+                    {t("charts.powerDetails")}
                   </Title>
                   <Box style={{ height: 300 }}>
                     <AreaChart
@@ -309,22 +311,22 @@ const Component: FC<ComponentProps> = ({
                       series={[
                         {
                           name: "generationPower",
-                          label: t('charts.series.generation'),
+                          label: t("charts.series.generation"),
                           color: "green.6",
                         },
                         {
                           name: "consumptionPower",
-                          label: t('charts.series.consumption'),
+                          label: t("charts.series.consumption"),
                           color: "orange.6",
                         },
                         {
                           name: "chargePower",
-                          label: t('charts.series.charge'),
+                          label: t("charts.series.charge"),
                           color: "cyan.6",
                         },
                         {
                           name: "dischargePower",
-                          label: t('charts.series.discharge'),
+                          label: t("charts.series.discharge"),
                           color: "red.6",
                         },
                       ]}
@@ -342,7 +344,7 @@ const Component: FC<ComponentProps> = ({
                 {/* Battery SOC Chart */}
                 <Card withBorder radius="md" p="md">
                   <Title order={4} mb="md">
-                    {t('charts.batterySoc')}
+                    {t("charts.batterySoc")}
                   </Title>
                   <Box style={{ height: 250 }}>
                     <AreaChart
@@ -351,7 +353,7 @@ const Component: FC<ComponentProps> = ({
                       series={[
                         {
                           name: "batterySoc",
-                          label: t('charts.series.batterySoc'),
+                          label: t("charts.series.batterySoc"),
                           color: "blue.6",
                         },
                       ]}
@@ -371,148 +373,160 @@ const Component: FC<ComponentProps> = ({
                 {/* Statistics Table */}
                 <Card withBorder radius="md" p="md">
                   <Title order={4} mb="md">
-                    {t('summary.title')}
+                    {t("summary.title")}
                   </Title>
                   <Table.ScrollContainer minWidth={500}>
                     <Table striped highlightOnHover>
                       <Table.Thead>
                         <Table.Tr>
-                          <Table.Th>{t('summary.columns.parameter')}</Table.Th>
-                            <Table.Th>{t('summary.columns.current')}</Table.Th>
-                            <Table.Th>{t('summary.columns.average')}</Table.Th>
-                            <Table.Th>{t('summary.columns.minimum')}</Table.Th>
-                            <Table.Th>{t('summary.columns.maximum')}</Table.Th>
+                          <Table.Th>{t("summary.columns.parameter")}</Table.Th>
+                          <Table.Th>{t("summary.columns.current")}</Table.Th>
+                          <Table.Th>{t("summary.columns.average")}</Table.Th>
+                          <Table.Th>{t("summary.columns.minimum")}</Table.Th>
+                          <Table.Th>{t("summary.columns.maximum")}</Table.Th>
                         </Table.Tr>
                       </Table.Thead>
                       <Table.Tbody>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.batterySoc')}</Table.Td>
-                        <Table.Td>
-                          {statistics.batterySoc.current.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.batterySoc.avg.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.batterySoc.min.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.batterySoc.max.toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.generationPower')}</Table.Td>
-                        <Table.Td>
-                          {(statistics.generationPower.current / 1000).toFixed(
-                            2
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.generationPower.avg / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.generationPower.min / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.generationPower.max / 1000).toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.consumptionPower')}</Table.Td>
-                        <Table.Td>
-                          {(statistics.consumptionPower.current / 1000).toFixed(
-                            2
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.consumptionPower.avg / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.consumptionPower.min / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.consumptionPower.max / 1000).toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.chargePower')}</Table.Td>
-                        <Table.Td>
-                          {(
-                            Math.abs(statistics.chargePower.current) / 1000
-                          ).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(
-                            Math.abs(statistics.chargePower.avg) / 1000
-                          ).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(
-                            Math.abs(statistics.chargePower.min) / 1000
-                          ).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(
-                            Math.abs(statistics.chargePower.max) / 1000
-                          ).toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.dischargePower')}</Table.Td>
-                        <Table.Td>
-                          {(statistics.dischargePower.current / 1000).toFixed(
-                            2
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.dischargePower.avg / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.dischargePower.min / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.dischargePower.max / 1000).toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.gridPower')}</Table.Td>
-                        <Table.Td>
-                          {(statistics.gridPower.current / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.gridPower.avg / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.gridPower.min / 1000).toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {(statistics.gridPower.max / 1000).toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                      <Table.Tr>
-                        <Table.Td>{t('summary.params.irradiance')}</Table.Td>
-                        <Table.Td>
-                          {statistics.irradiateIntensity.current.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.irradiateIntensity.avg.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.irradiateIntensity.min.toFixed(2)}
-                        </Table.Td>
-                        <Table.Td>
-                          {statistics.irradiateIntensity.max.toFixed(2)}
-                        </Table.Td>
-                      </Table.Tr>
-                    </Table.Tbody>
-                  </Table>
+                        <Table.Tr>
+                          <Table.Td>{t("summary.params.batterySoc")}</Table.Td>
+                          <Table.Td>
+                            {statistics.batterySoc.current.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.batterySoc.avg.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.batterySoc.min.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.batterySoc.max.toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>
+                            {t("summary.params.generationPower")}
+                          </Table.Td>
+                          <Table.Td>
+                            {(
+                              statistics.generationPower.current / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.generationPower.avg / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.generationPower.min / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.generationPower.max / 1000).toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>
+                            {t("summary.params.consumptionPower")}
+                          </Table.Td>
+                          <Table.Td>
+                            {(
+                              statistics.consumptionPower.current / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.consumptionPower.avg / 1000).toFixed(
+                              2,
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.consumptionPower.min / 1000).toFixed(
+                              2,
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.consumptionPower.max / 1000).toFixed(
+                              2,
+                            )}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>{t("summary.params.chargePower")}</Table.Td>
+                          <Table.Td>
+                            {(
+                              Math.abs(statistics.chargePower.current) / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(
+                              Math.abs(statistics.chargePower.avg) / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(
+                              Math.abs(statistics.chargePower.min) / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(
+                              Math.abs(statistics.chargePower.max) / 1000
+                            ).toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>
+                            {t("summary.params.dischargePower")}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.dischargePower.current / 1000).toFixed(
+                              2,
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.dischargePower.avg / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.dischargePower.min / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.dischargePower.max / 1000).toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>{t("summary.params.gridPower")}</Table.Td>
+                          <Table.Td>
+                            {(statistics.gridPower.current / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.gridPower.avg / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.gridPower.min / 1000).toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {(statistics.gridPower.max / 1000).toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                          <Table.Td>{t("summary.params.irradiance")}</Table.Td>
+                          <Table.Td>
+                            {statistics.irradiateIntensity.current.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.irradiateIntensity.avg.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.irradiateIntensity.min.toFixed(2)}
+                          </Table.Td>
+                          <Table.Td>
+                            {statistics.irradiateIntensity.max.toFixed(2)}
+                          </Table.Td>
+                        </Table.Tr>
+                      </Table.Tbody>
+                    </Table>
                   </Table.ScrollContainer>
                 </Card>
               </>
             ) : (
               <Card withBorder radius="md" p="lg">
                 <Text ta="center" c="dimmed">
-                  {t('noData')}
+                  {t("noData")}
                 </Text>
               </Card>
             )}
@@ -523,4 +537,9 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-export const StationDetailsPage = connect(mapStateToProps)(Component);
+const ConnectedComponent: FC = () => {
+  const props = useAppSelector(mapStateToProps, shallowEqual);
+  return <Component {...props} />;
+};
+
+export const StationDetailsPage = ConnectedComponent;

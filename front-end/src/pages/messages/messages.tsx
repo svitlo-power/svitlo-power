@@ -1,6 +1,6 @@
-import { FC, useCallback, useEffect, useState } from "react"
-import { connect } from "react-redux";
-import { RootState, useAppDispatch } from "../../stores/store";
+import { FC, useCallback, useEffect, useState } from "react";
+import { shallowEqual } from "react-redux";
+import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
 import { fetchMessages, saveMessageStates } from "../../stores/thunks";
 import { ServerMessageListItem } from "../../stores/types";
 import { useNavigate } from "react-router-dom";
@@ -30,30 +30,38 @@ const mapStateToProps = (state: RootState): ComponentProps => ({
   error: state.messages.error,
 });
 
-const Component: FC<ComponentProps> = ({ messages, loading, error, dataChanged }: ComponentProps) => {
+const Component: FC<ComponentProps> = ({
+  messages,
+  loading,
+  error,
+  dataChanged,
+}: ComponentProps) => {
   const [initiallyChanged, setInitiallyChanged] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  
-  const t = usePageTranslation('messages');
 
-  const showUnsavedChangesModal = useCallback((confirmAction: () => void) => {
+  const t = usePageTranslation("messages");
+
+  const showUnsavedChangesModal = useCallback(
+    (confirmAction: () => void) => {
       modals.openConfirmModal({
-        title: t('unsaved.title'),
-        children: t('unsaved.body'),
-        labels: { 
-          confirm: t('buttons.yes') ?? t('button.confirm'),
-          cancel: t('buttons.no') ?? t('button.cancel'),
+        title: t("unsaved.title"),
+        children: t("unsaved.body"),
+        labels: {
+          confirm: t("buttons.yes") ?? t("button.confirm"),
+          cancel: t("buttons.no") ?? t("button.cancel"),
         },
-        confirmProps: { color: 'red' },
-        onConfirm: confirmAction
+        confirmProps: { color: "red" },
+        onConfirm: confirmAction,
       });
-  }, [t]);
+    },
+    [t],
+  );
 
   const onCreateClick = useCallback(() => {
     const create = () => navigate(`/messages/create`);
     if (dataChanged) {
-      showUnsavedChangesModal(create)
+      showUnsavedChangesModal(create);
       return;
     }
     create();
@@ -70,22 +78,45 @@ const Component: FC<ComponentProps> = ({ messages, loading, error, dataChanged }
 
   const fetchData = useCallback(() => dispatch(fetchMessages()), [dispatch]);
 
-  const getHeaderButtons = useCallback((): PageHeaderButton[] => [
-    { text: t('button.create') ?? 'Create', icon: "add", color: "teal", onClick: () => onCreateClick(), disabled: false, },
-    { text: t('button.save') ?? 'Save', icon: "save", color: "green", onClick: () => dispatch(saveMessageStates()), disabled: !dataChanged, },
-    { text: t('button.cancel') ?? 'Cancel', icon: "cancel", color: "black", onClick: fetchData, disabled: !dataChanged, },
-  ], [dataChanged, dispatch, fetchData, onCreateClick, t]);
+  const getHeaderButtons = useCallback(
+    (): PageHeaderButton[] => [
+      {
+        text: t("button.create") ?? "Create",
+        icon: "add",
+        color: "teal",
+        onClick: () => onCreateClick(),
+        disabled: false,
+      },
+      {
+        text: t("button.save") ?? "Save",
+        icon: "save",
+        color: "green",
+        onClick: () => dispatch(saveMessageStates()),
+        disabled: !dataChanged,
+      },
+      {
+        text: t("button.cancel") ?? "Cancel",
+        icon: "cancel",
+        color: "black",
+        onClick: fetchData,
+        disabled: !dataChanged,
+      },
+    ],
+    [dataChanged, dispatch, fetchData, onCreateClick, t],
+  );
   const { setHeaderButtons, updateButtonAttributes } = useHeaderContent();
   useEffect(() => {
     setHeaderButtons(getHeaderButtons());
     return () => setHeaderButtons([]);
-  }, [setHeaderButtons, getHeaderButtons]);  
+  }, [setHeaderButtons, getHeaderButtons]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const { data: stations } = useLookup(LookupSchema.Station, { autoFetch: true });
+  const { data: stations } = useLookup(LookupSchema.Station, {
+    autoFetch: true,
+  });
 
   if (dataChanged != initiallyChanged) {
     setInitiallyChanged(!initiallyChanged);
@@ -107,90 +138,107 @@ const Component: FC<ComponentProps> = ({ messages, loading, error, dataChanged }
     return <ErrorMessage content={error} />;
   }
 
+  return (
+    <Page loading={loading}>
+      <DataTable<ServerMessageListItem>
+        data={messages}
+        fetchAction={fetchData}
+        columns={[
+          {
+            id: "name",
+            header: t("columns.name"),
+            accessorKey: "name",
+            enableSorting: true,
+          },
+          {
+            id: "channel",
+            header: t("columns.channel"),
+            accessorKey: "channelName",
+            enableSorting: true,
+          },
+          {
+            id: "stations",
+            header: t("columns.stations"),
+            accessorKey: "stations",
+            enableSorting: true,
+            cell: ({ row }) => (
+              <StationsCell
+                stations={row.original.stations}
+                stationsLookup={stations}
+              />
+            ),
+            meta: {
+              textAlign: "center",
+              dataType: ColumnDataType.Text,
+            },
+            sortingFn: (
+              rowA: Row<ServerMessageListItem>,
+              rowB: Row<ServerMessageListItem>,
+            ) => {
+              const mapToNames = (stationIDs: ObjectId[]) => {
+                return stationIDs
+                  .map((stationId) =>
+                    stations.find((s) => s.value! === stationId),
+                  )
+                  .join(",");
+              };
+              const convertedA = mapToNames(rowA.original.stations);
+              const convertedB = mapToNames(rowB.original.stations);
+              return convertedA.localeCompare(convertedB);
+            },
+          },
+          {
+            id: "bot",
+            header: t("columns.bot"),
+            accessorKey: "botName",
+            enableSorting: true,
+          },
+          {
+            id: "lastMessageSent",
+            header: t("columns.lastMessageSent"),
+            accessorKey: "lastSentTime",
+            enableSorting: true,
+            meta: {
+              dataType: ColumnDataType.DateTime,
+            },
+          },
+          {
+            id: "enabled",
+            header: t("columns.enabled"),
+            accessorKey: "enabled",
+            enableSorting: true,
+            meta: {
+              dataType: ColumnDataType.Boolean,
+              readOnly: false,
+              checkedChange: (row, state) =>
+                onMessageEnableChange(row.id!, state),
+            },
+          },
+          {
+            id: "actions",
+            meta: {
+              dataType: "actions",
+              actions: [
+                {
+                  text: t("actions.edit") ?? "Edit",
+                  onlyIcon: true,
+                  icon: "edit",
+                  color: "teal",
+                  clickHandler: (row) => onEditClick(row.id!),
+                },
+              ],
+            },
+          },
+        ]}
+        tableKey={"messages"}
+      />
+    </Page>
+  );
+};
 
-  return <Page loading={loading}>
-    <DataTable<ServerMessageListItem>
-      data={messages}
-      fetchAction={fetchData}
-      columns={[
-        {
-          id: 'name',
-          header: t('columns.name'),
-          accessorKey: 'name',
-          enableSorting: true,
-        },
-        {
-          id: 'channel',
-          header: t('columns.channel'),
-          accessorKey: 'channelName',
-          enableSorting: true,
-        },
-        {
-          id: 'stations',
-          header: t('columns.stations'),
-          accessorKey: 'stations',
-          enableSorting: true,
-          cell: ({ row }) => <StationsCell stations={row.original.stations} stationsLookup={stations} />,
-          meta: {
-            textAlign: 'center',
-            dataType: ColumnDataType.Text,
-          },
-          sortingFn: (rowA: Row<ServerMessageListItem>, rowB: Row<ServerMessageListItem>) => {
-            const mapToNames = (stationIDs: ObjectId[]) => {
-              return stationIDs
-                .map(stationId => stations.find(s => s.value! === stationId))
-                .join(',');
-            }
-            const convertedA = mapToNames(rowA.original.stations);
-            const convertedB = mapToNames(rowB.original.stations);
-            return convertedA.localeCompare(convertedB);
-          },
-        },
-        {
-          id: 'bot',
-          header: t('columns.bot'),
-          accessorKey: 'botName',
-          enableSorting: true,
-        },
-        {
-          id: 'lastMessageSent',
-          header: t('columns.lastMessageSent'),
-          accessorKey: 'lastSentTime',
-          enableSorting: true,
-          meta: {
-            dataType: ColumnDataType.DateTime,
-          },
-        },
-        {
-          id: 'enabled',
-          header: t('columns.enabled'),
-          accessorKey: 'enabled',
-          enableSorting: true,
-          meta: {
-            dataType: ColumnDataType.Boolean,
-            readOnly: false,
-            checkedChange: (row, state) => onMessageEnableChange(row.id!, state),
-          },
-        },
-        {
-          id: 'actions',
-          meta: {
-            dataType: 'actions',
-            actions: [
-              {
-                text: t('actions.edit') ?? 'Edit',
-                onlyIcon: true,
-                icon: 'edit',
-                color: 'teal',
-                clickHandler: (row) => onEditClick(row.id!),
-              },
-            ],
-          },
-        },
-      ]}
-      tableKey={"messages"}    
-    />
-  </Page>
-}
+const ConnectedComponent: FC = () => {
+  const props = useAppSelector(mapStateToProps, shallowEqual);
+  return <Component {...props} />;
+};
 
-export const MessagesPage = connect(mapStateToProps)(Component);
+export const MessagesPage = ConnectedComponent;

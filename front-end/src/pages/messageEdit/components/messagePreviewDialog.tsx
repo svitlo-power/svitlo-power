@@ -1,17 +1,21 @@
 import { FC, useEffect } from "react";
-import { RootState, useAppDispatch } from "../../../stores/store";
+import {
+  RootState,
+  useAppDispatch,
+  useAppSelector,
+} from "../../../stores/store";
 import { getTemplatePreview } from "../../../stores/thunks";
 import { TemplatePreview } from "../../../stores/types";
-import { Text, Group, Loader, Stack } from '@mantine/core'
-import { modals } from '@mantine/modals'
-import { connect } from "react-redux";
+import { Text, Group, Loader, Stack } from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { shallowEqual } from "react-redux";
 import { MessagePreview } from "./messagePreview";
 import { ObjectId } from "../../../schemas";
 import { TFunction } from "i18next";
 
 type OpenMessagePreviewOptions = {
   message_id?: ObjectId;
-  name: string,
+  name: string;
   stations: ObjectId[];
   templateMacros: string;
   shouldSendTemplate: string;
@@ -32,7 +36,6 @@ export function openMessagePreviewDialog({
   language,
   t,
 }: OpenMessagePreviewOptions) {
-
   type InnerProps = {
     templatePreview?: TemplatePreview;
     loadingPreview: boolean;
@@ -40,32 +43,37 @@ export function openMessagePreviewDialog({
     t: TFunction;
   };
 
-  const mapStateToProps = (state: RootState, ownProps: { t: TFunction }): InnerProps => ({
+  const mapStateToProps = (
+    state: RootState,
+    ownProps: { t: TFunction },
+  ): InnerProps => ({
     templatePreview: state.messages.templatePreview,
     loadingPreview: state.messages.loadingPreview,
     previewError: state.messages.previewError,
     t: ownProps.t,
   });
 
-  const Inner: FC<InnerProps> = ({ 
+  const Inner: FC<InnerProps> = ({
     templatePreview,
     loadingPreview,
     previewError,
     t,
-   }) => {
+  }) => {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
-      dispatch(getTemplatePreview({
-        id: message_id,
-        name,
-        stations,
-        templateMacros,
-        shouldSendTemplate,
-        timeoutTemplate,
-        messageTemplate,
-        language,
-      }));
+      dispatch(
+        getTemplatePreview({
+          id: message_id,
+          name,
+          stations,
+          templateMacros,
+          shouldSendTemplate,
+          timeoutTemplate,
+          messageTemplate,
+          language,
+        }),
+      );
     }, [dispatch]);
 
     const handleClose = () => {
@@ -77,27 +85,37 @@ export function openMessagePreviewDialog({
     return (
       <Stack gap="xs">
         {loadingPreview ? (
-          <Group justify="center"><Loader /></Group>
+          <Group justify="center">
+            <Loader />
+          </Group>
         ) : (
           <Stack gap="xs">
             {previewError && <Text c="red">{previewError}</Text>}
-            {!previewError && <MessagePreview
+            {!previewError && (
+              <MessagePreview
                 handleClose={handleClose}
                 preview={templatePreview!}
                 t={t}
-              />}
+              />
+            )}
           </Stack>
         )}
       </Stack>
     );
   };
 
-  const ConnectedInner = connect(mapStateToProps)(Inner);
+  const ConnectedInner: FC<{ t: TFunction }> = (ownProps) => {
+    const props = useAppSelector(
+      (state) => mapStateToProps(state, ownProps),
+      shallowEqual,
+    );
+    return <Inner {...props} />;
+  };
 
   const id: string | undefined = modals.open({
-    title: t ? t('preview.title', { name }) : `Message '${name}' preview`,
+    title: t ? t("preview.title", { name }) : `Message '${name}' preview`,
     centered: true,
-    size: 'lg',
+    size: "lg",
     children: <ConnectedInner t={t} />,
   });
 }

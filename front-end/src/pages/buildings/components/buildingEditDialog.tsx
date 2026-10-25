@@ -1,12 +1,39 @@
 import { FC, useMemo } from "react";
 import { modals } from "@mantine/modals";
-import { Button, Checkbox, ColorInput, Group, Loader, MultiSelect, parseThemeColor, Select, Stack, TextInput, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import {
+  Button,
+  Checkbox,
+  ColorInput,
+  Group,
+  Loader,
+  MultiSelect,
+  parseThemeColor,
+  Select,
+  Stack,
+  TextInput,
+  useMantineColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { useFormHandler, useLookup } from "../../../hooks";
-import { RootState, useAppDispatch } from "../../../stores/store";
-import { buildingEditSchema, BuildingEditType, LocalizableValue, ObjectId } from "../../../schemas";
+import {
+  RootState,
+  useAppDispatch,
+  useAppSelector,
+} from "../../../stores/store";
+import {
+  buildingEditSchema,
+  BuildingEditType,
+  LocalizableValue,
+  ObjectId,
+} from "../../../schemas";
 import { startEditingBuilding } from "../../../stores/thunks";
-import { cancelEditingOrCreatingBuilding, finishCreatingBuilding, finishEditingBuilding, startCreatingBuilding } from "../../../stores/slices";
-import { connect } from "react-redux";
+import {
+  cancelEditingOrCreatingBuilding,
+  finishCreatingBuilding,
+  finishEditingBuilding,
+  startCreatingBuilding,
+} from "../../../stores/slices";
+import { shallowEqual } from "react-redux";
 import { Controller, FieldErrors } from "react-hook-form";
 import { LookupSchema } from "../../../types";
 import { usePageTranslation } from "../../../utils";
@@ -19,7 +46,11 @@ type OpenBuildingEditOptions = {
   title?: string;
 };
 
-export function openBuildingEditDialog({ creating = false, buildingId, title }: OpenBuildingEditOptions) {
+export function openBuildingEditDialog({
+  creating = false,
+  buildingId,
+  title,
+}: OpenBuildingEditOptions) {
   type InnerProps = {
     building: BuildingEditType;
     loading: boolean;
@@ -34,22 +65,38 @@ export function openBuildingEditDialog({ creating = false, buildingId, title }: 
 
   const Inner: FC<InnerProps> = ({ building, loading, buildingId }) => {
     const dispatch = useAppDispatch();
-    const t = usePageTranslation('dashboard');
+    const t = usePageTranslation("dashboard");
 
     const theme = useMantineTheme();
     const { colorScheme } = useMantineColorScheme();
 
-    const { data: stations, loading: stationsLoading } = useLookup(LookupSchema.Station);
-    const { data: users, loading: usersLoading } = useLookup(LookupSchema.ReporterUser);
-    
-    const stationOptions = useMemo(() => stationsLoading ? [] : stations.map(station => ({
-      label: station.text,
-      value: station.value!,
-    })), [stations, stationsLoading]);
-    const userOptions = useMemo(() => usersLoading ? [] : users.map(user => ({
-      label: user.text,
-      value: user.value!,
-    })), [users, usersLoading]);
+    const { data: stations, loading: stationsLoading } = useLookup(
+      LookupSchema.Station,
+    );
+    const { data: users, loading: usersLoading } = useLookup(
+      LookupSchema.ReporterUser,
+    );
+
+    const stationOptions = useMemo(
+      () =>
+        stationsLoading
+          ? []
+          : stations.map((station) => ({
+              label: station.text,
+              value: station.value!,
+            })),
+      [stations, stationsLoading],
+    );
+    const userOptions = useMemo(
+      () =>
+        usersLoading
+          ? []
+          : users.map((user) => ({
+              label: user.text,
+              value: user.value!,
+            })),
+      [users, usersLoading],
+    );
 
     const getNameError = (
       fieldErrors: FieldErrors<BuildingEditType>,
@@ -57,7 +104,7 @@ export function openBuildingEditDialog({ creating = false, buildingId, title }: 
     ): string | null => {
       const error = fieldErrors.name?.[culture];
       return error?.message ? t(error.message!) : null;
-    };    
+    };
 
     const {
       handleFormSubmit,
@@ -91,11 +138,13 @@ export function openBuildingEditDialog({ creating = false, buildingId, title }: 
       loading: loading || usersLoading || stationsLoading,
       useLocationGuard: false,
       defaultRender: (name, title, context) => {
-        return <TextInput
-          required
-          label={title}
-          {...context.helpers.registerControl(name)}
-        />;
+        return (
+          <TextInput
+            required
+            label={title}
+            {...context.helpers.registerControl(name)}
+          />
+        );
       },
       errorFormatter: (error) => t(error),
       fields: [
@@ -103,128 +152,150 @@ export function openBuildingEditDialog({ creating = false, buildingId, title }: 
           name: "name",
           title: t("buildingEdit.name"),
           render: (context) => {
-            return <Controller
-              name="name"
-              control={context.helpers.control}
-              defaultValue={{}}
-              render={({ field }) => <>
-                <LocalizableValueEditor
-                  t={t}
-                  label={context.title}
-                  value={field.value}
-                  onChange={(value: LocalizableValue) => context.helpers.setControlValue('name', value, true)}
-                  valueErrors={
-                    AVAILABLE_LANGUAGES.reduce(
-                      (prev, curr) => ({
-                        ...prev,
-                        [curr]: getNameError(errors, curr),
-                      }),
-                      {},
-                    )
-                  }
-                />
-              </>}
-            />
-          }
+            return (
+              <Controller
+                name="name"
+                control={context.helpers.control}
+                defaultValue={{}}
+                render={({ field }) => (
+                  <>
+                    <LocalizableValueEditor
+                      t={t}
+                      label={context.title}
+                      value={field.value}
+                      onChange={(value: LocalizableValue) =>
+                        context.helpers.setControlValue("name", value, true)
+                      }
+                      valueErrors={AVAILABLE_LANGUAGES.reduce(
+                        (prev, curr) => ({
+                          ...prev,
+                          [curr]: getNameError(errors, curr),
+                        }),
+                        {},
+                      )}
+                    />
+                  </>
+                )}
+              />
+            );
+          },
         },
         {
           name: "enabled",
           title: t("buildingEdit.enabled"),
           render: (context) => {
-            return <Controller
-              name="enabled"
-              control={context.helpers.control}
-              render={({ field }) => (
-                <Checkbox
-                  pb="xs"
-                  label={context.title}
-                  checked={field.value || false}
-                  onChange={x => {
-                    context.helpers.setControlValue('enabled', x.currentTarget.checked, true);
-                  }}
-                />
-              )}
-            />
+            return (
+              <Controller
+                name="enabled"
+                control={context.helpers.control}
+                render={({ field }) => (
+                  <Checkbox
+                    pb="xs"
+                    label={context.title}
+                    checked={field.value || false}
+                    onChange={(x) => {
+                      context.helpers.setControlValue(
+                        "enabled",
+                        x.currentTarget.checked,
+                        true,
+                      );
+                    }}
+                  />
+                )}
+              />
+            );
           },
         },
         {
           name: "color",
           title: t("buildingEdit.color"),
           render: (context) => {
-            const selectedColor = context.helpers.getControlValue('color');
+            const selectedColor = context.helpers.getControlValue("color");
             let color: string | undefined = undefined;
-            if (selectedColor) {    
+            if (selectedColor) {
               color = parseThemeColor({
-                color: context.helpers.getControlValue('color'),
+                color: context.helpers.getControlValue("color"),
                 theme,
                 colorScheme,
               }).value;
             }
-            return <ColorInput
-              label={context.title}
-              rightSection={loading ? 'Loading...' : null}
-              swatches={[
-                ...Object.values(theme.colors).flat(),
-              ]}
-              swatchesPerRow={15}
-              {...context.helpers.registerControl('color')}
-              value={color}
-              onChange={(value) =>
-                context.helpers.setControlValue('color', value, true)}
-            />
-
+            return (
+              <ColorInput
+                label={context.title}
+                rightSection={loading ? "Loading..." : null}
+                swatches={[...Object.values(theme.colors).flat()]}
+                swatchesPerRow={15}
+                {...context.helpers.registerControl("color")}
+                value={color}
+                onChange={(value) =>
+                  context.helpers.setControlValue("color", value, true)
+                }
+              />
+            );
           },
         },
         {
           name: "stationId",
           title: t("buildingEdit.station"),
           render: (context) => {
-            return <Controller
-              name="stationId"
-              control={context.helpers.control}
-              defaultValue={'0'}
-              render={({ field }) => (
-                <Select
-                  clearable
-                  data={stationOptions}
-                  {...field}
-                  leftSection={stationsLoading ? <Loader size="xs" /> : null}
-                  label={context.title}
-                  value={field.value ?? ''}
-                  error={context.helpers.getFieldError('stationId')}
-                  onChange={(value) => context.helpers.setControlValue('stationId', value, true)}
-                />
-              )}
-            />;
+            return (
+              <Controller
+                name="stationId"
+                control={context.helpers.control}
+                defaultValue={"0"}
+                render={({ field }) => (
+                  <Select
+                    clearable
+                    data={stationOptions}
+                    {...field}
+                    leftSection={stationsLoading ? <Loader size="xs" /> : null}
+                    label={context.title}
+                    value={field.value ?? ""}
+                    error={context.helpers.getFieldError("stationId")}
+                    onChange={(value) =>
+                      context.helpers.setControlValue("stationId", value, true)
+                    }
+                  />
+                )}
+              />
+            );
           },
-         },
+        },
         {
           name: "reportUserIds",
           title: t("buildingEdit.reportUsers"),
           render: (context) => {
-            return <Controller
-              name="reportUserIds"
-              control={context.helpers.control}
-              defaultValue={[]}
-              render={({ field }) => (
-                <MultiSelect
-                  required
-                  data={userOptions}
-                  {...field}
-                  leftSection={usersLoading ? <Loader size="xs" /> : null}
-                  label={context.title}
-                  value={field.value ?? []}
-                  error={context.helpers.getFieldError('reportUserIds')}
-                  onChange={(value) =>
-                    context.helpers.setControlValue('reportUserIds', value, true, false)}
-                />
-              )}
-            />;
+            return (
+              <Controller
+                name="reportUserIds"
+                control={context.helpers.control}
+                defaultValue={[]}
+                render={({ field }) => (
+                  <MultiSelect
+                    required
+                    data={userOptions}
+                    {...field}
+                    leftSection={usersLoading ? <Loader size="xs" /> : null}
+                    label={context.title}
+                    value={field.value ?? []}
+                    error={context.helpers.getFieldError("reportUserIds")}
+                    onChange={(value) =>
+                      context.helpers.setControlValue(
+                        "reportUserIds",
+                        value,
+                        true,
+                        false,
+                      )
+                    }
+                  />
+                )}
+              />
+            );
           },
         },
-      ]
+      ],
     });
-    
+
     const handleSave = () => {
       if (id) {
         modals.close(id);
@@ -241,34 +312,31 @@ export function openBuildingEditDialog({ creating = false, buildingId, title }: 
 
     return (
       <Stack>
-        {renderField('name')}
-        {renderField('enabled')}
-        {renderField('color')}
-        {renderField('stationId')}
-        {renderField('reportUserIds')}
+        {renderField("name")}
+        {renderField("enabled")}
+        {renderField("color")}
+        {renderField("stationId")}
+        {renderField("reportUserIds")}
         <Group justify="flex-end">
-          <Button
-            onClick={handleSave}
-            disabled={!isDirty || !isValid}
-          >
-            {t('button.save')}
+          <Button onClick={handleSave} disabled={!isDirty || !isValid}>
+            {t("button.save")}
           </Button>
-          <Button
-            variant="default"
-            onClick={handleCancel}
-          >
-            {t('button.cancel')}
+          <Button variant="default" onClick={handleCancel}>
+            {t("button.cancel")}
           </Button>
         </Group>
       </Stack>
     );
   };
 
-  const ConnectedInner = connect(mapStateToProps)(Inner);
+  const ConnectedInner: FC = () => {
+    const props = useAppSelector(mapStateToProps, shallowEqual);
+    return <Inner {...props} />;
+  };
 
   const id: string | undefined = modals.open({
     title: title,
-    size: 'lg',
+    size: "lg",
     centered: true,
     withCloseButton: false,
     closeOnClickOutside: false,
