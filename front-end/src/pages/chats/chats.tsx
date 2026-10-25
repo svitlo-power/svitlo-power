@@ -15,7 +15,7 @@ import { ColumnDataType, EventType } from "../../types";
 import { ObjectId } from "../../schemas";
 import { useSubscribeEvent } from "../../hooks";
 
-const Component: FC = () => {
+export const ChatsPage: FC = () => {
   const allowedChats = useAppSelector((state) => state.chats.allowedChats);
   const chatRequests = useAppSelector((state) => state.chats.chatRequests);
   const loading = useAppSelector((state) => state.chats.loading);
@@ -163,5 +163,3 @@ const Component: FC = () => {
     </>
   );
 };
-
-export const ChatsPage = Component;

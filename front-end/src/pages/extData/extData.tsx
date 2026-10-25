@@ -35,7 +35,7 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { useLookup, useRefreshKey, useSubscribeEvent } from "../../hooks";
 import { ObjectId } from "../../schemas";
 
-const Component: FC = () => {
+export const ExtDataPage: FC = () => {
   const extData = useAppSelector((state) => state.extData.items);
   const pagingInfo = useAppSelector((state) => state.extData.paging);
   const loading = useAppSelector((state) => state.extData.loading);
@@ -371,5 +371,3 @@ const Component: FC = () => {
     </>
   );
 };
-
-export const ExtDataPage = Component;

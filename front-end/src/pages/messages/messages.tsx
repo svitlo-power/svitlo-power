@@ -15,7 +15,7 @@ import { useLookup, useSubscribeEvent } from "../../hooks";
 import { Row } from "@tanstack/react-table";
 import { ObjectId } from "../../schemas";
 
-const Component: FC = () => {
+export const MessagesPage: FC = () => {
   const messages = useAppSelector((state) => state.messages.messages);
   const dataChanged = useAppSelector(selectMessagesChanged);
   const loading = useAppSelector((state) => state.messages.loading);
@@ -219,5 +219,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const MessagesPage = Component;

@@ -30,7 +30,7 @@ import {
   selectStationsMaxOrder,
 } from "../../stores/selectors";
 
-const Component: FC = () => {
+export const StationsPage: FC = () => {
   const stations = useAppSelector((state) => state.stations.stations);
   const maxOrder = useAppSelector(selectStationsMaxOrder);
   const changed = useAppSelector(selectStationsChanged);
@@ -219,5 +219,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const StationsPage = Component;

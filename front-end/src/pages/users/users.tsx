@@ -53,7 +53,7 @@ import { usePageTranslation } from "../../utils";
 import { openLoginHistoryDialog } from "../../dialogs";
 import { selectUsersChanged } from "../../stores/selectors";
 
-const Component: FC = () => {
+export const UsersPage: FC = () => {
   const users = useAppSelector((state) => state.users.users);
   const loading = useAppSelector((state) => state.users.loading);
   const error = useAppSelector((state) => state.users.error);
@@ -784,5 +784,3 @@ const Component: FC = () => {
     </>
   );
 };
-
-export const UsersPage = Component;

@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useLookup, useRefreshKey } from "../../hooks";
 import { ObjectId } from "../../schemas";
 
-const Component: FC = () => {
+export const ExtDevicesPage: FC = () => {
   const extDevices = useAppSelector((state) => state.extDevices.items);
   const loading = useAppSelector((state) => state.extDevices.loading);
   const error = useAppSelector((state) => state.extDevices.error);
@@ -170,5 +170,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const ExtDevicesPage = Component;

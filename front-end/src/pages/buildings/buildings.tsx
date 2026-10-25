@@ -27,7 +27,7 @@ import { usePageTranslation } from "../../utils";
 import i18n from "../../i18n";
 import { EventItem, EventType } from "../../types";
 
-const Component: FC = () => {
+export const BuildingsPage: FC = () => {
   const loadingConfig = useAppSelector(
     (state) => state.dashboardConfig.loading,
   );
@@ -248,5 +248,3 @@ const Component: FC = () => {
     </>
   );
 };
-
-export const BuildingsPage = Component;

@@ -52,7 +52,7 @@ const StatTile: FC<{ label: string; value: number }> = ({ label, value }) => (
   </Paper>
 );
 
-const Component: FC = () => {
+export const PushPage: FC = () => {
   const devices = useAppSelector((state) => state.pushDevices.items);
   const topics = useAppSelector((state) => state.pushTopics.items);
   const loading = useAppSelector(selectPushLoading);
@@ -392,5 +392,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const PushPage = Component;

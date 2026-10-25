@@ -52,7 +52,7 @@ type ComponentOwnProps = {
   isEdit: boolean;
 };
 
-const Component: FC<ComponentOwnProps> = ({ isEdit }) => {
+export const MessageEditPage: FC<ComponentOwnProps> = ({ isEdit }) => {
   const bots = useAppSelector((state) => state.bots.bots);
   const message = useAppSelector((state) => state.messages.editingMessage);
   const loading = useAppSelector(selectMessageEditLoading);
@@ -443,5 +443,3 @@ const Component: FC<ComponentOwnProps> = ({ isEdit }) => {
     </FormPage>
   );
 };
-
-export const MessageEditPage = Component;

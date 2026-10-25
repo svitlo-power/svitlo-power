@@ -11,7 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { authDataSelector } from "../stores/selectors";
 import { useTranslation } from "react-i18next";
 
-const Component: FC = () => {
+export const LoginPage: FC = () => {
   const loading = useAppSelector((state) => state.auth.loading);
   const error = useAppSelector((state) => state.auth.error);
   const authData = useAppSelector(authDataSelector);
@@ -87,5 +87,3 @@ const Component: FC = () => {
     </form>
   );
 };
-
-export const LoginPage = Component;

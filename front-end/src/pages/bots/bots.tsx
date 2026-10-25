@@ -16,7 +16,7 @@ import { ColumnDataType } from "../../types";
 import { ObjectId } from "../../schemas";
 import { selectBotsChanged } from "../../stores/selectors";
 
-const Component: FC = () => {
+export const BotsPage: FC = () => {
   const bots = useAppSelector((state) => state.bots.bots);
   const loading = useAppSelector((state) => state.bots.loading);
   const error = useAppSelector((state) => state.bots.error);
@@ -146,5 +146,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const BotsPage = Component;

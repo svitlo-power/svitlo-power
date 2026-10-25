@@ -43,7 +43,7 @@ const StatCard: FC<{
   </Paper>
 );
 
-const Component: FC = () => {
+export const StationDetailsPage: FC = () => {
   const detailsData = useAppSelector(
     (state) => state.stationsData.stationDetails,
   );
@@ -523,5 +523,3 @@ const Component: FC = () => {
     </Page>
   );
 };
-
-export const StationDetailsPage = Component;

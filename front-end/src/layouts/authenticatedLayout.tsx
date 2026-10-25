@@ -17,7 +17,7 @@ import { logout } from "../stores/slices";
 import { useTranslation } from "react-i18next";
 import { useSubscribeEvent } from "../hooks";
 
-const Component: FC = () => {
+export const AuthenticatedLayout: FC = () => {
   const authData = useAppSelector(authDataSelector);
   const profile = useAppSelector((state) => state.auth.profile);
   const dispatch = useAppDispatch();
@@ -106,5 +106,3 @@ const Component: FC = () => {
     </AppShell>
   );
 };
-
-export const AuthenticatedLayout = Component;

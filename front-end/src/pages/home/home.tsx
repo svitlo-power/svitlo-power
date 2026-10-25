@@ -30,7 +30,7 @@ const buildIntervalOptions = (t: TFunction): ComboboxItem[] => [
   { label: t("interval.custom"), value: "custom" },
 ];
 
-const Component: FC = () => {
+export const HomePage: FC = () => {
   const stationsData = useAppSelector(
     (state) => state.stationsData.stationsData,
   );
@@ -146,5 +146,3 @@ const Component: FC = () => {
     </>
   );
 };
-
-export const HomePage = Component;
