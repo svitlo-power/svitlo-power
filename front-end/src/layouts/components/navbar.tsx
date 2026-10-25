@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { FC, forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'

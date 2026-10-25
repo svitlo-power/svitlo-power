@@ -2,36 +2,26 @@ import { Outlet, useLocation } from "react-router-dom";
 import { FC, Suspense, useCallback, useEffect } from "react";
 import { RootRoutes } from "../routes";
 import { useHeaderContent } from "../providers";
-import { RootState, useAppDispatch } from "../stores/store";
-import { connect } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../stores/store";
 import { AppShell } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import classes from './styles/authenticatedLayout.module.css';
+import classes from "./styles/authenticatedLayout.module.css";
 import { Header } from "./components/header";
 import { Navbar } from "./components/navbar";
 import useLocalStorage from "../hooks/useLocalStorage";
-import { ProfileData } from "../stores/types";
 import { fetchProfile } from "../stores/thunks";
 import { openProfileEditDialog } from "../dialogs";
 import { authDataSelector } from "../stores/selectors";
-import { AuthData, EventType } from "../types";
+import { EventType } from "../types";
 import { logout } from "../stores/slices";
 import { useTranslation } from "react-i18next";
 import { useSubscribeEvent } from "../hooks";
 
-type ComponentProps = {
-  authData: AuthData | null;
-  profile: ProfileData;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  authData: authDataSelector(state),
-  profile: state.auth.profile!,
-});
-
-const Component: FC<ComponentProps> = ({ authData, profile }) => {
-  const dispatch = useAppDispatch()
-  const { t } = useTranslation('common');
+export const AuthenticatedLayout: FC = () => {
+  const authData = useAppSelector(authDataSelector);
+  const profile = useAppSelector((state) => state.auth.profile);
+  const dispatch = useAppDispatch();
+  const { t } = useTranslation("common");
 
   const location = useLocation();
 
@@ -45,10 +35,14 @@ const Component: FC<ComponentProps> = ({ authData, profile }) => {
 
   const { headerButtons, headerText } = useHeaderContent();
 
-  
-  const caption = headerText ? headerText : RootRoutes.find(f => f.path === location.pathname)?.name;
+  const caption = headerText
+    ? headerText
+    : RootRoutes.find((f) => f.path === location.pathname)?.name;
 
-  const [ isNavbarCollapsed, setNavbarCollapsed ] = useLocalStorage('dmb-nv-collapsed', false);
+  const [isNavbarCollapsed, setNavbarCollapsed] = useLocalStorage(
+    "dmb-nv-collapsed",
+    false,
+  );
   const toggleNavbar = useCallback(() => {
     setNavbarCollapsed(!isNavbarCollapsed);
   }, [isNavbarCollapsed, setNavbarCollapsed]);
@@ -107,12 +101,8 @@ const Component: FC<ComponentProps> = ({ authData, profile }) => {
         />
       </AppShell.Navbar>
       <AppShell.Main>
-        <Suspense>
-          { authData?.accessToken && profile && <Outlet /> }
-        </Suspense>
+        <Suspense>{authData?.accessToken && profile && <Outlet />}</Suspense>
       </AppShell.Main>
     </AppShell>
   );
 };
-
-export const AuthenticatedLayout = connect(mapStateToProps)(Component);

@@ -1,13 +1,29 @@
 import { FC, useCallback, useEffect, useMemo } from "react";
-import { connect } from "react-redux";
-import { Badge, Code, Group, Paper, SimpleGrid, Stack, Tabs, Text } from "@mantine/core";
+import {
+  Badge,
+  Code,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Tabs,
+  Text,
+} from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { RootState, useAppDispatch } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
-  deletePushDevice, fetchPushDevices, fetchPushTopics, sendTestPush, setPushTopicState,
+  deletePushDevice,
+  fetchPushDevices,
+  fetchPushTopics,
+  sendTestPush,
+  setPushTopicState,
 } from "../../stores/thunks";
-import { PushDeviceItem, PushTestRequest, PushTopicItem } from "../../stores/types";
+import {
+  PushDeviceItem,
+  PushTestRequest,
+  PushTopicItem,
+} from "../../stores/types";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType } from "../../types";
@@ -18,31 +34,29 @@ import { LocalizableValue } from "../../schemas";
 import i18n from "../../i18n";
 import { openPushTestDialog } from "./components";
 
-type ComponentProps = {
-  devices: PushDeviceItem[];
-  topics: PushTopicItem[];
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  devices: state.pushDevices.items,
-  topics: state.pushTopics.items,
-  loading: state.pushDevices.loading || state.pushTopics.loading,
-  error: state.pushDevices.error ?? state.pushTopics.error,
-});
+import { selectPushError, selectPushLoading } from "../../stores/selectors";
 
 const localized = (value: LocalizableValue) =>
-  value[i18n.language as keyof LocalizableValue] ?? Object.values(value)[0] ?? "";
+  value[i18n.language as keyof LocalizableValue] ??
+  Object.values(value)[0] ??
+  "";
 
 const StatTile: FC<{ label: string; value: number }> = ({ label, value }) => (
   <Paper withBorder p="sm" radius="md">
-    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>{label}</Text>
-    <Text size="xl" fw={700}>{value}</Text>
+    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+      {label}
+    </Text>
+    <Text size="xl" fw={700}>
+      {value}
+    </Text>
   </Paper>
 );
 
-const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
+export const PushPage: FC = () => {
+  const devices = useAppSelector((state) => state.pushDevices.items);
+  const topics = useAppSelector((state) => state.pushTopics.items);
+  const loading = useAppSelector(selectPushLoading);
+  const error = useAppSelector(selectPushError);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("push");
   const { refreshKey } = useRefreshKey();
@@ -61,44 +75,75 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
     fetchTopics();
   }, [fetchDevices, fetchTopics]);
 
-  const stats = useMemo(() => ({
-    total: devices.length,
-    android: devices.filter((d) => d.platform === "android").length,
-    web: devices.filter((d) => d.platform === "web").length,
-    enabled: devices.filter((d) => d.enabled).length,
-  }), [devices]);
+  const stats = useMemo(
+    () => ({
+      total: devices.length,
+      android: devices.filter((d) => d.platform === "android").length,
+      web: devices.filter((d) => d.platform === "web").length,
+      enabled: devices.filter((d) => d.enabled).length,
+    }),
+    [devices],
+  );
 
   const send = useCallback(
     (request: PushTestRequest) => dispatch(sendTestPush(request)).unwrap(),
     [dispatch],
   );
 
-  const openTest = useCallback((device?: PushDeviceItem) => {
-    openPushTestDialog({ t, device, enabledCount: stats.enabled, onSend: send });
-  }, [t, stats.enabled, send]);
+  const openTest = useCallback(
+    (device?: PushDeviceItem) => {
+      openPushTestDialog({
+        t,
+        device,
+        enabledCount: stats.enabled,
+        onSend: send,
+      });
+    },
+    [t, stats.enabled, send],
+  );
 
-  const openTopicTest = useCallback((topic: PushTopicItem) => {
-    openPushTestDialog({
-      t,
-      topic: { key: topic.key, name: localized(topic.name), subscribers: topic.subscribers },
-      enabledCount: stats.enabled,
-      onSend: send,
-    });
-  }, [t, stats.enabled, send]);
+  const openTopicTest = useCallback(
+    (topic: PushTopicItem) => {
+      openPushTestDialog({
+        t,
+        topic: {
+          key: topic.key,
+          name: localized(topic.name),
+          subscribers: topic.subscribers,
+        },
+        enabledCount: stats.enabled,
+        onSend: send,
+      });
+    },
+    [t, stats.enabled, send],
+  );
 
-  const handleDelete = useCallback((device: PushDeviceItem) => {
-    modals.openConfirmModal({
-      title: t("modal.deleteTitle"),
-      children: t("modal.deleteConfirm"),
-      labels: { confirm: t("button.delete"), cancel: t("button.cancel") },
-      confirmProps: { color: "red" },
-      onConfirm: () => dispatch(deletePushDevice(device.id)).then(() => fetchTopics()),
-    });
-  }, [dispatch, fetchTopics, t]);
+  const handleDelete = useCallback(
+    (device: PushDeviceItem) => {
+      modals.openConfirmModal({
+        title: t("modal.deleteTitle"),
+        children: t("modal.deleteConfirm"),
+        labels: { confirm: t("button.delete"), cancel: t("button.cancel") },
+        confirmProps: { color: "red" },
+        onConfirm: () =>
+          dispatch(deletePushDevice(device.id)).then(() => fetchTopics()),
+      });
+    },
+    [dispatch, fetchTopics, t],
+  );
 
-  const getHeaderButtons = useCallback((): PageHeaderButton[] => [
-    { text: t("button.sendToAll"), icon: "paper-plane", color: "teal", onClick: () => openTest(), disabled: false },
-  ], [openTest, t]);
+  const getHeaderButtons = useCallback(
+    (): PageHeaderButton[] => [
+      {
+        text: t("button.sendToAll"),
+        icon: "paper-plane",
+        color: "teal",
+        onClick: () => openTest(),
+        disabled: false,
+      },
+    ],
+    [openTest, t],
+  );
 
   const { setHeaderButtons } = useHeaderContent();
   useEffect(() => {
@@ -120,19 +165,34 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
           <StatTile label={t("stats.enabled")} value={stats.enabled} />
         </SimpleGrid>
 
-        <Tabs value={tab} onChange={(value) => setTab(value ?? "topics")} keepMounted={false}
-          style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Tabs
+          value={tab}
+          onChange={(value) => setTab(value ?? "topics")}
+          keepMounted={false}
+          style={{ flex: 1, display: "flex", flexDirection: "column" }}
+        >
           <Tabs.List px="sm">
-            <Tabs.Tab value="topics" leftSection={<FontAwesomeIcon icon="bell" />}>
+            <Tabs.Tab
+              value="topics"
+              leftSection={<FontAwesomeIcon icon="bell" />}
+            >
               {t("tabs.topics")}
             </Tabs.Tab>
-            <Tabs.Tab value="devices" leftSection={<FontAwesomeIcon icon="mobile" />}>
+            <Tabs.Tab
+              value="devices"
+              leftSection={<FontAwesomeIcon icon="mobile" />}
+            >
               {t("tabs.devices")}
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="topics" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <Text size="sm" c="dimmed" px="sm" pt="sm">{t("topics.hint")}</Text>
+          <Tabs.Panel
+            value="topics"
+            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+          >
+            <Text size="sm" c="dimmed" px="sm" pt="sm">
+              {t("topics.hint")}
+            </Text>
             <DataTable<PushTopicItem>
               data={topics}
               fetchAction={fetchTopics}
@@ -145,8 +205,12 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
                   header: t("topics.name"),
                   cell: ({ row }) => (
                     <Stack gap={0}>
-                      <Text size="sm" fw={600}>{localized(row.original.name)}</Text>
-                      <Text size="xs" c="dimmed">{localized(row.original.description)}</Text>
+                      <Text size="sm" fw={600}>
+                        {localized(row.original.name)}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {localized(row.original.description)}
+                      </Text>
                     </Stack>
                   ),
                 },
@@ -173,7 +237,10 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
                   meta: {
                     dataType: ColumnDataType.Boolean,
                     readOnly: false,
-                    checkedChange: (row, state) => dispatch(setPushTopicState({ key: row.key, enabled: state })),
+                    checkedChange: (row, state) =>
+                      dispatch(
+                        setPushTopicState({ key: row.key, enabled: state }),
+                      ),
                   },
                 },
                 {
@@ -196,7 +263,10 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
             />
           </Tabs.Panel>
 
-          <Tabs.Panel value="devices" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <Tabs.Panel
+            value="devices"
+            style={{ flex: 1, display: "flex", flexDirection: "column" }}
+          >
             <DataTable<PushDeviceItem>
               data={devices}
               fetchAction={fetchDevices}
@@ -211,8 +281,16 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
                   enableSorting: true,
                   cell: ({ row }) => (
                     <Group gap={6}>
-                      <FontAwesomeIcon icon={row.original.platform === "android" ? "mobile" : "globe"} />
-                      <Text size="sm">{t(`platform.${row.original.platform}`)}</Text>
+                      <FontAwesomeIcon
+                        icon={
+                          row.original.platform === "android"
+                            ? "mobile"
+                            : "globe"
+                        }
+                      />
+                      <Text size="sm">
+                        {t(`platform.${row.original.platform}`)}
+                      </Text>
                     </Group>
                   ),
                   meta: {
@@ -224,7 +302,11 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
                   header: t("table.language"),
                   accessorKey: "language",
                   enableSorting: true,
-                  cell: ({ row }) => <Badge variant="light" color="gray">{row.original.language}</Badge>,
+                  cell: ({ row }) => (
+                    <Badge variant="light" color="gray">
+                      {row.original.language}
+                    </Badge>
+                  ),
                   meta: {
                     dataType: ColumnDataType.Text,
                   },
@@ -252,9 +334,13 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
                   header: t("table.subscriptions"),
                   cell: ({ row }) => {
                     const off = row.original.disabledTopics.length;
-                    return off === 0
-                      ? <Text size="sm">{t("subscriptions")}</Text>
-                      : <Text size="sm" c="orange">{t("subscriptionsPartial", { count: off })}</Text>;
+                    return off === 0 ? (
+                      <Text size="sm">{t("subscriptions")}</Text>
+                    ) : (
+                      <Text size="sm" c="orange">
+                        {t("subscriptionsPartial", { count: off })}
+                      </Text>
+                    );
                   },
                 },
                 {
@@ -306,5 +392,3 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
     </Page>
   );
 };
-
-export const PushPage = connect(mapStateToProps)(Component);
