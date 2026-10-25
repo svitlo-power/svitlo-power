@@ -1,5 +1,4 @@
 import { FC, useCallback, useEffect, useMemo } from "react";
-import { shallowEqual } from "react-redux";
 import {
   Badge,
   Code,
@@ -12,7 +11,7 @@ import {
 } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   deletePushDevice,
   fetchPushDevices,
@@ -35,19 +34,7 @@ import { LocalizableValue } from "../../schemas";
 import i18n from "../../i18n";
 import { openPushTestDialog } from "./components";
 
-type ComponentProps = {
-  devices: PushDeviceItem[];
-  topics: PushTopicItem[];
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  devices: state.pushDevices.items,
-  topics: state.pushTopics.items,
-  loading: state.pushDevices.loading || state.pushTopics.loading,
-  error: state.pushDevices.error ?? state.pushTopics.error,
-});
+import { selectPushError, selectPushLoading } from "../../stores/selectors";
 
 const localized = (value: LocalizableValue) =>
   value[i18n.language as keyof LocalizableValue] ??
@@ -65,7 +52,11 @@ const StatTile: FC<{ label: string; value: number }> = ({ label, value }) => (
   </Paper>
 );
 
-const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
+const Component: FC = () => {
+  const devices = useAppSelector((state) => state.pushDevices.items);
+  const topics = useAppSelector((state) => state.pushTopics.items);
+  const loading = useAppSelector(selectPushLoading);
+  const error = useAppSelector(selectPushError);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("push");
   const { refreshKey } = useRefreshKey();
@@ -402,9 +393,4 @@ const Component: FC<ComponentProps> = ({ devices, topics, loading, error }) => {
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const PushPage = ConnectedComponent;
+export const PushPage = Component;

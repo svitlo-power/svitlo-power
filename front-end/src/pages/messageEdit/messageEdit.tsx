@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useHeaderContent } from "../../providers";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   editMessage,
   fetchBots,
@@ -22,9 +22,6 @@ import {
   finishEditingMessage,
   updateEditingMessage,
 } from "../../stores/slices";
-import { BotItem } from "../../stores/types";
-import { shallowEqual } from "react-redux";
-import { createSelector } from "@reduxjs/toolkit";
 import { FormPage, FormSubmitButtons } from "../../components";
 import {
   ActionIcon,
@@ -49,47 +46,17 @@ import { openMessagePreviewDialog, TemplateEditor } from "./components";
 import { LookupSchema } from "../../types";
 import { usePageTranslation } from "../../utils";
 import { AVAILABLE_LANGUAGES } from "../../i18n";
+import { selectMessageEditLoading } from "../../stores/selectors";
 
 type ComponentOwnProps = {
   isEdit: boolean;
 };
 
-type ComponentProps = {
-  bots: BotItem[];
-  message?: MessageEdit;
-  loading: boolean;
-  stationsLoading: boolean;
-  isEdit: boolean;
-};
-
-const selectBots = (state: RootState) => state.bots;
-const selectMessages = (state: RootState) => state.messages;
-const selectStations = (state: RootState) => state.stations;
-
-const selectLoading = createSelector(
-  [selectBots, selectMessages, selectStations],
-  (bots, messages, stations) =>
-    bots.loading || messages.loading || stations.loading,
-);
-
-const mapStateToProps = (
-  state: RootState,
-  ownProps: ComponentOwnProps,
-): ComponentProps => ({
-  bots: state.bots.bots,
-  message: state.messages.editingMessage,
-  loading: selectLoading(state),
-  stationsLoading: state.stations.loading,
-  isEdit: ownProps.isEdit,
-});
-
-const Component: FC<ComponentProps> = ({
-  isEdit,
-  bots,
-  message,
-  loading,
-  stationsLoading,
-}: ComponentProps) => {
+const Component: FC<ComponentOwnProps> = ({ isEdit }) => {
+  const bots = useAppSelector((state) => state.bots.bots);
+  const message = useAppSelector((state) => state.messages.editingMessage);
+  const loading = useAppSelector(selectMessageEditLoading);
+  const stationsLoading = useAppSelector((state) => state.stations.loading);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("messages");
   const { messageId } = useParams();
@@ -477,12 +444,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC<ComponentOwnProps> = (ownProps) => {
-  const props = useAppSelector(
-    (state) => mapStateToProps(state, ownProps),
-    shallowEqual,
-  );
-  return <Component {...props} />;
-};
-
-export const MessageEditPage = ConnectedComponent;
+export const MessageEditPage = Component;

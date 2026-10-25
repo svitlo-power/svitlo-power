@@ -15,11 +15,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useFormHandler, useLookup } from "../../../hooks";
-import {
-  RootState,
-  useAppDispatch,
-  useAppSelector,
-} from "../../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../../stores/store";
 import {
   buildingEditSchema,
   BuildingEditType,
@@ -33,7 +29,6 @@ import {
   finishEditingBuilding,
   startCreatingBuilding,
 } from "../../../stores/slices";
-import { shallowEqual } from "react-redux";
 import { Controller, FieldErrors } from "react-hook-form";
 import { LookupSchema } from "../../../types";
 import { usePageTranslation } from "../../../utils";
@@ -51,19 +46,9 @@ export function openBuildingEditDialog({
   buildingId,
   title,
 }: OpenBuildingEditOptions) {
-  type InnerProps = {
-    building: BuildingEditType;
-    loading: boolean;
-    buildingId?: ObjectId;
-  };
-
-  const mapStateToProps = (state: RootState): InnerProps => ({
-    buildingId: buildingId,
-    building: state.buildings.editingItem!,
-    loading: state.buildings.loading,
-  });
-
-  const Inner: FC<InnerProps> = ({ building, loading, buildingId }) => {
+  const Inner: FC = () => {
+    const building = useAppSelector((state) => state.buildings.editingItem!);
+    const loading = useAppSelector((state) => state.buildings.loading);
     const dispatch = useAppDispatch();
     const t = usePageTranslation("dashboard");
 
@@ -329,11 +314,6 @@ export function openBuildingEditDialog({
     );
   };
 
-  const ConnectedInner: FC = () => {
-    const props = useAppSelector(mapStateToProps, shallowEqual);
-    return <Inner {...props} />;
-  };
-
   const id: string | undefined = modals.open({
     title: title,
     size: "lg",
@@ -341,6 +321,6 @@ export function openBuildingEditDialog({
     withCloseButton: false,
     closeOnClickOutside: false,
     closeOnEscape: false,
-    children: <ConnectedInner />,
+    children: <Inner />,
   });
 }

@@ -1,7 +1,6 @@
 import { FC, useCallback, useEffect } from "react";
 import { ExtDeviceItem } from "../../stores/types";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { fetchExtDevices } from "../../stores/thunks";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType, LookupSchema } from "../../types";
@@ -11,19 +10,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useLookup, useRefreshKey } from "../../hooks";
 import { ObjectId } from "../../schemas";
 
-type ComponentProps = {
-  extDevices: ExtDeviceItem[];
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  extDevices: state.extDevices.items,
-  loading: state.extDevices.loading,
-  error: state.extDevices.error,
-});
-
-const Component: FC<ComponentProps> = ({ extDevices, loading, error }) => {
+const Component: FC = () => {
+  const extDevices = useAppSelector((state) => state.extDevices.items);
+  const loading = useAppSelector((state) => state.extDevices.loading);
+  const error = useAppSelector((state) => state.extDevices.error);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("devices");
   const { refreshKey } = useRefreshKey();
@@ -181,9 +171,4 @@ const Component: FC<ComponentProps> = ({ extDevices, loading, error }) => {
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const ExtDevicesPage = ConnectedComponent;
+export const ExtDevicesPage = Component;

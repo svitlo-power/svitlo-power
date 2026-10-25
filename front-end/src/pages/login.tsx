@@ -1,7 +1,6 @@
 import { FC, useEffect } from "react";
 import { login } from "../stores/thunks";
-import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
-import { shallowEqual } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../stores/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, PasswordInput, TextInput } from "@mantine/core";
 import { useFormHandler } from "../hooks";
@@ -9,23 +8,13 @@ import { loginSchema, LoginType } from "../schemas";
 import { useLoading } from "../providers";
 import { ErrorMessage } from "../components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { AuthData } from "../types";
 import { authDataSelector } from "../stores/selectors";
 import { useTranslation } from "react-i18next";
 
-type ComponentProps = {
-  loading: boolean;
-  error?: string;
-  authData: AuthData | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  loading: state.auth.loading,
-  error: state.auth.error,
-  authData: authDataSelector(state),
-});
-
-const Component: FC<ComponentProps> = ({ loading, error, authData }) => {
+const Component: FC = () => {
+  const loading = useAppSelector((state) => state.auth.loading);
+  const error = useAppSelector((state) => state.auth.error);
+  const authData = useAppSelector(authDataSelector);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,9 +88,4 @@ const Component: FC<ComponentProps> = ({ loading, error, authData }) => {
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const LoginPage = ConnectedComponent;
+export const LoginPage = Component;

@@ -1,7 +1,6 @@
 import { FC, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
-import { shallowEqual } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { ErrorMessage, Page } from "../../components";
 import {
   Box,
@@ -20,24 +19,11 @@ import {
 import { AreaChart } from "@mantine/charts";
 import { fetchStationDetails } from "../../stores/thunks";
 import { clearStationDetails } from "../../stores/slices";
-import { StationDetailsData } from "../../stores/types";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { toLocalDateTime } from "../../utils/dateUtils";
 import { ObjectId } from "../../schemas";
 import { usePageTranslation } from "../../utils";
 import useLocalStorage from "../../hooks/useLocalStorage";
-
-type ComponentProps = {
-  detailsData: StationDetailsData | null;
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  detailsData: state.stationsData.stationDetails,
-  loading: state.stationsData.detailsLoading,
-  error: state.stationsData.detailsError,
-});
 
 const StatCard: FC<{
   title: string;
@@ -57,11 +43,12 @@ const StatCard: FC<{
   </Paper>
 );
 
-const Component: FC<ComponentProps> = ({
-  detailsData,
-  loading,
-  error,
-}: ComponentProps) => {
+const Component: FC = () => {
+  const detailsData = useAppSelector(
+    (state) => state.stationsData.stationDetails,
+  );
+  const loading = useAppSelector((state) => state.stationsData.detailsLoading);
+  const error = useAppSelector((state) => state.stationsData.detailsError);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { stationId } = useParams<{ stationId: ObjectId }>();
@@ -537,9 +524,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const StationDetailsPage = ConnectedComponent;
+export const StationDetailsPage = Component;

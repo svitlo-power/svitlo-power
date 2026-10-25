@@ -1,8 +1,6 @@
 import { FC, useCallback, useEffect, useMemo } from "react";
-import { StationDataItem } from "../../stores/types";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { StationChartCard } from "./components";
-import { shallowEqual } from "react-redux";
 import { fetchStationsData } from "../../stores/thunks";
 import { ErrorMessage } from "../../components";
 import {
@@ -21,18 +19,6 @@ import dayjs from "dayjs";
 import DateRangePicker from "../../components/dateRangePicker";
 import { useSubscribeEvent } from "../../hooks";
 
-type ComponentProps = {
-  stationsData: Array<StationDataItem>;
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  stationsData: state.stationsData.stationsData,
-  error: state.stationsData.error,
-  loading: state.stationsData.loading,
-});
-
 const buildIntervalOptions = (t: TFunction): ComboboxItem[] => [
   { label: t("interval.last15"), value: "900" },
   { label: t("interval.last30"), value: "1800" },
@@ -44,7 +30,12 @@ const buildIntervalOptions = (t: TFunction): ComboboxItem[] => [
   { label: t("interval.custom"), value: "custom" },
 ];
 
-const Component: FC<ComponentProps> = ({ stationsData, loading, error }) => {
+const Component: FC = () => {
+  const stationsData = useAppSelector(
+    (state) => state.stationsData.stationsData,
+  );
+  const loading = useAppSelector((state) => state.stationsData.loading);
+  const error = useAppSelector((state) => state.stationsData.error);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("home");
   const [dataInterval, setDataInterval] = useLocalStorage<string | "custom">(
@@ -156,9 +147,4 @@ const Component: FC<ComponentProps> = ({ stationsData, loading, error }) => {
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const HomePage = ConnectedComponent;
+export const HomePage = Component;

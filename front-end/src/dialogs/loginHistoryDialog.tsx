@@ -2,10 +2,9 @@ import { FC, useCallback } from "react";
 import { modals } from "@mantine/modals";
 import { DataTable, ErrorMessage } from "../components";
 import { ColumnDataType } from "../types";
-import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
+import { useAppDispatch, useAppSelector } from "../stores/store";
 import { fetchLoginHistory } from "../stores/thunks";
 import { LoginHistoryItem } from "../stores/types";
-import { shallowEqual } from "react-redux";
 import { ObjectId } from "../schemas";
 import { TFunction } from "i18next";
 import { toLocalDateTime } from "../utils";
@@ -23,26 +22,10 @@ export function openLoginHistoryDialog({
   userName,
   t,
 }: OpenLoginHistoryDialogOptions) {
-  type InnerProps = {
-    items: LoginHistoryItem[];
-    loading: boolean;
-    error: string | null;
-    t: TFunction;
-  };
-
-  const selectLoginHistory = (state: RootState) => state.loginHistory;
-
-  const mapStateToProps = (
-    state: RootState,
-    ownProps: { t: TFunction },
-  ): InnerProps => ({
-    items: selectLoginHistory(state).items,
-    loading: selectLoginHistory(state).loading,
-    error: selectLoginHistory(state).error,
-    t: ownProps.t,
-  });
-
-  const Inner: FC<InnerProps> = ({ items, loading, error, t }) => {
+  const Inner: FC<{ t: TFunction }> = ({ t }) => {
+    const items = useAppSelector((state) => state.loginHistory.items);
+    const loading = useAppSelector((state) => state.loginHistory.loading);
+    const error = useAppSelector((state) => state.loginHistory.error);
     const dispatch = useAppDispatch();
 
     const fetchData = useCallback(() => {
@@ -105,19 +88,11 @@ export function openLoginHistoryDialog({
     );
   };
 
-  const ConnectedInner: FC<{ t: TFunction }> = (ownProps) => {
-    const props = useAppSelector(
-      (state) => mapStateToProps(state, ownProps),
-      shallowEqual,
-    );
-    return <Inner {...props} />;
-  };
-
   modals.open({
     title: t
       ? t("modal.loginHistoryTitle", { name: userName })
       : `Login history for ${userName}`,
     size: "lg",
-    children: <ConnectedInner t={t} />,
+    children: <Inner t={t} />,
   });
 }

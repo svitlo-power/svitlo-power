@@ -2,55 +2,31 @@ import { FC, useEffect } from "react";
 import { modals } from "@mantine/modals";
 import { Button, Divider, Group, Stack, TextInput } from "@mantine/core";
 import { useFormHandler } from "../hooks";
-import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
+import { useAppDispatch, useAppSelector } from "../stores/store";
 import { ProfileEdit, withUniqueNameValidation } from "../schemas";
 import {
   fetchUsers,
   requestPasswordReset,
   saveProfile,
 } from "../stores/thunks";
-import { createSelector } from "@reduxjs/toolkit";
 import {
   editProfile,
   finishEditingProfile,
   logout,
   startEditingProfile,
 } from "../stores/slices";
-import { shallowEqual } from "react-redux";
 import { createSearchParams } from "react-router-dom";
 import { TFunction } from "i18next";
+import {
+  selectProfileEditLoading,
+  selectProfileEditUserNames,
+} from "../stores/selectors";
 
 export function openProfileEditDialog(t: TFunction) {
-  type InnerProps = {
-    profile: ProfileEdit;
-    userNames: Array<string>;
-    loading: boolean;
-    t: TFunction;
-  };
-
-  const selectAuth = (state: RootState) => state.auth;
-  const selectUsers = (state: RootState) => state.users;
-
-  const selectLoading = createSelector(
-    [selectAuth, selectUsers],
-    (auth, users) => auth.loading || users.loading,
-  );
-
-  const selectUserNames = createSelector([selectUsers], (users) =>
-    users.users.map((m) => m.name),
-  );
-
-  const mapStateToProps = (
-    state: RootState,
-    ownProps: { t: TFunction },
-  ): InnerProps => ({
-    profile: state.auth.editingProfile!,
-    userNames: selectUserNames(state),
-    loading: selectLoading(state),
-    t: ownProps.t,
-  });
-
-  const Inner: FC<InnerProps> = ({ profile, userNames, loading, t }) => {
+  const Inner: FC<{ t: TFunction }> = ({ t }) => {
+    const profile = useAppSelector((state) => state.auth.editingProfile!);
+    const userNames = useAppSelector(selectProfileEditUserNames);
+    const loading = useAppSelector(selectProfileEditLoading);
     const dispatch = useAppDispatch();
 
     useEffect(() => {
@@ -161,20 +137,12 @@ export function openProfileEditDialog(t: TFunction) {
     );
   };
 
-  const ConnectedInner: FC<{ t: TFunction }> = (ownProps) => {
-    const props = useAppSelector(
-      (state) => mapStateToProps(state, ownProps),
-      shallowEqual,
-    );
-    return <Inner {...props} />;
-  };
-
   const id: string | undefined = modals.open({
     title: t("profile.editTitle"),
     centered: true,
     withCloseButton: false,
     closeOnClickOutside: false,
     closeOnEscape: false,
-    children: <ConnectedInner t={t} />,
+    children: <Inner t={t} />,
   });
 }

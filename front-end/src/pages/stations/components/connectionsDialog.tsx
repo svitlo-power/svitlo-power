@@ -1,6 +1,5 @@
 import { FC, useEffect } from "react";
 import { TFunction } from "i18next";
-import { shallowEqual } from "react-redux";
 import { modals } from "@mantine/modals";
 import {
   ActionIcon,
@@ -14,11 +13,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  RootState,
-  useAppDispatch,
-  useAppSelector,
-} from "../../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../../stores/store";
 import { ServerStationConnectionItem } from "../../../stores/types";
 import {
   deleteStationConnection,
@@ -32,19 +27,12 @@ type OpenConnectionsDialogOptions = {
 };
 
 export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
-  type InnerProps = {
-    connections: Array<ServerStationConnectionItem>;
-    loading: boolean;
-    error: string | null;
-  };
-
-  const mapStateToProps = (state: RootState): InnerProps => ({
-    connections: state.stationConnections.connections,
-    loading: state.stationConnections.loading,
-    error: state.stationConnections.error,
-  });
-
-  const Inner: FC<InnerProps> = ({ connections, loading, error }) => {
+  const Inner: FC = () => {
+    const connections = useAppSelector(
+      (state) => state.stationConnections.connections,
+    );
+    const loading = useAppSelector((state) => state.stationConnections.loading);
+    const error = useAppSelector((state) => state.stationConnections.error);
     const dispatch = useAppDispatch();
 
     useEffect(() => {
@@ -143,15 +131,10 @@ export function openConnectionsDialog({ t }: OpenConnectionsDialogOptions) {
     }
   };
 
-  const ConnectedInner: FC = () => {
-    const props = useAppSelector(mapStateToProps, shallowEqual);
-    return <Inner {...props} />;
-  };
-
   const id: string | undefined = modals.open({
     title: t("connections.title"),
     size: "lg",
     centered: true,
-    children: <ConnectedInner />,
+    children: <Inner />,
   });
 }

@@ -1,6 +1,5 @@
 import { FC, useCallback, useEffect, useState } from "react";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { cancelBotsEditing, fetchBots, saveBots } from "../../stores/thunks";
 import {
   cancelCreatingBot,
@@ -9,42 +8,19 @@ import {
   updateBot,
 } from "../../stores/slices";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
-import { createSelector } from "@reduxjs/toolkit";
 import { BotItem } from "../../stores/types";
 import { openTokenEditDialog } from "./components/tokenEditDialog";
 import { usePageTranslation } from "../../utils";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType } from "../../types";
 import { ObjectId } from "../../schemas";
+import { selectBotsChanged } from "../../stores/selectors";
 
-type ComponentProps = {
-  bots: Array<BotItem>;
-  loading: boolean;
-  error: string | null;
-  changed: boolean;
-  creating: boolean;
-};
-
-const selectBots = (state: RootState) => state.bots.bots;
-
-const selectChanged = createSelector([selectBots], (bots) =>
-  bots.some((b) => b.changed),
-);
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  bots: state.bots.bots,
-  loading: state.bots.loading,
-  error: state.bots.error,
-  changed: selectChanged(state),
-  creating: state.bots.creating,
-});
-
-const Component: FC<ComponentProps> = ({
-  bots,
-  loading,
-  error,
-  changed,
-}: ComponentProps) => {
+const Component: FC = () => {
+  const bots = useAppSelector((state) => state.bots.bots);
+  const loading = useAppSelector((state) => state.bots.loading);
+  const error = useAppSelector((state) => state.bots.error);
+  const changed = useAppSelector(selectBotsChanged);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("bots");
   const [initiallyChanged, setInitiallyChanged] = useState(false);
@@ -171,9 +147,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const BotsPage = ConnectedComponent;
+export const BotsPage = Component;

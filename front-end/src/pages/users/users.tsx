@@ -1,6 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   cancelPasswordReset,
   cancelUsersEditing,
@@ -19,7 +18,6 @@ import {
   updateUser,
 } from "../../stores/slices";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
-import { createSelector } from "@reduxjs/toolkit";
 import { UserItem, UserReportMode } from "../../stores/types";
 import { DataTable, ErrorMessage, Page } from "../../components";
 import { ColumnDataType } from "../../types";
@@ -53,35 +51,13 @@ import {
 import { ObjectId } from "../../schemas";
 import { usePageTranslation } from "../../utils";
 import { openLoginHistoryDialog } from "../../dialogs";
+import { selectUsersChanged } from "../../stores/selectors";
 
-type ComponentProps = {
-  users: Array<UserItem>;
-  loading: boolean;
-  error: string | null;
-  changed: boolean;
-  creating: boolean;
-};
-
-const selectUsers = (state: RootState) => state.users.users;
-
-const selectChanged = createSelector([selectUsers], (users) =>
-  users.some((u) => u.changed),
-);
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  users: state.users.users,
-  loading: state.users.loading,
-  error: state.users.error,
-  changed: selectChanged(state),
-  creating: state.users.creating,
-});
-
-const Component: FC<ComponentProps> = ({
-  users,
-  loading,
-  error,
-  changed,
-}: ComponentProps) => {
+const Component: FC = () => {
+  const users = useAppSelector((state) => state.users.users);
+  const loading = useAppSelector((state) => state.users.loading);
+  const error = useAppSelector((state) => state.users.error);
+  const changed = useAppSelector(selectUsersChanged);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("users");
   const [opened, { open, close }] = useDisclosure(false);
@@ -809,9 +785,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const UsersPage = ConnectedComponent;
+export const UsersPage = Component;

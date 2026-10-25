@@ -1,14 +1,8 @@
 import { FC, useEffect } from "react";
-import {
-  RootState,
-  useAppDispatch,
-  useAppSelector,
-} from "../../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../../stores/store";
 import { getTemplatePreview } from "../../../stores/thunks";
-import { TemplatePreview } from "../../../stores/types";
 import { Text, Group, Loader, Stack } from "@mantine/core";
 import { modals } from "@mantine/modals";
-import { shallowEqual } from "react-redux";
 import { MessagePreview } from "./messagePreview";
 import { ObjectId } from "../../../schemas";
 import { TFunction } from "i18next";
@@ -36,29 +30,14 @@ export function openMessagePreviewDialog({
   language,
   t,
 }: OpenMessagePreviewOptions) {
-  type InnerProps = {
-    templatePreview?: TemplatePreview;
-    loadingPreview: boolean;
-    previewError?: string;
-    t: TFunction;
-  };
-
-  const mapStateToProps = (
-    state: RootState,
-    ownProps: { t: TFunction },
-  ): InnerProps => ({
-    templatePreview: state.messages.templatePreview,
-    loadingPreview: state.messages.loadingPreview,
-    previewError: state.messages.previewError,
-    t: ownProps.t,
-  });
-
-  const Inner: FC<InnerProps> = ({
-    templatePreview,
-    loadingPreview,
-    previewError,
-    t,
-  }) => {
+  const Inner: FC<{ t: TFunction }> = ({ t }) => {
+    const templatePreview = useAppSelector(
+      (state) => state.messages.templatePreview,
+    );
+    const loadingPreview = useAppSelector(
+      (state) => state.messages.loadingPreview,
+    );
+    const previewError = useAppSelector((state) => state.messages.previewError);
     const dispatch = useAppDispatch();
 
     useEffect(() => {
@@ -104,18 +83,10 @@ export function openMessagePreviewDialog({
     );
   };
 
-  const ConnectedInner: FC<{ t: TFunction }> = (ownProps) => {
-    const props = useAppSelector(
-      (state) => mapStateToProps(state, ownProps),
-      shallowEqual,
-    );
-    return <Inner {...props} />;
-  };
-
   const id: string | undefined = modals.open({
     title: t ? t("preview.title", { name }) : `Message '${name}' preview`,
     centered: true,
     size: "lg",
-    children: <ConnectedInner t={t} />,
+    children: <Inner t={t} />,
   });
 }

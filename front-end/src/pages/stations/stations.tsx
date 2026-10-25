@@ -1,14 +1,12 @@
 import { FC, useCallback, useEffect, useState } from "react";
 import { StationItem } from "../../stores/types";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
-import { shallowEqual } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   cancelStationsEditing,
   fetchStations,
   saveStations,
 } from "../../stores/thunks";
-import { createSelector } from "@reduxjs/toolkit";
 import {
   updateStationAlias,
   updateStationBatteryCapacity,
@@ -27,39 +25,17 @@ import { usePageTranslation } from "../../utils";
 import { useNavigate } from "react-router-dom";
 import { LocalizableValue, ObjectId } from "../../schemas";
 import { useSubscribeEvent } from "../../hooks";
+import {
+  selectStationsChanged,
+  selectStationsMaxOrder,
+} from "../../stores/selectors";
 
-type ComponentProps = {
-  stations: StationItem[];
-  maxOrder: number;
-  changed: boolean;
-  loading: boolean;
-  error: string | null;
-};
-
-const selectStations = (state: RootState) => state.stations.stations;
-
-const selectChanged = createSelector([selectStations], (stations) =>
-  stations.some((s) => s.changed),
-);
-const selectMaxOrder = createSelector([selectStations], (stations) =>
-  Math.max(...stations.map((s) => s.order)),
-);
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  stations: state.stations.stations,
-  maxOrder: selectMaxOrder(state),
-  changed: selectChanged(state),
-  loading: state.stations.loading,
-  error: state.stations.error,
-});
-
-const Component: FC<ComponentProps> = ({
-  stations,
-  maxOrder,
-  changed,
-  loading,
-  error,
-}: ComponentProps) => {
+const Component: FC = () => {
+  const stations = useAppSelector((state) => state.stations.stations);
+  const maxOrder = useAppSelector(selectStationsMaxOrder);
+  const changed = useAppSelector(selectStationsChanged);
+  const loading = useAppSelector((state) => state.stations.loading);
+  const error = useAppSelector((state) => state.stations.error);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("stations");
   const navigate = useNavigate();
@@ -244,9 +220,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const StationsPage = ConnectedComponent;
+export const StationsPage = Component;

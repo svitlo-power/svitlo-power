@@ -1,7 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { Container, Title, Stack, Group } from "@mantine/core";
 import { useDocumentVisibility } from "@mantine/hooks";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   fetchBuildings,
   fetchBuildingsSummary,
@@ -15,16 +15,8 @@ import {
   openDashboardEditDialog,
   PlannedOutages,
 } from "./components";
-import {
-  BuildingListItem,
-  BuildingSummaryItem,
-  DashboardConfig,
-  OutagesScheduleData,
-} from "../../stores/types";
-import { shallowEqual } from "react-redux";
 import { IconButton } from "../../components";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
-import { BuildingEditType } from "../../schemas";
 import {
   authDataSelector,
   createSelectEdittedBuildings,
@@ -35,52 +27,37 @@ import { usePageTranslation } from "../../utils";
 import i18n from "../../i18n";
 import { EventItem, EventType } from "../../types";
 
-type ComponentProps = {
-  loadingConfig: boolean;
-  loadingBuildings: boolean;
-  loadingSummary: boolean;
-  loadingOutagesSchedule: boolean;
-  dashboardConfig?: DashboardConfig;
-  buildings: Array<BuildingListItem | BuildingEditType>;
-  buildingsSummary: Array<BuildingSummaryItem>;
-  configChanged: boolean;
-  buildingsChanged: boolean;
-  outagesScheduleError: string | null;
-  outagesSchedule: OutagesScheduleData;
-  buildngsSummaryError: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => {
-  return {
-    loadingConfig: state.dashboardConfig.loading,
-    loadingBuildings: state.buildings.loading,
-    loadingSummary: state.buildingsSummary.loading,
-    loadingOutagesSchedule: state.outagesSchedule.loading,
-    configChanged: state.dashboardConfig.changed,
-    dashboardConfig: state.dashboardConfig.config,
-    buildingsChanged: state.buildings.changed,
-    buildings: createSelectEdittedBuildings(state),
-    buildingsSummary: state.buildingsSummary.items,
-    outagesSchedule: state.outagesSchedule.outagesSchedule,
-    outagesScheduleError: state.outagesSchedule.error,
-    buildngsSummaryError: state.buildingsSummary.error,
-  };
-};
-
-const Component: FC<ComponentProps> = ({
-  loadingConfig,
-  loadingBuildings,
-  loadingSummary,
-  loadingOutagesSchedule,
-  buildings,
-  buildingsSummary,
-  dashboardConfig,
-  configChanged,
-  buildingsChanged,
-  outagesSchedule,
-  outagesScheduleError,
-  buildngsSummaryError,
-}) => {
+const Component: FC = () => {
+  const loadingConfig = useAppSelector(
+    (state) => state.dashboardConfig.loading,
+  );
+  const loadingBuildings = useAppSelector((state) => state.buildings.loading);
+  const loadingSummary = useAppSelector(
+    (state) => state.buildingsSummary.loading,
+  );
+  const loadingOutagesSchedule = useAppSelector(
+    (state) => state.outagesSchedule.loading,
+  );
+  const dashboardConfig = useAppSelector(
+    (state) => state.dashboardConfig.config,
+  );
+  const configChanged = useAppSelector(
+    (state) => state.dashboardConfig.changed,
+  );
+  const buildingsChanged = useAppSelector((state) => state.buildings.changed);
+  const buildings = useAppSelector(createSelectEdittedBuildings);
+  const buildingsSummary = useAppSelector(
+    (state) => state.buildingsSummary.items,
+  );
+  const outagesSchedule = useAppSelector(
+    (state) => state.outagesSchedule.outagesSchedule,
+  );
+  const outagesScheduleError = useAppSelector(
+    (state) => state.outagesSchedule.error,
+  );
+  const buildngsSummaryError = useAppSelector(
+    (state) => state.buildingsSummary.error,
+  );
   const isAuthenticated = Boolean(
     useAppSelector(authDataSelector)?.accessToken,
   );
@@ -272,9 +249,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const BuildingsPage = ConnectedComponent;
+export const BuildingsPage = Component;

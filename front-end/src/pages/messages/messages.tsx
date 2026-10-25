@@ -1,6 +1,5 @@
 import { FC, useCallback, useEffect, useState } from "react";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { fetchMessages, saveMessageStates } from "../../stores/thunks";
 import { ServerMessageListItem } from "../../stores/types";
 import { useNavigate } from "react-router-dom";
@@ -16,26 +15,11 @@ import { useLookup, useSubscribeEvent } from "../../hooks";
 import { Row } from "@tanstack/react-table";
 import { ObjectId } from "../../schemas";
 
-type ComponentProps = {
-  messages: Array<ServerMessageListItem>;
-  dataChanged: boolean;
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  messages: state.messages.messages,
-  dataChanged: selectMessagesChanged(state),
-  loading: state.messages.loading,
-  error: state.messages.error,
-});
-
-const Component: FC<ComponentProps> = ({
-  messages,
-  loading,
-  error,
-  dataChanged,
-}: ComponentProps) => {
+const Component: FC = () => {
+  const messages = useAppSelector((state) => state.messages.messages);
+  const dataChanged = useAppSelector(selectMessagesChanged);
+  const loading = useAppSelector((state) => state.messages.loading);
+  const error = useAppSelector((state) => state.messages.error);
   const [initiallyChanged, setInitiallyChanged] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -236,9 +220,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const MessagesPage = ConnectedComponent;
+export const MessagesPage = Component;

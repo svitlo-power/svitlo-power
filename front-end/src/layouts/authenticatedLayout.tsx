@@ -2,34 +2,24 @@ import { Outlet, useLocation } from "react-router-dom";
 import { FC, Suspense, useCallback, useEffect } from "react";
 import { RootRoutes } from "../routes";
 import { useHeaderContent } from "../providers";
-import { RootState, useAppDispatch, useAppSelector } from "../stores/store";
-import { shallowEqual } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../stores/store";
 import { AppShell } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import classes from "./styles/authenticatedLayout.module.css";
 import { Header } from "./components/header";
 import { Navbar } from "./components/navbar";
 import useLocalStorage from "../hooks/useLocalStorage";
-import { ProfileData } from "../stores/types";
 import { fetchProfile } from "../stores/thunks";
 import { openProfileEditDialog } from "../dialogs";
 import { authDataSelector } from "../stores/selectors";
-import { AuthData, EventType } from "../types";
+import { EventType } from "../types";
 import { logout } from "../stores/slices";
 import { useTranslation } from "react-i18next";
 import { useSubscribeEvent } from "../hooks";
 
-type ComponentProps = {
-  authData: AuthData | null;
-  profile: ProfileData;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  authData: authDataSelector(state),
-  profile: state.auth.profile!,
-});
-
-const Component: FC<ComponentProps> = ({ authData, profile }) => {
+const Component: FC = () => {
+  const authData = useAppSelector(authDataSelector);
+  const profile = useAppSelector((state) => state.auth.profile);
   const dispatch = useAppDispatch();
   const { t } = useTranslation("common");
 
@@ -117,9 +107,4 @@ const Component: FC<ComponentProps> = ({ authData, profile }) => {
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const AuthenticatedLayout = ConnectedComponent;
+export const AuthenticatedLayout = Component;

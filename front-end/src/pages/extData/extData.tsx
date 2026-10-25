@@ -1,7 +1,6 @@
 import { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { ExtDataItem } from "../../stores/types";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   createExtData,
   deleteExtData,
@@ -15,7 +14,6 @@ import {
   FilterConfig,
   LookupSchema,
   PagingConfig,
-  PagingInfo,
   SortingConfig,
 } from "../../types";
 import { usePageTranslation } from "../../utils";
@@ -37,26 +35,11 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import { useLookup, useRefreshKey, useSubscribeEvent } from "../../hooks";
 import { ObjectId } from "../../schemas";
 
-type ComponentProps = {
-  extData: ExtDataItem[];
-  pagingInfo: PagingInfo;
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  extData: state.extData.items,
-  pagingInfo: state.extData.paging,
-  loading: state.extData.loading,
-  error: state.extData.error,
-});
-
-const Component: FC<ComponentProps> = ({
-  extData,
-  pagingInfo,
-  loading,
-  error,
-}) => {
+const Component: FC = () => {
+  const extData = useAppSelector((state) => state.extData.items);
+  const pagingInfo = useAppSelector((state) => state.extData.paging);
+  const loading = useAppSelector((state) => state.extData.loading);
+  const error = useAppSelector((state) => state.extData.error);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("extData");
   const [modalOpened, setModalOpened] = useState(false);
@@ -389,9 +372,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const ExtDataPage = ConnectedComponent;
+export const ExtDataPage = Component;

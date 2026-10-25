@@ -1,7 +1,6 @@
 import { FC, useCallback, useEffect } from "react";
 import { AllowedChatListItem, ChatRequestListItem } from "../../stores/types";
-import { shallowEqual } from "react-redux";
-import { RootState, useAppDispatch, useAppSelector } from "../../stores/store";
+import { useAppDispatch, useAppSelector } from "../../stores/store";
 import {
   approveChatRequest,
   disallowChat,
@@ -16,26 +15,11 @@ import { ColumnDataType, EventType } from "../../types";
 import { ObjectId } from "../../schemas";
 import { useSubscribeEvent } from "../../hooks";
 
-type ComponentProps = {
-  allowedChats: AllowedChatListItem[];
-  chatRequests: ChatRequestListItem[];
-  loading: boolean;
-  error: string | null;
-};
-
-const mapStateToProps = (state: RootState): ComponentProps => ({
-  allowedChats: state.chats.allowedChats,
-  chatRequests: state.chats.chatRequests,
-  loading: state.chats.loading,
-  error: state.chats.error,
-});
-
-const Component: FC<ComponentProps> = ({
-  allowedChats,
-  chatRequests,
-  loading,
-  error,
-}) => {
+const Component: FC = () => {
+  const allowedChats = useAppSelector((state) => state.chats.allowedChats);
+  const chatRequests = useAppSelector((state) => state.chats.chatRequests);
+  const loading = useAppSelector((state) => state.chats.loading);
+  const error = useAppSelector((state) => state.chats.error);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("chats");
 
@@ -180,9 +164,4 @@ const Component: FC<ComponentProps> = ({
   );
 };
 
-const ConnectedComponent: FC = () => {
-  const props = useAppSelector(mapStateToProps, shallowEqual);
-  return <Component {...props} />;
-};
-
-export const ChatsPage = ConnectedComponent;
+export const ChatsPage = Component;
