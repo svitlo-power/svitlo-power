@@ -1,6 +1,10 @@
 name: Update Image Version Badges
 
 on:
+  push:
+    branches: [main, feature/docker-image-badges]
+    paths:
+      - ".github/workflows/update-image-badges.yml"
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch:  # Manual trigger
