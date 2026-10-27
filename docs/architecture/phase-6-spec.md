@@ -1,17 +1,18 @@
 # Phase 6 Spec: Move Remaining Processing Capabilities
 
 ## Objective
-Move each background capability from the legacy back-end to the Processing Service, one at a time, with explicit single-owner cutover and rollback.
+Move each background capability from the `back-end` to the Processing Service, one at a time, with explicit single-owner cutover and rollback.
 
 ## Capabilities & Order
 
 | # | Capability | Source (Legacy) | Target (Processor) | Cutover Type |
 |---|------------|-----------------|-------------------|--------------|
-| 1 | Message Preview | Admin back-end | Processor HTTP API | Proxy → Direct |
-| 2 | Admin Domain CRUD/Queries | Admin back-end (MongoDB) | Processor HTTP API | Proxy → Direct |
-| 3 | Deye Polling & Station Sync | Back-end scheduler | Processor scheduler | Lease transfer |
-| 4 | Cleanup/Retention Jobs | Back-end scheduler | Processor scheduler | Lease transfer |
-| 5 | Message Delivery | Back-end scheduler | Processor scheduler | Lease transfer + idempotency |
+| 1 | Message Preview | `back-end` (admin) | Processor HTTP API | Proxy → Direct |
+| 2 | Admin Domain CRUD/Queries | `back-end` (MongoDB) | Processor HTTP API | Proxy → Direct |
+| 3 | Deye Polling & Station Sync | `back-end` scheduler | Processor scheduler | Lease transfer |
+| 4 | Cleanup/Retention Jobs | `back-end` scheduler | Processor scheduler | Lease transfer |
+| 5 | Message Delivery (Telegram + FCM) | `back-end` scheduler | Processor scheduler | Lease transfer + idempotency |
+| 6 | Grid Reporter (separate service) | `grid-reporter` | Processor or keep separate | Evaluate |
 
 ---
 
@@ -19,12 +20,12 @@ Move each background capability from the legacy back-end to the Processing Servi
 
 ### Current Flow
 ```
-Admin UI → Admin Back-end → Message Generator (Python) → Preview Response
+Admin UI → back-end → Message Generator (Python) → Preview Response
 ```
 
 ### Target Flow
 ```
-Admin UI → Admin Back-end → Processor POST /internal/v1/messages/preview → Preview Response
+Admin UI → back-end → Processor POST /internal/v1/messages/preview → Preview Response
 ```
 
 ### Processor API Contract
@@ -35,7 +36,7 @@ Admin UI → Admin Back-end → Processor POST /internal/v1/messages/preview →
 {
   "templateId": "outage-alert",
   "params": {
-    "siteId": "site-123",
+    "buildingId": "building-123",
     "outageStart": "2026-10-27T10:00:00Z",
     "outageEnd": "2026-10-27T14:00:00Z"
   },
@@ -45,7 +46,7 @@ Admin UI → Admin Back-end → Processor POST /internal/v1/messages/preview →
 **Response**:
 ```json
 {
-  "renderedSubject": "Planned outage for site-123",
+  "renderedSubject": "Planned outage for building-123",
   "renderedBody": "Dear customer, ...",
   "metadata": {
     "templateId": "outage-alert",
@@ -58,7 +59,7 @@ Admin UI → Admin Back-end → Processor POST /internal/v1/messages/preview →
 ### Migration Steps
 1. **Add Processor endpoint** (implements same generation logic as legacy)
 2. **Add contract tests** (request/response schema, preview vs delivery parity)
-3. **Admin back-end**: Add proxy route → Processor, feature flag `MESSAGE_PREVIEW_VIA_PROCESSOR`
+3. **Back-end**: Add proxy route → Processor, feature flag `MESSAGE_PREVIEW_VIA_PROCESSOR`
 4. **Shadow mode**: Call both, compare responses, log mismatches
 5. **Cutover**: Enable flag, verify parity, remove legacy generator code
 6. **Rollback**: Disable flag, legacy generator serves
@@ -75,24 +76,24 @@ Admin UI → Admin Back-end → Processor POST /internal/v1/messages/preview →
 
 ### Current Flow
 ```
-Admin UI → Admin Back-end → MongoDB (direct) → Response
+Admin UI → back-end → MongoDB (direct) → Response
 ```
 
 ### Target Flow
 ```
-Admin UI → Admin Back-end → Processor HTTP API → MongoDB → Response
+Admin UI → back-end → Processor HTTP API → MongoDB → Response
 ```
 
 ### Processor API Contracts (Versioned, OpenAPI)
 
-#### Sites
+#### Buildings
 | Operation | Endpoint | Description |
 |-----------|----------|-------------|
-| List | `GET /internal/v1/sites` | Paginated, filterable |
-| Get | `GET /internal/v1/sites/{id}` | Single site |
-| Create | `POST /internal/v1/sites` | Admin only |
-| Update | `PATCH /internal/v1/sites/{id}` | Admin only |
-| Delete | `DELETE /internal/v1/sites/{id}` | Admin only |
+| List | `GET /internal/v1/buildings` | Paginated, filterable |
+| Get | `GET /internal/v1/buildings/{id}` | Single building |
+| Create | `POST /internal/v1/buildings` | Admin only |
+| Update | `PATCH /internal/v1/buildings/{id}` | Admin only |
+| Delete | `DELETE /internal/v1/buildings/{id}` | Admin only |
 
 #### Stations (Deye devices)
 | Operation | Endpoint | Description |
@@ -104,11 +105,11 @@ Admin UI → Admin Back-end → Processor HTTP API → MongoDB → Response
 #### Outage Schedules
 | Operation | Endpoint | Description |
 |-----------|----------|-------------|
-| List | `GET /internal/v1/outage-schedules` | Filter by site, date range |
-| Get | `GET /internal/v1/outage-schedules/{id}` | Single schedule |
+| List | `GET /internal/v1/outage-schedules` | Filter by queue, date range |
+| Get | `GET /internal/v1/outage-schedules/{queue}` | Single schedule |
 | Create | `POST /internal/v1/outage-schedules` | Admin only |
-| Update | `PATCH /internal/v1/outage-schedules/{id}` | Admin only |
-| Delete | `DELETE /internal/v1/outage-schedules/{id}` | Admin only |
+| Update | `PATCH /internal/v1/outage-schedules/{queue}` | Admin only |
+| Delete | `DELETE /internal/v1/outage-schedules/{queue}` | Admin only |
 
 #### Users & Permissions (Domain)
 | Operation | Endpoint | Description |
@@ -117,9 +118,16 @@ Admin UI → Admin Back-end → Processor HTTP API → MongoDB → Response
 | Get | `GET /internal/v1/users/{id}` | Profile + permissions |
 | Update Permissions | `PATCH /internal/v1/users/{id}/permissions` | Admin only |
 
+#### Power Logs (Query API - NOT in snapshot)
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| Query | `POST /internal/v1/buildings/{id}/power-logs` | Date-range query |
+
+> **Note**: Power logs are date-range queries and cannot be served from a finite snapshot. The Processor must expose a query API for this.
+
 ### Migration Steps (Per Resource)
 1. **Add Processor endpoints** with contract tests
-2. **Admin back-end**: Add proxy routes, feature flag per resource (e.g., `SITES_VIA_PROCESSOR`)
+2. **Back-end**: Add proxy routes, feature flag per resource (e.g., `BUILDINGS_VIA_PROCESSOR`)
 3. **Shadow mode**: Dual call, compare
 4. **Cutover**: Enable flag, verify, remove MongoDB access for that resource
 5. **Repeat** for each resource
@@ -143,7 +151,7 @@ Admin UI → Admin Back-end → Processor HTTP API → MongoDB → Response
 
 ### Current Flow
 ```
-Back-end Scheduler (APScheduler) → Deye Client → MongoDB (measurements, stations)
+back-end Scheduler (APScheduler) → Deye Client → MongoDB (measurements, stations)
 ```
 
 ### Target Flow
@@ -153,7 +161,7 @@ Processor Scheduler (lease-held) → Deye Client → Processor Internal API → 
 
 ### Key Changes
 - **Single poller**: Processor lease ensures only one instance polls
-- **Polling interval**: Configurable (default 5 min), per-station
+- **Polling interval**: Configurable (default 120s, matches `DEYE_FETCH_INTERVAL`), per-station
 - **Station sync**: Triggered by schedule or admin API call
 - **Data flow**: Measurements → Processor → MongoDB (not direct from Deye client)
 
@@ -176,7 +184,7 @@ POST /internal/v1/stations/{id}/measurements
 
 ### Exit Gate
 - Zero data loss during cutover (measurement count matches)
-- Polling interval maintained (p99 < 6 min)
+- Polling interval maintained (p99 < 150s, matching current 120s default)
 - Station sync on-demand works via Processor API
 - Legacy scheduler code removed
 
@@ -187,37 +195,34 @@ POST /internal/v1/stations/{id}/measurements
 ### Current Jobs
 | Job | Schedule | Action |
 |-----|----------|--------|
-| Measurement retention | Daily 02:00 | Delete measurements > 1 year |
-| Outage history retention | Daily 03:00 | Delete resolved outages > 2 years |
-| Message delivery logs | Daily 04:00 | Delete delivered logs > 90 days |
-| SSE connection cleanup | Hourly | Remove stale connections |
+| Delete old data | Daily 00:10 | Delete measurements > `STATISTIC_KEEP_DAYS` |
 
 ### Target
-Same jobs, running in Processor scheduler (lease-held).
+Same job, running in Processor scheduler (lease-held).
 
-### Migration Steps (Per Job)
+### Migration Steps
 1. **Implement in Processor** with same logic, configurable schedule
 2. **Shadow mode**: Processor runs, logs what it *would* delete, compares with legacy actual deletions
 3. **Cutover**: Disable legacy job, enable Processor job
 4. **Verify**: Deletion counts match, no over-deletion
 
-### Exit Gate (Per Job)
+### Exit Gate
 - Shadow deletion list matches legacy 100% (7 days)
 - Production run: deletion count within 1% of baseline
 - Rollback: Legacy job re-enabled, Processor job disabled
 
 ---
 
-## Capability 5: Message Delivery
+## Capability 5: Message Delivery (Telegram + FCM Push)
 
 ### Current Flow
 ```
-Back-end Scheduler → Message Generator → Telegram Bot API → MongoDB (delivery log)
+back-end Scheduler → Message Generator → Telegram Bot API / FCM → MongoDB (delivery log)
 ```
 
 ### Target Flow
 ```
-Processor Scheduler (lease) → Message Generator → Telegram Bot API → Processor Internal API → MongoDB
+Processor Scheduler (lease) → Message Generator → Telegram Bot API / FCM → Processor Internal API → MongoDB
 ```
 
 ### Critical Requirements
@@ -250,16 +255,32 @@ delivery_id = sha256(template_id + recipient_id + scheduled_at_iso + params_json
 
 ---
 
+## Capability 6: Grid Reporter (Separate Service)
+
+### Current State
+- Separate `grid-reporter` service with its own Deye polling
+- Runs independently, writes to MongoDB
+- Has its own `ClientWorker` per client
+
+### Evaluation Needed
+- Does it duplicate Deye polling from `back-end`?
+- Should it be merged into Processor, or kept separate with its own lease?
+- If merged: Processor needs multi-tenant Deye polling (different credentials per client)
+
+**Decision**: Defer to after Phase 6.5. Document current behavior, evaluate consolidation.
+
+---
+
 ## Cross-Cutting Concerns
 
 ### Service-to-Service Auth
 - **Processor**: Validates mTLS cert + JWT (service identity)
-- **Admin BFF**: Calls Processor with service cert + user token (delegated)
-- **Token exchange**: BFF calls Identity `/token/exchange` → gets Processor-audience token
+- **Back-end**: Calls Processor with service cert + user token (delegated)
+- **Token exchange**: Back-end calls Identity `/token/exchange` → gets Processor-audience token
 
 ### Contract Testing
 - **Pact** or **Schemathesis** for each Processor endpoint
-- Run in CI for both Provider (Processor) and Consumer (Admin BFF)
+- Run in CI for both Provider (Processor) and Consumer (Back-end)
 - Versioned: `v1`, `v2` — breaking changes = new version
 
 ### Observability (Per Capability)
@@ -297,6 +318,7 @@ Phase 6.2 (Admin CRUD)          ──► After 6.1 (uses same auth pattern)
 Phase 6.3 (Deye Polling)        ──► After 6.2 (Processor owns MongoDB writes)
 Phase 6.4 (Cleanup Jobs)        ──► After 6.3 (same scheduler)
 Phase 6.5 (Message Delivery)    ──► Last (highest risk, depends on generator from 6.1)
+Phase 6.6 (Grid Reporter)       ──► Evaluate separately
 ```
 
 **Parallelizable**: 6.1 and 6.2 can overlap (different code paths)
@@ -307,7 +329,7 @@ Phase 6.5 (Message Delivery)    ──► Last (highest risk, depends on generat
 
 - [ ] Unit: Processor endpoint/logic matches legacy behavior
 - [ ] Contract: OpenAPI spec validated, consumer tests pass
-- [ ] Integration: Admin BFF → Processor → MongoDB round-trip
+- [ ] Integration: Back-end → Processor → MongoDB round-trip
 - [ ] Shadow: 7-day parity run, mismatch rate < 0.1%
 - [ ] Cutover: Flag toggle works, verification steps documented
 - [ ] Rollback: Drill completed < max time, no data loss

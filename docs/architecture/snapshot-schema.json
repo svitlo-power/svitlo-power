@@ -1,87 +1,119 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://svitlo-power.pp.ua/schemas/dashboard-snapshot/v1.json",
   "title": "DashboardSnapshot",
-  "description": "Versioned, disposable cache snapshot for dashboard and outage-schedule data. Rebuildable from authoritative source APIs. Redis key: cache:dashboard:v1:{scope}",
+  "description": "Versioned, disposable cache snapshot for dashboard and outage-schedule data. Rebuildable from authoritative source APIs. Redis key: cache:dashboard:v1:global",
   "type": "object",
-  "required": ["version", "generatedAt", "sites", "totals", "outageSchedules"],
+  "required": ["epoch", "version", "generatedAt", "buildings", "config", "outagesSchedules"],
   "additionalProperties": false,
   "properties": {
+    "epoch": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Generation epoch. Incremented when Redis is flushed or version counter resets. Consumers must accept lower version when epoch increases."
+    },
     "version": {
       "type": "integer",
       "minimum": 1,
-      "description": "Monotonic incrementing version. Incremented on every successful snapshot write. Used for cache reconciliation and SSE event IDs."
+      "description": "Monotonic incrementing version within epoch. Incremented on every successful snapshot write. Used for cache reconciliation and SSE event IDs."
     },
     "generatedAt": {
       "type": "string",
       "format": "date-time",
       "description": "ISO 8601 timestamp when the snapshot was computed. Used for freshness monitoring and stale-data alerts."
     },
-    "sites": {
+    "buildings": {
       "type": "array",
-      "description": "Per-site dashboard data. Ordered by site ID for deterministic output.",
-      "items": { "$ref": "#/$defs/SiteSnapshot" }
+      "description": "Per-building dashboard data. Ordered by building.order for deterministic output.",
+      "items": { "$ref": "#/$defs/BuildingSnapshot" }
     },
-    "totals": {
-      "$ref": "#/$defs/TotalsSnapshot",
-      "description": "Aggregated totals across all sites."
+    "config": {
+      "$ref": "#/$defs/ConfigSnapshot",
+      "description": "Dashboard configuration (title, outages schedule settings)."
     },
-    "outageSchedules": {
-      "type": "array",
-      "description": "Outage schedules for all sites. Ordered by site ID.",
-      "items": { "$ref": "#/$defs/OutageScheduleSnapshot" }
+    "outagesSchedules": {
+      "type": "object",
+      "description": "Outage schedules keyed by queue name. Each value is a UnitSchedule.",
+      "additionalProperties": { "$ref": "#/$defs/UnitScheduleSnapshot" }
     }
   },
   "$defs": {
-    "SiteSnapshot": {
+    "BuildingSnapshot": {
       "type": "object",
-      "required": ["id", "name", "currentPowerKw", "energyTodayKwh", "energyTotalKwh", "lastMeasurementAt", "status"],
+      "required": ["id", "name", "color", "order", "hasBoundStation", "isGridAvailable", "gridAvailabilityPct", "batteryPercent", "isCharging", "isDischarging", "isOffline", "chargeSource", "batteryDischargeTime", "hasMixedReporterStates"],
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-        "name": { "type": "string", "maxLength": 100 },
-        "currentPowerKw": { "type": "number", "minimum": 0 },
-        "energyTodayKwh": { "type": "number", "minimum": 0 },
-        "energyTotalKwh": { "type": "number", "minimum": 0 },
-        "lastMeasurementAt": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["online", "offline", "degraded", "unknown"] },
-        "inverterModel": { "type": "string", "maxLength": 50 },
-        "capacityKw": { "type": "number", "minimum": 0 }
+        "id": { "type": "string", "description": "MongoDB ObjectId as 24-char hex string" },
+        "name": { "$ref": "#/$defs/LocalizableValue" },
+        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "order": { "type": "integer" },
+        "hasBoundStation": { "type": "boolean" },
+        "isGridAvailable": { "type": ["boolean", "null"] },
+        "gridAvailabilityPct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "hasMixedReporterStates": { "type": ["boolean", "null"] },
+        "isCharging": { "type": ["boolean", "null"] },
+        "isDischarging": { "type": ["boolean", "null"] },
+        "isOffline": { "type": ["boolean", "null"] },
+        "batteryPercent": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+        "consumptionPower": { "type": ["string", "null"] },
+        "batteryDischargeTime": { "type": ["string", "null"] },
+        "batteryChargeTime": { "type": ["string", "null"] },
+        "chargeSource": { "type": "string", "enum": ["None", "Grid", "Generator", "Solar", "Recuperation"] },
+        "chargePower": { "type": ["number", "null"] }
       }
     },
-    "TotalsSnapshot": {
+    "ConfigSnapshot": {
       "type": "object",
-      "required": ["totalPowerKw", "totalEnergyTodayKwh", "totalEnergyTotalKwh", "onlineSites", "totalSites"],
+      "required": ["title", "enableOutagesSchedule", "outagesScheduleQueue"],
       "additionalProperties": false,
       "properties": {
-        "totalPowerKw": { "type": "number", "minimum": 0 },
-        "totalEnergyTodayKwh": { "type": "number", "minimum": 0 },
-        "totalEnergyTotalKwh": { "type": "number", "minimum": 0 },
-        "onlineSites": { "type": "integer", "minimum": 0 },
-        "totalSites": { "type": "integer", "minimum": 0 }
+        "title": { "$ref": "#/$defs/LocalizableValue" },
+        "enableOutagesSchedule": { "type": "boolean" },
+        "outagesScheduleQueue": { "type": ["string", "null"] }
       }
     },
-    "OutageScheduleSnapshot": {
+    "UnitScheduleSnapshot": {
       "type": "object",
-      "required": ["siteId", "schedule"],
+      "required": ["days", "updatedOn"],
       "additionalProperties": false,
       "properties": {
-        "siteId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-        "schedule": {
+        "days": {
           "type": "array",
-          "description": "Ordered by start time. Non-overlapping.",
-          "items": {
-            "type": "object",
-            "required": ["start", "end", "type"],
-            "additionalProperties": false,
-            "properties": {
-              "start": { "type": "string", "format": "date-time" },
-              "end": { "type": "string", "format": "date-time" },
-              "type": { "type": "string", "enum": ["planned", "unplanned", "maintenance"] },
-              "description": { "type": "string", "maxLength": 500 }
-            }
-          }
-        }
+          "items": { "$ref": "#/$defs/DayScheduleSnapshot" }
+        },
+        "updatedOn": { "type": "string", "format": "date-time" }
+      }
+    },
+    "DayScheduleSnapshot": {
+      "type": "object",
+      "required": ["slots", "date", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "slots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SlotSnapshot" }
+        },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["ScheduleApplies", "EmergencyShutdowns", "WaitingForSchedule", "NoOutages"] }
+      }
+    },
+    "SlotSnapshot": {
+      "type": "object",
+      "required": ["start", "end", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "start": { "type": "integer", "description": "Minutes from midnight" },
+        "end": { "type": "integer", "description": "Minutes from midnight" },
+        "type": { "type": "string", "enum": ["Definite", "NotPlanned"] }
+      }
+    },
+    "LocalizableValue": {
+      "type": "object",
+      "required": ["uk", "en"],
+      "additionalProperties": false,
+      "properties": {
+        "uk": { "type": "string" },
+        "en": { "type": "string" }
       }
     }
   }

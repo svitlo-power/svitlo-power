@@ -20,8 +20,8 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 
 | Document | Purpose |
 |----------|---------|
-| [snapshot-schema.json](snapshot-schema.json) | JSON Schema for DashboardSnapshot v1 |
-| [redis-conventions.md](redis-conventions.md) | Redis keys, channels, Lua scripts, lease |
+| [snapshot-schema.json](snapshot-schema.json) | JSON Schema for DashboardSnapshot v1 (buildings, config, outagesSchedules) |
+| [redis-conventions.md](redis-conventions.md) | Redis keys, channels, Lua scripts (CAS + lease fence), monitoring |
 
 ---
 
@@ -41,7 +41,8 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 |-----------|-----------|--------|
 | Snapshot parity (field-level vs legacy API) | ≥ 99.9% | 24h production |
 | Snapshot write success rate | 100% (0 errors) | 24h production |
-| Version monotonicity | No decreases, no gaps > 1 | 24h production |
+| Version monotonicity | No decreases, no gaps > 1 within epoch | 24h production |
+| Epoch stability | No unexpected increments | 24h production |
 | Snapshot age (max) | < 300s (5 min) | Continuous |
 | Refresh latency (request → notification) | p99 < 10s | 24h production |
 | Empty-cache rebuild test | Passes | Staging + 1 prod test |
@@ -49,7 +50,7 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 ### Phase 2: App Back-end Redis Reads (Shadow → Enabled)
 | Criterion | Threshold | Window |
 |-----------|-----------|--------|
-| Shadow parity (field-level) | ≥ 99.9% | 24h production at 100% rollout |
+| Shadow parity (field-level, sampled) | ≥ 99.9% | 24h production at 100% rollout |
 | p99 latency delta (Redis vs legacy) | < 50ms | 24h production |
 | Freshness delta (snapshot age vs legacy) | < 5s | 24h production |
 | Error rate (Redis path) | < 0.1% | 24h production |
@@ -57,15 +58,16 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 | Restart/reconnect recovery | < 2s, no data loss | Staging + 1 prod test |
 | Mobile API contract compatibility | 100% | Contract test suite |
 
-### Phase 3: Admin Back-end + SSE Migration
+### Phase 3: Back-end + App-back-end SSE Migration
 | Criterion | Threshold | Window |
 |-----------|-----------|--------|
 | SSE latency (notification → client) | p99 < 500ms | 24h production |
-| SSE reconnect recovery | < 2s, full snapshot | 10 test reconnects |
+| SSE reconnect recovery | < 2s, full snapshot received | 10 test reconnects |
 | Connection stability | < 0.1% unexpected disconnects/min | 24h production |
 | Authorization filtering | 0 admin fields leaked to public | Automated test |
 | sse-back-end traffic | 0 required connections for 1 week | 1 week observation |
 | REST API parity (vs Phase 2) | 100% field-level match | Contract tests |
+| Backward compatibility | Existing web UI works without changes | E2E test |
 
 ### Phase 4: Processing Shadow Mode
 | Criterion | Threshold | Window |
@@ -77,6 +79,7 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 | Lease stability | 0 unexpected losses | 24h production |
 | Empty-cache rebuild | Passes | Staging + 1 prod test |
 | Drift detection | 0 undetected drifts | 24h production |
+| Shadow keys isolated | No production key access | Verified |
 
 ### Phase 5: Processing Cutover
 | Criterion | Threshold | Window |
@@ -86,25 +89,25 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 | Freshness (snapshot age) | < 60s | Continuous |
 | Version monotonicity | No gaps, no decreases | Continuous |
 | Rollback rehearsed | < 2 min | Staging drill |
-| Legacy dashboard code removed | Deleted | 24h post-cutover |
+| Legacy publish code disabled | Flag off, no writes | 24h post-cutover |
+| **Legacy calculation code REMAINS** | Not removed | Phase 9 |
 
 ### Phase 6: Capability Migration (Per Capability)
 | Capability | Parity Threshold | Cutover Window | Rollback Max |
 |------------|------------------|----------------|--------------|
 | Message Preview | ≥ 99.9% (24h shadow) | 1 deploy | 2 min |
 | Admin CRUD (per resource) | ≥ 99.9% (24h shadow) | 1 deploy/resource | 2 min |
-| Deye Polling | 0 data loss, interval p99 < 6 min | 1 deploy | 3 min |
+| Deye Polling | 0 data loss, interval p99 < 150s | 1 deploy | 3 min |
 | Cleanup Jobs | 100% shadow match (7 days) | 1 deploy/job | 2 min |
-| Message Delivery | 100% shadow match (7 days), 0 duplicates | 1 deploy | 3 min |
+| Message Delivery (Telegram + FCM) | 100% shadow match (7 days), 0 duplicates | 1 deploy | 3 min |
+| Grid Reporter | Evaluate separately | — | — |
 
-### Phase 7: Identity Migration
+### Phase 7: Identity Migration (Admin Only)
 | Phase | Criterion | Threshold |
 |-------|-----------|-----------|
-| 7a (Deploy) | OIDC flows work, load test | 1000 req/s, p99 < 200ms |
+| 7a (Deploy) | OIDC flows work, load test | 100 auth req/s, p99 < 200ms |
 | 7b (Admin) | Login success, token exchange | ≥ 99.9%, 100% |
-| 7c (Public) | Login success, cookie isolation | ≥ 99.9%, verified |
-| 7d (Mobile) | Login success, app store rollout | ≥ 99.9%, >50% adoption |
-| 7e (Legacy removal) | 0 legacy validations | 14 days |
+| 7c (Legacy removal) | 0 legacy validations | 14 days |
 
 ### Phase 8: Host Separation
 | Criterion | Threshold |
@@ -114,7 +117,7 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 | API contract parity (app-back-end vs legacy) | 100% |
 | Shadow parity (24h production) | ≥ 99.99% |
 | Mobile API unchanged | Contract tests pass |
-| Auth cookie isolation | Verified (no cross-host leakage) |
+| Auth cookie isolation (admin host-only) | Verified (no cross-host leakage) |
 | SSE works on both hosts | Verified |
 
 ### Phase 9: Retirement
@@ -184,7 +187,7 @@ Before **each** production flag/routing cutover, record in a **Cutover Checklist
 | 4 | Before Phase 5 cutover | Staging |
 | 5 | **Day of cutover** (morning) | Staging |
 | 6 (each) | Before capability cutover | Staging |
-| 7 (each client) | Before client cutover | Staging |
+| 7 (admin) | Before admin cutover | Staging |
 | 8 | Before host DNS switch | Staging |
 
 **Drill must include**: Full rollback procedure execution, timing, verification steps.
@@ -197,7 +200,7 @@ Before **each** production flag/routing cutover, record in a **Cutover Checklist
 |---------|------|-----------|------|
 | Processor (Phase 4) | 3× peak projection rate | p99 < 200ms, 0 errors | Before Phase 5 |
 | Processor (Phase 6) | 3× peak per capability | p99 < 500ms, 0 errors | Before each capability |
-| Identity Service | 1000 auth req/s | p99 < 200ms | Phase 7a |
+| Identity Service | 100 auth req/s | p99 < 200ms | Phase 7a |
 | App Back-end | 10k req/s (public) | p99 < 300ms | Phase 8 |
 | Admin Back-end | 1k req/s | p99 < 500ms | Phase 8 |
 | Redis | 5k ops/s (read + pub/sub) | p99 < 10ms | Phase 1 |
@@ -207,7 +210,7 @@ Before **each** production flag/routing cutover, record in a **Cutover Checklist
 ## Observability Requirements (Must Exist Before Phase 2)
 
 ### Dashboards
-1. **Snapshot Health**: Version, age, write latency, error rate (per scope)
+1. **Snapshot Health**: Epoch, version, age, write latency, error rate
 2. **Consumer Health**: Version lag, reconciliation status, stale snapshot alert
 3. **SSE Health**: Active connections, event latency, reconnect rate, filtered fields
 4. **Processor Health**: Build duration, trigger latency, lease status, shadow parity
@@ -232,7 +235,7 @@ Phase 0 (Baselines)
     │
     ├─► Phase 1 (Publish Snapshots) ──► Phase 2 (App BFF Redis Reads)
     │                                        │
-    │                                        ├─► Phase 3 (Admin BFF + SSE)
+    │                                        ├─► Phase 3 (Back-end + App-back-end SSE)
     │                                        │
     │                                        └─► Phase 8 (Host Split) ◄── Phase 7 (Identity)
     │
@@ -244,12 +247,12 @@ Phase 0 (Baselines)
                                                       ├─► 6.2 Admin CRUD
                                                       ├─► 6.3 Deye Polling
                                                       ├─► 6.4 Cleanup Jobs
-                                                      └─► 6.5 Message Delivery
-```
+                                                      ├─► 6.5 Message Delivery
+                                                      └─► 6.6 Grid Reporter (evaluate)
 
-**Parallel Tracks**:
-- Phase 7 (Identity) starts **with Phase 1** — independent timeline
-- Phase 8 (Host Split) requires Phase 3 (SSE) + Phase 7 (Auth) + Phase 2 (App BFF APIs)
+Phase 7 (Identity) starts **with Phase 1** — independent timeline
+Phase 8 (Host Split) requires Phase 3 (SSE) + Phase 7 (Admin Auth) + Phase 2 (App BFF APIs)
+```
 
 ---
 

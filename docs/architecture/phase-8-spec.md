@@ -1,42 +1,38 @@
 # Phase 8 Spec: Separate Public & Admin Applications
 
 ## Objective
-Split the combined front-end into two separate deployables with host-aware routing, and move public-facing API routes from the legacy back-end to the app back-end.
+Split the combined front-end into two separate deployables with host-aware routing, and move public-facing API routes from the `back-end` to the `app-back-end`.
 
 ## Current State
-- **Single front-end**: Serves both public pages and admin screens
-- **Single back-end**: Serves both public APIs and admin APIs
+- **Single front-end**: Serves both public pages (`/`, `/app`, `/privacy-policy`) and admin screens (`/stations`, `/buildings`, `/users`, etc.)
+- **Single back-end**: `back-end` serves both public APIs (buildings, outages) and admin APIs
 - **Host**: `svitlo-power.pp.ua` (all traffic)
 
 ## Target State
 | Host | UI | API |
 |------|-----|-----|
 | `svitlo-power.pp.ua` | Public front-end | App back-end |
-| `admin.svitlo-power.pp.ua` | Admin front-end | Admin back-end |
+| `admin.svitlo-power.pp.ua` | Admin front-end | Back-end (renamed to admin-back-end) |
 | Mobile clients | — | App back-end (mobile API) |
 
 ## Deliverables
 
 ### 1. Front-End Split
-**Repository structure** (monorepo or separate repos):
+**Repository structure** (monorepo):
 ```
 svitlo-power-ui/
 ├── packages/
 │   ├── shared/           # Shared components, utilities, types
-│   ├── public-app/       # Public front-end (Vite/Next.js)
+│   ├── public-app/       # Public front-end (Vite/React)
 │   │   ├── src/
-│   │   │   ├── pages/    # Public routes only
+│   │   │   ├── pages/    # Public routes only: /, /app, /privacy-policy
 │   │   │   ├── components/
 │   │   │   └── main.tsx
 │   │   ├── package.json
 │   │   └── vite.config.ts
-│   └── admin-app/        # Admin front-end (Vite/Next.js)
+│   └── admin-app/        # Admin front-end (Vite/React)
 │       ├── src/
-│       │   ├── pages/    # Admin routes only
-│       │   │   ├── dashboard/
-│       │   │   ├── sites/
-│       │   │   ├── users/
-│       │   │   └── settings/
+│       │   ├── pages/    # Admin routes only: /stations, /buildings, /users, /messages, /chats, /ext-data, /ext-devices, /push, /settings
 │       │   ├── components/
 │       │   └── main.tsx
 │       ├── package.json
@@ -51,39 +47,53 @@ svitlo-power-ui/
 
 ### 2. Route Separation
 **Public routes** (move to public-app):
-- `/` — Landing page
-- `/sites/:id` — Public site dashboard
-- `/outages` — Public outage schedule
-- `/about`, `/contact`, etc.
+- `/` — Landing page (shows `BuildingsPage` for anonymous users)
+- `/app` — App landing page
+- `/privacy-policy` — Privacy policy
 
 **Admin routes** (move to admin-app):
-- `/admin/*` — All admin screens
-- `/admin/dashboard`
-- `/admin/sites`
-- `/admin/users`
-- `/admin/settings`
+- `/stations` — Stations page
+- `/stations/details/:stationId` — Station details
+- `/bots` — Bots page
+- `/chats` — Chats page
+- `/messages` — Messages page
+- `/messages/edit/:messageId` — Message edit
+- `/messages/create` — Message create
+- `/ext-data` — External data page
+- `/users` — Users page
+- `/buildings` — Buildings page
+- `/ext-devices` — External devices page
+- `/push` — Push notifications page
+- `/settings` — System settings page
+- `/changePassword` — Change password (anonymous layout)
+- `/login` — Login (anonymous layout)
 
 **Shared components** (in `packages/shared`):
 - UI primitives (Button, Card, Table, Chart)
 - Auth hooks (useAuth, useUser)
 - API client (configured per app)
-- Types (DashboardSnapshot, Site, etc.)
+- Types (DashboardSnapshot, Building, etc.)
 
-### 3. API Route Migration (Legacy Back-end → App Back-end)
-**Current public APIs on legacy back-end** (to move):
+### 3. API Route Migration (Back-end → App-back-end)
+**Current public APIs on `back-end`** (to move):
 | Endpoint | Current Host | Target Host |
 |----------|--------------|-------------|
-| `GET /api/v1/dashboard` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
-| `GET /api/v1/sites/:id` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
-| `GET /api/v1/outages/:siteId` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
-| `GET /api/v1/public/*` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/dashboard/buildings` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `POST /api/dashboard/buildings/summary` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/buildings/buildings` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/dashboard/config` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/buildings/dashboardConfig` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `POST /api/dashboard/buildings/{building_id}/power-logs` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `POST /api/buildings/{building_id}/power-logs` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/outagesSchedule/outagesSchedule/{queue}` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
+| `GET /api/events` (SSE) | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
 
 **Migration steps**:
-1. **Duplicate routes** in app-back-end (proxy to Redis snapshot, same as mobile API)
+1. **Duplicate routes** in `app-back-end` (read from Redis snapshot, same as mobile API)
 2. **Feature flag**: `PUBLIC_API_VIA_APP_BACKEND` (default: false)
-3. **Edge proxy**: Route public host API traffic to app-back-end when flag enabled
+3. **Edge proxy**: Route public host API traffic to `app-back-end` when flag enabled
 4. **Verify**: Contract tests, parity with legacy responses
-5. **Cutover**: Enable flag, monitor, remove from legacy back-end
+5. **Cutover**: Enable flag, monitor, remove from `back-end`
 
 ### 4. Edge Proxy Configuration
 **NGINX / Cloudflare / AWS ALB** rules:
@@ -105,7 +115,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     
-    location /dashboard/stream {
+    location /api/events {
         # SSE (app back-end)
         proxy_pass http://app-back-end;
         proxy_http_version 1.1;
@@ -125,13 +135,13 @@ server {
     }
     
     location /api/ {
-        # Admin back-end
+        # Admin back-end (renamed back-end)
         proxy_pass http://admin-back-end;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     
-    location /api/v1/admin/dashboard/stream {
+    location /api/events {
         # SSE (admin back-end)
         proxy_pass http://admin-back-end;
         proxy_http_version 1.1;
@@ -146,11 +156,21 @@ server {
 - Controlled via edge config (Cloudflare Workers, NGINX map, etc.)
 
 ### 5. Authentication Boundaries
-**Cookie/Session Separation**:
+**Current Auth**:
+- Admin: JWT access/refresh tokens from `back-end` `/api/auth/login`
+- Public: Anonymous (no auth)
+- Mobile: Static `X-App-Token` header
+
+**Phase 8 Changes**:
+- **Admin host**: Uses Identity Service (OIDC) after Phase 7 — cookies/tokens scoped to `admin.svitlo-power.pp.ua`
+- **Public host**: Remains anonymous — no cookies, no auth
+- **Mobile**: Unchanged — `X-App-Token` header to `app-back-end`
+
+**Cookie/Session Separation** (after Phase 7):
 | App | Cookie Domain | Cookie Name | SameSite |
 |-----|---------------|-------------|----------|
-| Public | `.svitlo-power.pp.ua` | `public_session` | Lax |
-| Admin | `.admin.svitlo-power.pp.ua` | `admin_session` | Lax |
+| Admin | `admin.svitlo-power.pp.ua` (host-only, no Domain attr) | `admin_session` | Lax |
+| Public | None (anonymous) | N/A | N/A |
 | Mobile | N/A | Bearer token | N/A |
 
 **CORS**:
@@ -158,10 +178,10 @@ server {
 - Admin UI → Admin back-end: `Origin: https://admin.svitlo-power.pp.ua`
 - Mobile → App back-end: No CORS (native app)
 
-**OIDC Redirect URIs**:
-- Public UI: `https://svitlo-power.pp.ua/callback`
+**OIDC Redirect URIs** (after Phase 7):
 - Admin UI: `https://admin.svitlo-power.pp.ua/callback`
-- Mobile: `com.svitlo.power://callback` (custom scheme)
+- Public UI: N/A (anonymous)
+- Mobile: N/A (uses `X-App-Token`)
 
 ### 6. Mobile API Contract Preservation
 - **No changes** to mobile API endpoints, request/response shapes
@@ -183,7 +203,7 @@ server {
 - [ ] Feature flag + edge proxy routing
 - [ ] Shadow: Dual serve, compare responses
 - [ ] Cutover: Enable flag, monitor 24h
-- [ ] Remove public routes from legacy back-end
+- [ ] Remove public routes from back-end
 
 ### Step 3: Host Deployment (Week 3-4)
 - [ ] Deploy public-app to `svitlo-power.pp.ua`
@@ -192,16 +212,16 @@ server {
 - [ ] SSL certificates (wildcard or separate)
 - [ ] DNS: `admin.svitlo-power.pp.ua` → edge proxy
 
-### Step 4: Authentication Separation (Week 4)
-- [ ] Configure separate cookie domains
+### Step 4: Authentication Separation (Week 4, after Phase 7)
+- [ ] Configure admin cookie domain (host-only, no parent domain)
 - [ ] Update OIDC clients with new redirect URIs
-- [ ] Test login flows on both hosts
-- [ ] Verify no cookie leakage between hosts
+- [ ] Test admin login on admin host
+- [ ] Verify public host remains anonymous
 
-### Step 5: Legacy Back-end Restriction (Week 5)
-- [ ] Legacy back-end: Remove public routes (already migrated)
-- [ ] Legacy back-end: Restrict to admin host only (via edge proxy)
-- [ ] Rename: "Legacy back-end" → "Admin back-end" (already done conceptually)
+### Step 5: Back-end Restriction (Week 5)
+- [ ] Back-end: Remove public routes (already migrated)
+- [ ] Back-end: Restrict to admin host only (via edge proxy)
+- [ ] Rename: "Back-end" → "Admin back-end" (conceptually)
 - [ ] Verify: No public traffic reaches admin back-end
 
 ## Exit Gates
@@ -233,10 +253,10 @@ server {
 ### Auth Separation
 | Criterion | Threshold |
 |-----------|-----------|
-| Public login works, cookie scoped | Verified |
-| Admin login works, cookie scoped | Verified |
+| Admin login works, cookie scoped to admin host | Verified |
+| Public host remains anonymous | Verified |
+| Mobile login unaffected (X-App-Token) | Verified |
 | No shared session between hosts | Verified |
-| Mobile login unaffected | Verified |
 
 ## Rollback Procedures
 
@@ -246,9 +266,9 @@ server {
 3. Feature flag: `FRONTEND_SPLIT_ENABLED=false`
 
 ### API Rollback
-1. Edge proxy: Route public host API to legacy back-end
+1. Edge proxy: Route public host API to back-end
 2. Feature flag: `PUBLIC_API_VIA_APP_BACKEND=false`
-3. Legacy back-end: Public routes still exist (not removed until verified)
+3. Back-end: Public routes still exist (not removed until verified)
 
 ### Host Rollback
 1. DNS: Point `admin.svitlo-power.pp.ua` back to legacy (or disable subdomain)
@@ -261,7 +281,7 @@ server {
 | Shared component drift | Single package, versioned; CI tests both apps |
 | SEO impact (public host) | Same URLs, same content; 301 redirects if any URL changes |
 | Mobile app breakage | Mobile API untouched; contract tests in CI |
-| Cookie leakage | Separate domains, `SameSite=Lax`, `Secure`, `HttpOnly` |
+| Cookie leakage | Admin cookie host-only (no Domain attr), `SameSite=Lax`, `Secure`, `HttpOnly` |
 | Edge proxy misconfiguration | Staging mirror of production edge config; automated tests |
 
 ## Test Checklist
@@ -271,11 +291,11 @@ server {
 - [ ] Integration: Admin app → Admin back-end API (all endpoints)
 - [ ] Integration: Mobile app → App back-end API (all endpoints)
 - [ ] Contract: Mobile API test suite passes
-- [ ] E2E: Public user journey (landing → site dashboard → outage schedule)
-- [ ] E2E: Admin user journey (login → dashboard → site management → user management)
+- [ ] E2E: Public user journey (landing → buildings → outage schedule)
+- [ ] E2E: Admin user journey (login → dashboard → stations → buildings → users)
 - [ ] E2E: Cross-host navigation (public → admin link, admin → public link)
-- [ ] Auth: Cookie isolation (login public, open admin → not logged in)
-- [ ] Auth: OIDC redirects work on both hosts
+- [ ] Auth: Admin cookie isolation (login admin, open public → not logged in)
+- [ ] Auth: OIDC redirects work on admin host
 - [ ] Load: Public host 10k req/s, Admin host 1k req/s
 - [ ] Chaos: App back-end down → public host 503, admin host unaffected
 - [ ] Chaos: Admin back-end down → admin host 503, public host unaffected

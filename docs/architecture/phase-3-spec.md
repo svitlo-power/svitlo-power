@@ -1,11 +1,11 @@
-# Phase 3 Spec: Admin Back End & SSE Migration to Redis
+# Phase 3 Spec: SSE Migration to Redis (Back-end + App-back-end)
 
 ## Objective
-Move both BFFs (admin-back-end, app-back-end) to Redis-backed reads with local SSE fan-out. Retire the standalone `sse-back-end`.
+Move both `back-end` (admin) and `app-back-end` to Redis-backed reads with local SSE fan-out. Retire the standalone `sse-back-end`.
 
 ## Scope
-- **Consumers**: `admin-back-end`, `app-back-end` (both get Redis client + SSE fan-out)
-- **Producer**: Existing `back-end` (unchanged)
+- **Consumers**: `back-end` (admin SSE), `app-back-end` (public SSE)
+- **Producer**: Existing `back-end` (unchanged from Phase 1)
 - **Retired**: `sse-back-end` (after verification)
 - **Data**: Same `DashboardSnapshot` v1 schema
 - **Redis**: Per `redis-conventions.md`
@@ -13,120 +13,156 @@ Move both BFFs (admin-back-end, app-back-end) to Redis-backed reads with local S
 ## Deliverables
 
 ### 1. Shared SSE Fan-out Library
-**Location**: `shared/sse_fanout/` (new package, used by both BFFs)
+**Location**: `shared/python/shared/services/sse_fanout.py` (new, used by both back-ends)
 
 ```python
 class SSEFanout:
-    def __init__(self, snapshot_client: DashboardSnapshotClient, authz: Authorization): ...
+    def __init__(self, snapshot_client: DashboardSnapshotClient, is_admin: bool): ...
     
-    async def handle_connection(self, request: Request, response: StreamingResponse) -> None:
-        """Main SSE endpoint handler."""
+    async def handle_connection(self, request: Request, user_id: str | None) -> StreamingResponse:
+        """Main SSE endpoint handler - compatible with existing /api/events format."""
     
-    async def _send_initial_snapshot(self, stream: ServerSentEventStream) -> None:
-        """Send full snapshot on connect."""
+    async def _send_initial_snapshot(self, stream: ServerSentEventStream, user_id: str | None) -> None:
+        """Send full snapshot on connect as unnamed events (for onmessage compatibility)."""
     
-    async def _send_updates(self, stream: ServerSentEventStream) -> None:
+    async def _send_updates(self, stream: ServerSentEventStream, user_id: str | None) -> None:
         """Listen for snapshot updates, send incremental SSE events."""
     
-    def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> DashboardSnapshot:
-        """Apply authorization: remove admin-only fields for public/mobile clients."""
+    def _filter_for_client(self, snapshot: DashboardSnapshot, user_id: str | None) -> DashboardSnapshot:
+        """Apply authorization: admin gets all fields, public gets filtered."""
 ```
 
-**SSE Event Format**:
+**SSE Event Format (Backward Compatible)**:
+- **Existing clients use `EventSource.onmessage`** which only receives **unnamed events**
+- Keep unnamed events with `{type, data, private, user}` structure
+- Add optional `event: dashboard-update` for new clients that use `addEventListener`
+
 ```
+# Initial connection - unnamed events (for onmessage)
+data: {"type": "dashboard", "data": {...}, "private": false, "user": null}
+
+data: {"type": "buildings", "data": [...], "private": false, "user": null}
+
+data: {"type": "config", "data": {...}, "private": false, "user": null}
+
+# Updates - unnamed for backward compat, plus named for new clients
+data: {"type": "dashboard-update", "data": {"epoch": 1, "version": 43}, "private": false, "user": null}
 event: dashboard-update
-id: 42
-data: {"version": 42, "generatedAt": "...", "sites": [...], "totals": {...}, "outageSchedules": [...]}
+id: 1-43
+data: {"epoch": 1, "version": 43}
 
-event: heartbeat
-id: 0
-data: {"timestamp": "2026-10-27T18:05:00Z"}
+# Heartbeat - SSE comment (no id, doesn't reset lastEventId)
+: ping
 ```
 
-- **Event ID**: Snapshot version (enables client reconnect with `Last-Event-ID`)
-- **Heartbeat**: Every 30s (configurable) to detect dead connections
-- **Initial event**: Full snapshot on connect (not incremental)
+- **Event ID**: `epoch-version` (enables client reconnect with `Last-Event-ID`)
+- **Heartbeat**: Every 30s as SSE comment `: ping` (no `id`, doesn't reset `lastEventId`)
+- **Initial events**: Full snapshot split by type (dashboard, buildings, config, outages)
 
-### 2. Admin Back End Integration
+### 2. Back-end (Admin) Integration
 **Changes**:
 - Add `DashboardSnapshotClient` (same as Phase 2)
-- Add `SSEFanout` with admin authorization (all fields included)
-- New endpoint: `GET /api/v1/admin/dashboard/stream` (SSE)
-- Existing REST endpoints (`GET /api/v1/admin/dashboard`, etc.) now read from Redis snapshot
-- Remove direct dashboard calculation code
+- Add `SSEFanout` with `is_admin=True` (all fields included)
+- **Existing endpoint**: `GET /api/events` (unchanged path, now reads from Redis)
+- Existing REST endpoints (`GET /api/dashboard/*`, etc.) now read from Redis snapshot
+- Remove direct dashboard calculation code from `DashboardService` (keep for Phase 1-4 producer role)
 
-### 3. App Back End SSE (if not in Phase 2)
+### 3. App-back-end SSE
 **Changes**:
-- Add `SSEFanout` with public/mobile authorization (filter admin-only fields)
-- New endpoint: `GET /api/v1/dashboard/stream` (SSE)
-- Mobile app can use same endpoint or continue polling REST
+- Add `SSEFanout` with `is_admin=False` (filter admin-only fields)
+- **Existing endpoint**: `GET /api/events` (unchanged path, now reads from Redis)
+- Public/mobile clients continue using same endpoint
 
 ### 4. Authorization Filtering
 **Admin-only fields** (removed for public/mobile):
-- `SiteSnapshot.inverterModel` (if sensitive)
-- `SiteSnapshot.capacityKw` (if sensitive)
-- Any future fields marked `adminOnly: true` in schema
+- Building: `hasBoundStation` (if sensitive), internal IDs
+- Config: `enableOutagesSchedule`, `outagesScheduleQueue` (internal settings)
 
 **Implementation**:
 ```python
-def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> DashboardSnapshot:
-    if user.is_admin:
-        return snapshot
+def _filter_for_client(self, snapshot: DashboardSnapshot, user_id: str | None) -> DashboardSnapshot:
+    if user_id and await self._is_admin(user_id):
+        return snapshot  # Admin gets all fields
     
-    filtered_sites = []
-    for site in snapshot.sites:
-        filtered_sites.append(SiteSnapshot(
-            id=site.id,
-            name=site.name,
-            currentPowerKw=site.currentPowerKw,
-            energyTodayKwh=site.energyTodayKwh,
-            energyTotalKwh=site.energyTotalKwh,
-            lastMeasurementAt=site.lastMeasurementAt,
-            status=site.status,
-            # inverterModel and capacityKw omitted
+    # Public/mobile: filter sensitive fields
+    filtered_buildings = []
+    for building in snapshot.buildings:
+        filtered_buildings.append(BuildingSnapshot(
+            id=building.id,
+            name=building.name,
+            color=building.color,
+            order=building.order,
+            hasBoundStation=False,  # Always false for public
+            isGridAvailable=building.isGridAvailable,
+            gridAvailabilityPct=building.gridAvailabilityPct,
+            hasMixedReporterStates=building.hasMixedReporterStates,
+            isCharging=building.isCharging,
+            isDischarging=building.isDischarging,
+            isOffline=building.isOffline,
+            batteryPercent=building.batteryPercent,
+            consumptionPower=building.consumptionPower,
+            batteryDischargeTime=building.batteryDischargeTime,
+            batteryChargeTime=building.batteryChargeTime,
+            chargeSource=building.chargeSource,
+            chargePower=building.chargePower,
         ))
     
+    filtered_config = ConfigSnapshot(
+        title=snapshot.config.title,
+        enableOutagesSchedule=False,  # Internal setting
+        outagesScheduleQueue=None,    # Internal setting
+    )
+    
     return DashboardSnapshot(
+        epoch=snapshot.epoch,
         version=snapshot.version,
         generatedAt=snapshot.generatedAt,
-        sites=filtered_sites,
-        totals=snapshot.totals,  # totals are aggregated, safe
-        outageSchedules=snapshot.outageSchedules  # public info
+        buildings=filtered_buildings,
+        config=filtered_config,
+        outagesSchedules=snapshot.outagesSchedules  # Public info
     )
 ```
 
-### 5. sse-back-end Retirement
+### 5. JWT in Query Parameter (Current Reality)
+**Current**: `/api/events?token=<jwt>` — token ends up in logs
+**Phase 3**: Keep query param for backward compatibility, add migration path:
+- Short-term: Accept token in query param, log warning
+- Medium-term: Add `Authorization: Bearer` header support
+- Long-term: Short-lived SSE ticket via `POST /api/events/ticket` (returns one-time token)
+
+### 6. sse-back-end Retirement
 **Current role**: Handles SSE connections for both admin and public clients
 **Migration**:
-1. Both BFFs deploy SSE endpoints (above)
+1. Both back-ends deploy SSE endpoints (above)
 2. Edge proxy routes SSE traffic to new endpoints (feature flag)
 3. Monitor for 1 week: connection count, latency, errors
 4. Scale down `sse-back-end` to 0
 5. Remove `sse-back-end` deployment, code, infrastructure
 
-### 6. Metrics (Additional)
+### 7. Metrics (Additional)
 | Metric | Type | Labels | Target |
 |--------|------|--------|--------|
-| `sse_connections_active` | Gauge | bff (admin, app) | — |
-| `sse_connection_duration_seconds` | Histogram | bff | — |
-| `sse_events_sent_total` | Counter | bff, event_type | — |
-| `sse_reconnect_total` | Counter | bff | — |
-| `sse_filtered_fields_total` | Counter | bff, field | — |
+| `sse_connections_active` | Gauge | backend (back-end, app-back-end) | — |
+| `sse_connection_duration_seconds` | Histogram | backend | — |
+| `sse_events_sent_total` | Counter | backend, event_type | — |
+| `sse_reconnect_total` | Counter | backend | — |
+| `sse_filtered_fields_total` | Counter | backend, field | — |
 | `sse_backend_connections_active` | Gauge | — | 0 (after retirement) |
 
-### 6. Health Checks
-**Admin BFF**: `GET /health/admin-sse`
+### 8. Health Checks
+**Back-end**: `GET /health/sse`
 ```json
 {
   "status": "healthy",
   "activeConnections": 42,
+  "snapshotEpoch": 1,
   "snapshotVersion": 42,
   "snapshotAgeSeconds": 30,
   "lastEventSentAt": "2026-10-27T18:05:00Z"
 }
 ```
 
-**App BFF**: `GET /health/app-sse` (same structure)
+**App-back-end**: `GET /health/sse` (same structure)
 
 ## Exit Gate (Measurable Thresholds)
 
@@ -138,18 +174,19 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> Dashboa
 | Authorization filtering | 0 admin fields leaked to public | Automated test |
 | sse-back-end traffic | 0 required connections for 1 week | 1 week observation |
 | REST API parity (vs Phase 2) | 100% field-level match | Contract tests |
+| Backward compatibility | Existing web UI works without changes | E2E test |
 
 ## Rollback Procedure
 
-### Per-BFF Rollback
-1. **Feature flag**: `BFF_REDIS_SSE_ENABLED=false` (per BFF)
+### Per-Back-end Rollback
+1. **Feature flag**: `BACKEND_REDIS_SSE_ENABLED=false` (per back-end)
 2. **Effect**: 
-   - REST endpoints fall back to legacy calculation (or proxy to old back-end)
-   - SSE endpoint returns 503 or proxies to `sse-back-end`
+   - REST endpoints fall back to legacy calculation
+   - SSE endpoint proxies to `sse-back-end` (or returns 503)
 3. **Edge proxy**: Route SSE traffic back to `sse-back-end`
 
 ### Full Rollback
-1. Disable both BFF flags
+1. Disable both back-end flags
 2. Scale up `sse-back-end` to previous capacity
 3. Verify all SSE clients reconnect successfully
 4. Investigate: Redis connectivity, snapshot freshness, fan-out logic
@@ -157,11 +194,11 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> Dashboa
 ## Deployment Steps
 
 1. **Staging**:
-   - Deploy both BFFs with SSE fan-out, flag `false`
+   - Deploy both back-ends with SSE fan-out, flag `false`
    - Verify REST parity with Phase 2
    - Test SSE: connect, receive initial snapshot, receive updates, reconnect
    - Test authorization filtering (admin vs public user)
-   - Load test: 5000 concurrent SSE connections per BFF
+   - Load test: 5000 concurrent SSE connections per back-end
 
 2. **Production (shadow SSE)**:
    - Deploy with flag `false`, SSE endpoints active but not routed
@@ -169,7 +206,7 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> Dashboa
    - Monitor metrics for 24h
 
 3. **Production (gradual SSE cutover)**:
-   - Edge proxy: 10% SSE traffic → new BFF endpoints
+   - Edge proxy: 10% SSE traffic → new back-end endpoints
    - Monitor: connection count, latency, errors, client reconnects
    - Increase: 50% → 100%
    - At 100%: scale down `sse-back-end` to 1 instance (standby)
@@ -181,31 +218,33 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user: User) -> Dashboa
 
 ## Dependencies
 - Phase 2 complete (app-back-end Redis client working)
-- Shared `sse_fanout` package published
+- Shared `sse_fanout` module in `shared/python/shared/services/`
 - Edge proxy supports host/path routing with feature flags
-- Authorization context available in both BFFs (user roles)
+- Authorization context available in both back-ends (user roles)
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
 |------|------------|
 | SSE connection leak | Heartbeat + connection timeout (5 min no activity → close); metrics on active connections |
-| Large snapshot on connect | Snapshot < 512KB; if larger, consider delta updates (future) |
+| Large snapshot on connect | Snapshot < 512KB; split into multiple unnamed events |
 | Admin fields leaked | Unit test: public user receives filtered snapshot; integration test in CI |
-| sse-back-end clients don't reconnect | Mobile app: implement `Last-Event-ID` reconnect; web: EventSource auto-reconnect |
+| sse-back-end clients don't reconnect | Web: EventSource auto-reconnect; mobile: same |
 | Version lag causes stale SSE | Reconciliation every 60s + notification-driven; alert on lag > 1 |
+| JWT in query param | Log warning; plan migration to header/ticket in Phase 6+ |
 
 ## Test Checklist
 
-- [ ] Unit: SSEFanout sends initial snapshot, then updates on notification
+- [ ] Unit: SSEFanout sends initial snapshot as unnamed events, then updates
 - [ ] Unit: Authorization filtering removes admin fields for public user
-- [ ] Unit: Heartbeat sent every 30s
+- [ ] Unit: Heartbeat sent as `: ping` comment every 30s
 - [ ] Unit: Reconnect with Last-Event-ID receives missed events (or full snapshot)
-- [ ] Integration: Admin BFF REST + SSE both read from Redis
-- [ ] Integration: App BFF REST + SSE both read from Redis
+- [ ] Unit: Backward compatibility - unnamed events received by `onmessage`
+- [ ] Integration: Back-end REST + SSE both read from Redis
+- [ ] Integration: App-back-end REST + SSE both read from Redis
 - [ ] Integration: Edge proxy routes SSE correctly per host
 - [ ] Load: 5000 concurrent SSE connections, p99 latency < 500ms
 - [ ] Chaos: Redis down → SSE sends stale snapshot with warning, heartbeats continue
-- [ ] Chaos: BFF restart → clients reconnect, receive full snapshot
+- [ ] Chaos: Back-end restart → clients reconnect, receive full snapshot
 - [ ] Chaos: sse-back-end scaled to 0 → no client errors
-- [ ] Contract: Mobile app SSE client works (if applicable)
+- [ ] Contract: Existing web UI works without code changes
