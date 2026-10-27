@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://svitlo-power.pp.ua/schemas/dashboard-snapshot/v1.json",
+  "title": "DashboardSnapshot",
+  "description": "Versioned, disposable cache snapshot for dashboard and outage-schedule data. Rebuildable from authoritative source APIs. Redis key: cache:dashboard:v1:{scope}",
+  "type": "object",
+  "required": ["version", "generatedAt", "sites", "totals", "outageSchedules"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic incrementing version. Incremented on every successful snapshot write. Used for cache reconciliation and SSE event IDs."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the snapshot was computed. Used for freshness monitoring and stale-data alerts."
+    },
+    "sites": {
+      "type": "array",
+      "description": "Per-site dashboard data. Ordered by site ID for deterministic output.",
+      "items": { "$ref": "#/$defs/SiteSnapshot" }
+    },
+    "totals": {
+      "$ref": "#/$defs/TotalsSnapshot",
+      "description": "Aggregated totals across all sites."
+    },
+    "outageSchedules": {
+      "type": "array",
+      "description": "Outage schedules for all sites. Ordered by site ID.",
+      "items": { "$ref": "#/$defs/OutageScheduleSnapshot" }
+    }
+  },
+  "$defs": {
+    "SiteSnapshot": {
+      "type": "object",
+      "required": ["id", "name", "currentPowerKw", "energyTodayKwh", "energyTotalKwh", "lastMeasurementAt", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string", "maxLength": 100 },
+        "currentPowerKw": { "type": "number", "minimum": 0 },
+        "energyTodayKwh": { "type": "number", "minimum": 0 },
+        "energyTotalKwh": { "type": "number", "minimum": 0 },
+        "lastMeasurementAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["online", "offline", "degraded", "unknown"] },
+        "inverterModel": { "type": "string", "maxLength": 50 },
+        "capacityKw": { "type": "number", "minimum": 0 }
+      }
+    },
+    "TotalsSnapshot": {
+      "type": "object",
+      "required": ["totalPowerKw", "totalEnergyTodayKwh", "totalEnergyTotalKwh", "onlineSites", "totalSites"],
+      "additionalProperties": false,
+      "properties": {
+        "totalPowerKw": { "type": "number", "minimum": 0 },
+        "totalEnergyTodayKwh": { "type": "number", "minimum": 0 },
+        "totalEnergyTotalKwh": { "type": "number", "minimum": 0 },
+        "onlineSites": { "type": "integer", "minimum": 0 },
+        "totalSites": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "OutageScheduleSnapshot": {
+      "type": "object",
+      "required": ["siteId", "schedule"],
+      "additionalProperties": false,
+      "properties": {
+        "siteId": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "schedule": {
+          "type": "array",
+          "description": "Ordered by start time. Non-overlapping.",
+          "items": {
+            "type": "object",
+            "required": ["start", "end", "type"],
+            "additionalProperties": false,
+            "properties": {
+              "start": { "type": "string", "format": "date-time" },
+              "end": { "type": "string", "format": "date-time" },
+              "type": { "type": "string", "enum": ["planned", "unplanned", "maintenance"] },
+              "description": { "type": "string", "maxLength": 500 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
