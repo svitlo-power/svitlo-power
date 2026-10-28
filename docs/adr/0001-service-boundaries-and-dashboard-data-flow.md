@@ -187,7 +187,7 @@ emits the corresponding SSE update to its own connected clients. Notifications
 may be missed; startup/reconnect reconciliation handles that.
 
 If the Redis key is missing or expired, a back end requests a refresh/read from
-the processor, which fetches the source API data and repopulates the cache. A
+the processor, which fetches the source data and repopulates the cache. A
 back end must not become a second producer or write snapshots itself. If the
 source API is unavailable, the snapshot may be unavailable or stale until it
 can be fetched again; Redis recovery from a backup is not required.
@@ -201,12 +201,6 @@ its local version with Redis, so a missed notification cannot leave a web
 process stale indefinitely. SSE events carry the snapshot version as their
 event identifier; clients fetch the normal API snapshot on initial connection
 or SSE reconnect rather than relying on Pub/Sub replay.
-
-On a missing/expired Redis key, a BFF requests an immediate refresh/read from
-Processing. Processing fetches the source data and repopulates the cache;
-coalesce concurrent cache-miss requests to avoid duplicate source API work.
-If the source API is unavailable, the snapshot may be unavailable or stale
-until it can be fetched again. Redis backup/restore is not required.
 
 ```mermaid
 flowchart LR
@@ -225,8 +219,8 @@ flowchart LR
     AdminAPI -->|preview request| Processor
     Processor -->|write disposable versioned snapshot| Redis[(Redis cache)]
     Processor -->|publish invalidation notification| Redis
-    Redis -->|read snapshot + subscribe| AdminAPI[Admin back end]
-    Redis -->|read snapshot + subscribe| AppAPI[App back end]
+    Redis -->|read snapshot + subscribe| AdminAPI
+    Redis -->|read snapshot + subscribe| AppAPI
     AdminAPI -->|cache miss: request refresh/read| Processor
     AppAPI -->|cache miss: request refresh/read| Processor
     AdminAPI -->|admin API + SSE| AdminUI

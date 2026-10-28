@@ -75,7 +75,7 @@ svitlo-power-ui/
 - Types (DashboardSnapshot, Building, etc.)
 
 ### 3. API Route Migration (Back-end → App-back-end)
-**Current public APIs on `back-end`** (to move):
+**Current public APIs on `back-end`** (to move for public host):
 | Endpoint | Current Host | Target Host |
 |----------|--------------|-------------|
 | `GET /api/dashboard/buildings` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
@@ -88,12 +88,14 @@ svitlo-power-ui/
 | `GET /api/outagesSchedule/outagesSchedule/{queue}` | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
 | `GET /api/events` (SSE) | `svitlo-power.pp.ua` | `svitlo-power.pp.ua` (app-back-end) |
 
+**Important**: The admin Buildings page calls `GET /api/dashboard/buildings` and `POST /api/dashboard/buildings/summary` on the **admin host**. These endpoints **stay on `back-end`** for the admin host. Only public-host traffic is routed to `app-back-end`.
+
 **Migration steps**:
 1. **Duplicate routes** in `app-back-end` (read from Redis snapshot, same as mobile API)
 2. **Feature flag**: `PUBLIC_API_VIA_APP_BACKEND` (default: false)
-3. **Edge proxy**: Route public host API traffic to `app-back-end` when flag enabled
+3. **Edge proxy**: Route **public host** API traffic to `app-back-end` when flag enabled
 4. **Verify**: Contract tests, parity with legacy responses
-5. **Cutover**: Enable flag, monitor, remove from `back-end`
+5. **Cutover**: Enable flag, monitor, **stop routing public-host traffic to `back-end`** (do not remove routes from `back-end` — they remain for admin host)
 
 ### 4. Edge Proxy Configuration
 **NGINX / Cloudflare / AWS ALB** rules:
@@ -110,17 +112,21 @@ server {
     
     location /api/ {
         # App back-end
-        proxy_pass http://app-back-end;
+        proxy_pass http://svitlo-power-app-back-end:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
     }
     
     location /api/events {
         # SSE (app back-end)
-        proxy_pass http://app-back-end;
+        proxy_pass http://svitlo-power-app-back-end:8000;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
     }
 }
 
@@ -135,21 +141,27 @@ server {
     }
     
     location /api/ {
-        # Admin back-end (renamed back-end)
-        proxy_pass http://admin-back-end;
+        # Admin back-end (back-end service)
+        proxy_pass http://svitlo-power-back-end:5005;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
     }
     
     location /api/events {
         # SSE (admin back-end)
-        proxy_pass http://admin-back-end;
+        proxy_pass http://svitlo-power-back-end:5005;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_cache off;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
     }
 }
 ```
+
+> **Note**: Upstream names match `docker-compose.yml` service names (`svitlo-power-app-back-end`, `svitlo-power-back-end`). Ports: app-back-end=8000, back-end=5005.
 
 **Feature flag at edge** (for gradual cutover):
 - `X-Public-API-Target: legacy|app-backend` header

@@ -28,13 +28,13 @@ Admin UI → back-end → Message Generator (Python) → Preview Response
 Admin UI → back-end → Processor POST /internal/v1/messages/preview → Preview Response
 ```
 
-### Processor API Contract
+### Processor API Contract (Derived from existing `POST /api/messages/getPreview`)
 **Endpoint**: `POST /internal/v1/messages/preview`
 **Auth**: Service-to-service (mTLS) + User token (delegated)
 **Request**:
 ```json
 {
-  "templateId": "outage-alert",
+  "topicId": "outage-alert",
   "params": {
     "buildingId": "building-123",
     "outageStart": "2026-10-27T10:00:00Z",
@@ -49,7 +49,7 @@ Admin UI → back-end → Processor POST /internal/v1/messages/preview → Previ
   "renderedSubject": "Planned outage for building-123",
   "renderedBody": "Dear customer, ...",
   "metadata": {
-    "templateId": "outage-alert",
+    "topicId": "outage-alert",
     "generatedAt": "2026-10-27T09:00:00Z",
     "recipientCount": 1
   }
@@ -57,11 +57,11 @@ Admin UI → back-end → Processor POST /internal/v1/messages/preview → Previ
 ```
 
 ### Migration Steps
-1. **Add Processor endpoint** (implements same generation logic as legacy)
+1. **Add Processor endpoint** (implements same generation logic as legacy — Jinja templates per topic)
 2. **Add contract tests** (request/response schema, preview vs delivery parity)
 3. **Back-end**: Add proxy route → Processor, feature flag `MESSAGE_PREVIEW_VIA_PROCESSOR`
 4. **Shadow mode**: Call both, compare responses, log mismatches
-5. **Cutover**: Enable flag, verify parity, remove legacy generator code
+5. **Cutover**: Enable flag, verify parity, **disable via flag** (remove legacy generator code in Phase 9)
 6. **Rollback**: Disable flag, legacy generator serves
 
 ### Exit Gate
@@ -107,9 +107,9 @@ Admin UI → back-end → Processor HTTP API → MongoDB → Response
 |-----------|----------|-------------|
 | List | `GET /internal/v1/outage-schedules` | Filter by queue, date range |
 | Get | `GET /internal/v1/outage-schedules/{queue}` | Single schedule |
-| Create | `POST /internal/v1/outage-schedules` | Admin only |
-| Update | `PATCH /internal/v1/outage-schedules/{queue}` | Admin only |
-| Delete | `DELETE /internal/v1/outage-schedules/{queue}` | Admin only |
+| **No CRUD** | — | Schedules are fetched from Yasno (external), not created/updated/deleted via admin API |
+
+> **Note**: Admin APIs for schedules are lookups only: `/api/outagesSchedule/regions`, `/providers/{region}`, `/queues/{region}/{dso}`. The Processor owns the fetch job that writes to Redis.
 
 #### Users & Permissions (Domain)
 | Operation | Endpoint | Description |
@@ -118,12 +118,61 @@ Admin UI → back-end → Processor HTTP API → MongoDB → Response
 | Get | `GET /internal/v1/users/{id}` | Profile + permissions |
 | Update Permissions | `PATCH /internal/v1/users/{id}/permissions` | Admin only |
 
+#### Bots
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List | `GET /internal/v1/bots` | Paginated |
+| Get | `GET /internal/v1/bots/{id}` | Single bot |
+| Create | `POST /internal/v1/bots` | Admin only |
+| Update | `PATCH /internal/v1/bots/{id}` | Admin only |
+| Delete | `DELETE /internal/v1/bots/{id}` | Admin only |
+
+#### Chats & Allowed Chats
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List Chats | `GET /internal/v1/chats` | Paginated |
+| Get Chat | `GET /internal/v1/chats/{id}` | Single chat |
+| List Allowed Chats | `GET /internal/v1/allowed-chats` | Paginated |
+| Create Allowed Chat | `POST /internal/v1/allowed-chats` | Admin only |
+| Delete Allowed Chat | `DELETE /internal/v1/allowed-chats/{id}` | Admin only |
+
+#### Messages
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List | `GET /internal/v1/messages` | Paginated, filterable |
+| Get | `GET /internal/v1/messages/{id}` | Single message |
+| Create | `POST /internal/v1/messages` | Admin only |
+| Update | `PATCH /internal/v1/messages/{id}` | Admin only |
+| Delete | `DELETE /internal/v1/messages/{id}` | Admin only |
+| Preview | `POST /internal/v1/messages/preview` | See Capability 1 |
+
+#### Ext Data
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List | `GET /internal/v1/ext-data` | Paginated |
+| Get | `GET /internal/v1/ext-data/{id}` | Single record |
+
+#### Ext Devices
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List | `GET /internal/v1/ext-devices` | Paginated |
+| Get | `GET /internal/v1/ext-devices/{id}` | Single device |
+
+#### Push Topics
+| Operation | Endpoint | Description |
+|-----------|----------|-------------|
+| List | `GET /internal/v1/push-topics` | Paginated |
+| Get | `GET /internal/v1/push-topics/{key}` | Single topic |
+| Update State | `PATCH /internal/v1/push-topics/{key}` | Admin only |
+
 #### Power Logs (Query API - NOT in snapshot)
 | Operation | Endpoint | Description |
 |-----------|----------|-------------|
 | Query | `POST /internal/v1/buildings/{id}/power-logs` | Date-range query |
 
 > **Note**: Power logs are date-range queries and cannot be served from a finite snapshot. The Processor must expose a query API for this.
+
+> **Note**: `grid-reporter` is a **client** of the `/api/ext-data/*` contract (posts via HTTP to `back-end`). This contract must survive Phase 6.2.
 
 ### Migration Steps (Per Resource)
 1. **Add Processor endpoints** with contract tests
@@ -228,7 +277,7 @@ Processor Scheduler (lease) → Message Generator → Telegram Bot API / FCM →
 ### Critical Requirements
 - **Single sender**: Lease ensures only one Processor instance sends
 - **Idempotency**: Each delivery has deterministic `delivery_id`
-- **Deduplication**: `SETNX delivery:{delivery_id} 1 EX 86400` before send
+- **Deduplication**: **Unique index on `delivery_id` in MongoDB** (survives Redis flush)
 - **Delivery tracking**: Status (pending, sent, failed, retrying) in MongoDB
 
 ### Delivery ID Format
@@ -301,7 +350,7 @@ delivery_id = sha256(template_id + recipient_id + scheduled_at_iso + params_json
 2. Verify Processor stops processing (metrics, logs)
 3. Set `{CAPABILITY}_LEGACY_ENABLED=true`
 4. Verify legacy resumes (metrics, logs)
-4. Confirm: {Specific verification, e.g., "measurements appearing in MongoDB"}
+5. Confirm: {Specific verification, e.g., "measurements appearing in MongoDB"}
 
 **Owner**: {Team/Person}
 **Max Time**: {e.g., 3 min}

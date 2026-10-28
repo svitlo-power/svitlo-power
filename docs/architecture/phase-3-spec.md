@@ -75,8 +75,10 @@ data: {"epoch": 1, "version": 43}
 
 ### 4. Authorization Filtering
 **Admin-only fields** (removed for public/mobile):
-- Building: `hasBoundStation` (if sensitive), internal IDs
-- Config: `enableOutagesSchedule`, `outagesScheduleQueue` (internal settings)
+- Building: `enabled` (admin-only), `stationId`, `reportUserIds` (from edit/detail endpoints)
+- Config: None — public needs `outagesSchedule` to fetch the queue
+
+**Public gets full battery data** — `hasBoundStation` is NOT sensitive and is required for the UI to show battery/charge rows.
 
 **Implementation**:
 ```python
@@ -84,7 +86,7 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user_id: str | None) -
     if user_id and await self._is_admin(user_id):
         return snapshot  # Admin gets all fields
     
-    # Public/mobile: filter sensitive fields
+    # Public/mobile: filter ONLY the admin-only fields
     filtered_buildings = []
     for building in snapshot.buildings:
         filtered_buildings.append(BuildingSnapshot(
@@ -92,7 +94,8 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user_id: str | None) -
             name=building.name,
             color=building.color,
             order=building.order,
-            hasBoundStation=False,  # Always false for public
+            hasBoundStation=building.hasBoundStation,  # KEEP - needed for battery display
+            enabled=False,  # Admin-only field, not in public response
             isGridAvailable=building.isGridAvailable,
             gridAvailabilityPct=building.gridAvailabilityPct,
             hasMixedReporterStates=building.hasMixedReporterStates,
@@ -107,10 +110,10 @@ def _filter_for_client(self, snapshot: DashboardSnapshot, user_id: str | None) -
             chargePower=building.chargePower,
         ))
     
+    # Public config: KEEP outagesSchedule (needed for queue)
     filtered_config = ConfigSnapshot(
         title=snapshot.config.title,
-        enableOutagesSchedule=False,  # Internal setting
-        outagesScheduleQueue=None,    # Internal setting
+        outagesSchedule=snapshot.config.outagesSchedule,  # KEEP - public needs queue
     )
     
     return DashboardSnapshot(

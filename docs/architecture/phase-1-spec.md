@@ -27,14 +27,16 @@ class DashboardSnapshotService:
 - Fetch data from existing internal services (Deye client, station repo, outage schedule repo, dashboard service)
 - Transform to `DashboardSnapshot` Pydantic model (validates against JSON schema)
 - Atomic write to Redis via Lua script with lease fencing and CAS on (epoch, version)
-- Increment monotonic version (from Redis `meta:dashboard:version`)
+- Allocate version from `meta:dashboard:version:next` (INCR), epoch from producer start time (ms)
 - Handle HTTP refresh requests with server-side coalescing
 
 ### 2. Version & Epoch Management
-- **Epoch key**: `meta:dashboard:epoch` (Redis string, integer) — increments on Redis flush/failover
-- **Version key**: `meta:dashboard:version` (Redis string, integer) — `INCR` per successful write
-- **Initial values**: Set on deploy (read current max from any existing snapshot or start at epoch=1, version=1)
+- **Epoch key**: `meta:dashboard:epoch` (Redis string, integer) — set to producer start time in milliseconds (survives Redis flush)
+- **Version allocator**: `meta:dashboard:version:next` (Redis string, integer) — `INCR` per successful write
+- **Committed version**: `meta:dashboard:version` (Redis string, integer) — updated by Lua script on successful write
+- **Initial values**: On deploy, set epoch to current time ms, version allocator to 1
 - **Lease**: `back-end` acquires lease `lock:processing:dashboard:v1` on startup (single instance in Phase 1)
+- **Lease participation**: Bound to publish flag. When flag is off, instance releases lease and does not try to acquire it.
 
 ### 3. Trigger Points
 | Trigger | Action |
@@ -42,7 +44,9 @@ class DashboardSnapshotService:
 | Back-end startup | `refresh_and_publish()` |
 | Deye poll completes (new measurements) | `refresh_and_publish()` |
 | Station sync completes | `refresh_and_publish()` |
-| Outage schedule CRUD | `refresh_and_publish()` |
+| Building CRUD / dashboard config save / station binding change | `refresh_and_publish()` |
+| Outage schedule fetch (Yasno) | `refresh_and_publish()` |
+| Ext-data / ping changes | `refresh_and_publish()` |
 | Manual API `POST /api/admin/dashboard/refresh` | `refresh_and_publish()` |
 | HTTP refresh request (BFF cache miss) | Coalesced: debounce 500ms, single refresh |
 
@@ -69,7 +73,7 @@ class DashboardSnapshotService:
 ```json
 {
   "status": "healthy",
-  "lastSnapshotEpoch": 1,
+  "lastSnapshotEpoch": 1700000000000,
   "lastSnapshotVersion": 42,
   "lastSnapshotAt": "2026-10-27T18:00:00Z",
   "snapshotAgeSeconds": 120,
@@ -85,31 +89,31 @@ class DashboardSnapshotService:
 |-----------|-----------|-------------------|
 | Snapshot parity (field-level vs legacy API) | ≥ 99.9% | 24h production |
 | Snapshot write success rate | 100% (0 errors) | 24h production |
-| Version monotonicity | No decreases, no gaps > 1 within epoch | 24h production |
+| Version monotonicity | No decreases within epoch | 24h production |
 | Epoch stability | No unexpected increments | 24h production |
 | Snapshot age (max) | < 300s (5 min) | Continuous |
 | Refresh latency (request → notification) | p99 < 10s | 24h production |
-| Empty-cache rebuild test | Passes (snapshot rebuilt, epoch/version increments) | Staging + 1 production test |
+| Empty-cache rebuild test | Passes | Staging + 1 prod test |
 
 **Parity Measurement**:
-- Shadow compare: On each legacy API request, also read Redis snapshot, deep-diff
+- Background sampling: Periodic (1% of requests + every 60s) compare legacy API response vs Redis snapshot
 - Log mismatches with path, legacy value, redis value
 - Alert if mismatch rate > 0.1%
 
 ## Rollback Procedure
 
 1. **Feature flag**: `DASHBOARD_SNAPSHOT_PUBLISH_ENABLED=false` (env var)
-2. **Effect**: `publish_snapshot()` becomes no-op; `refresh_and_publish()` still builds but doesn't write
-3. **Verification**: Confirm Redis key stops updating, version stops incrementing
+2. **Effect**: `publish_snapshot()` becomes no-op; `refresh_and_publish()` still builds but doesn't write; instance releases lease
+3. **Verification**: Confirm Redis key stops updating, version stops incrementing, lease released
 4. **Consumer impact**: None (consumers unchanged in Phase 1)
-5. **Re-enable**: Set flag `true`, next trigger publishes fresh snapshot
+5. **Re-enable**: Set flag `true`, instance acquires lease, next trigger publishes fresh snapshot
 
 ## Deployment Steps
 
 1. **Staging**:
    - Deploy with flag `false`
    - Verify health check, metrics, Lua script works
-   - Run empty-cache test: `FLUSHDB`, trigger refresh, verify snapshot appears with epoch=1, version=1
+   - Run empty-cache test: `FLUSHDB`, trigger refresh, verify snapshot appears with epoch=producer_start_ms, version=1
    - Run parity test: compare 1000 requests vs legacy
 
 2. **Production (canary)**:
@@ -148,7 +152,7 @@ class DashboardSnapshotService:
 - [ ] Integration: Full refresh cycle (startup → snapshot → notification)
 - [ ] Integration: Cache miss → HTTP refresh request → notification → snapshot read
 - [ ] Integration: Coalesced refresh (10 rapid requests → 1 refresh)
-- [ ] Integration: Epoch change handling (simulate FLUSHDB, verify consumers accept epoch=2, version=1)
+- [ ] Integration: Epoch change handling (simulate FLUSHDB, verify consumers accept new epoch, version=1)
 - [ ] Load: 100 concurrent refresh requests → 1 refresh, no errors
 - [ ] Chaos: Redis down during publish → error logged, no crash, alert fires
 - [ ] Chaos: Redis down during read → cache miss path works

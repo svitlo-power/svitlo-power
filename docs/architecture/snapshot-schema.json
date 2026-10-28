@@ -2,15 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://svitlo-power.pp.ua/schemas/dashboard-snapshot/v1.json",
   "title": "DashboardSnapshot",
-  "description": "Versioned, disposable cache snapshot for dashboard and outage-schedule data. Rebuildable from authoritative source APIs. Redis key: cache:dashboard:v1:global",
+  "description": "Versioned, disposable cache snapshot for dashboard and outage-schedule data. Rebuildable from authoritative source (MongoDB + Redis for schedules). Redis key: cache:dashboard:v1:global",
   "type": "object",
   "required": ["epoch", "version", "generatedAt", "buildings", "config", "outagesSchedules"],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "epoch": {
       "type": "integer",
       "minimum": 1,
-      "description": "Generation epoch. Incremented when Redis is flushed or version counter resets. Consumers must accept lower version when epoch increases."
+      "description": "Generation epoch. Incremented when producer restarts or acquires lease. Consumers must accept lower version when epoch increases."
     },
     "version": {
       "type": "integer",
@@ -40,12 +40,12 @@
   "$defs": {
     "BuildingSnapshot": {
       "type": "object",
-      "required": ["id", "name", "color", "order", "hasBoundStation", "isGridAvailable", "gridAvailabilityPct", "batteryPercent", "isCharging", "isDischarging", "isOffline", "chargeSource", "batteryDischargeTime", "hasMixedReporterStates"],
-      "additionalProperties": false,
+          "required": ["id", "name", "color", "order", "hasBoundStation", "isGridAvailable", "gridAvailabilityPct", "batteryPercent", "isCharging", "isDischarging", "isOffline", "chargeSource", "batteryDischargeTime", "hasMixedReporterStates"],
+      "additionalProperties": true,
       "properties": {
-        "id": { "type": "string", "description": "MongoDB ObjectId as 24-char hex string" },
+        "id": { "type": "string", "pattern": "^[0-9a-f]{24}$", "description": "MongoDB ObjectId as 24-char hex string" },
         "name": { "$ref": "#/$defs/LocalizableValue" },
-        "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "color": { "type": "string" },
         "order": { "type": "integer" },
         "hasBoundStation": { "type": "boolean" },
         "isGridAvailable": { "type": ["boolean", "null"] },
@@ -64,18 +64,27 @@
     },
     "ConfigSnapshot": {
       "type": "object",
-      "required": ["title", "enableOutagesSchedule", "outagesScheduleQueue"],
-      "additionalProperties": false,
+      "required": ["title", "outagesSchedule"],
+      "additionalProperties": true,
       "properties": {
         "title": { "$ref": "#/$defs/LocalizableValue" },
-        "enableOutagesSchedule": { "type": "boolean" },
-        "outagesScheduleQueue": { "type": ["string", "null"] }
+        "outagesSchedule": {
+          "type": ["object", "null"],
+          "required": ["enable", "regionId", "dsoId", "queue"],
+          "additionalProperties": true,
+          "properties": {
+            "enable": { "type": "boolean" },
+            "regionId": { "type": ["integer", "string", "null"] },
+            "dsoId": { "type": ["integer", "string", "null"] },
+            "queue": { "type": ["string", "null"] }
+          }
+        }
       }
     },
     "UnitScheduleSnapshot": {
       "type": "object",
       "required": ["days", "updatedOn"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "days": {
           "type": "array",
@@ -87,7 +96,7 @@
     "DayScheduleSnapshot": {
       "type": "object",
       "required": ["slots", "date", "status"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "slots": {
           "type": "array",
@@ -100,7 +109,7 @@
     "SlotSnapshot": {
       "type": "object",
       "required": ["start", "end", "type"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "start": { "type": "integer", "description": "Minutes from midnight" },
         "end": { "type": "integer", "description": "Minutes from midnight" },
@@ -110,7 +119,7 @@
     "LocalizableValue": {
       "type": "object",
       "required": ["uk", "en"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "uk": { "type": "string" },
         "en": { "type": "string" }

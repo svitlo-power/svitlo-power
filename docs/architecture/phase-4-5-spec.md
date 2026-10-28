@@ -112,9 +112,10 @@ class SnapshotBuilder:
 | Trigger | Mechanism |
 |---------|-----------|
 | Startup | Immediate build + publish (Phase 5) |
-| Deye poll cycle | Poll existing Deye client library; on new data → build |
+| Deye poll cycle | **Detect new measurements in MongoDB** (latest timestamp per station); do NOT call Deye directly (polling stays in `back-end` until Phase 6.3) |
 | Station sync | Listen to station changes (webhook or poll) |
-| Outage schedule CRUD | Webhook from admin API or poll |
+| Outage schedule fetch (Yasno) | Detect new schedule in Redis (updatedAt); do NOT call Yasno directly (fetch stays in `back-end` until Phase 6.3) |
+| Building CRUD / config save / station binding change | HTTP `POST /internal/v1/snapshots/refresh` (coalesced 500ms) |
 | Cache miss (BFF request) | HTTP `POST /internal/v1/snapshots/refresh` (coalesced 500ms) |
 | Periodic reconciliation | Every 5 min: build + compare with Redis (detect drift) |
 
@@ -182,17 +183,17 @@ When enabled:
 **Feature flag**: `BACKEND_PUBLISH_ENABLED` (default: `true`)
 
 **Cutover Procedure**:
-1. Set `BACKEND_PUBLISH_ENABLED=false` (legacy stops publishing)
-2. Wait 2 min: verify Redis version stops incrementing from legacy
-3. Set `PROCESSOR_PUBLISH_ENABLED=true` (processor starts publishing)
-4. Verify: version increments, notifications flow, BFFs receive updates
+1. Set `BACKEND_PUBLISH_ENABLED=false` (legacy stops publishing, releases lease)
+2. Wait 2 min: verify Redis version stops incrementing from legacy, lease released
+3. Set `PROCESSOR_PUBLISH_ENABLED=true` (processor acquires lease, starts publishing)
+4. Verify: lease holder = `processor-*`, version increments, notifications flow, BFFs receive updates
 5. Monitor for 30 min
 
 ### 3. Fast Rollback
 **Rollback Procedure** (must complete < 2 min):
-1. Set `PROCESSOR_PUBLISH_ENABLED=false`
+1. Set `PROCESSOR_PUBLISH_ENABLED=false` (processor releases lease)
 2. Verify processor stops publishing (lease released, no new versions)
-3. Set `BACKEND_PUBLISH_ENABLED=true`
+3. Set `BACKEND_PUBLISH_ENABLED=true` (legacy acquires lease)
 4. Legacy back-end publishes on next trigger (or manual refresh)
 5. BFFs automatically pick up new snapshots (same schema, same Redis keys)
 

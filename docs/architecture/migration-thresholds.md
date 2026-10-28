@@ -101,6 +101,9 @@ This document supplements `migration-plan.md` with measurable exit criteria and 
 | Cleanup Jobs | 100% shadow match (7 days) | 1 deploy/job | 2 min |
 | Message Delivery (Telegram + FCM) | 100% shadow match (7 days), 0 duplicates | 1 deploy | 3 min |
 | Grid Reporter | Evaluate separately | — | — |
+| Outage Schedule Fetch | 100% shadow match (7 days) | 1 deploy | 2 min |
+| Station Sync (3-hourly) | 100% shadow match (7 days) | 1 deploy | 2 min |
+| Ping Check (ext-device) | 100% shadow match (7 days) | 1 deploy | 2 min |
 
 ### Phase 7: Identity Migration (Admin Only)
 | Phase | Criterion | Threshold |
@@ -245,8 +248,8 @@ Phase 0 (Baselines)
                                                       │
                                                       ├─► 6.1 Message Preview
                                                       ├─► 6.2 Admin CRUD
-                                                      ├─► 6.3 Deye Polling
-                                                      ├─► 6.4 Cleanup Jobs
+                                                      ├─► 6.3 Deye Polling + Station Sync + Outage Schedule Fetch
+                                                      ├─► 6.4 Cleanup Jobs + Ping Check
                                                       ├─► 6.5 Message Delivery
                                                       └─► 6.6 Grid Reporter (evaluate)
 
