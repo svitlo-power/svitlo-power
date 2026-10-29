@@ -1,7 +1,16 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from prometheus_client import ProcessCollector, REGISTRY
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
+from shared.metrics.endpoint import add_metrics_endpoint
+
+# Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
+try:
+    REGISTRY.register(ProcessCollector())
+except ValueError:
+    # Already registered (e.g., in tests or shared process)
+    pass
 
 
 @asynccontextmanager
@@ -26,6 +35,9 @@ async def lifespan(app: FastAPI):
 
     settings_service = app.state.injector.get(SettingsService)
     set_settings_service(settings_service)
+
+    # Add metrics endpoint
+    add_metrics_endpoint(app)
 
     yield
 

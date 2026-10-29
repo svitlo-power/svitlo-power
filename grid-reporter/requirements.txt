@@ -1,3 +1,4 @@
 aiohttp>=3.9
 python-dotenv>=1.0
 -e /shared/python
+prometheus-client==0.21.1

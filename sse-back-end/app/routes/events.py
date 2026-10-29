@@ -27,7 +27,9 @@ def register(app: FastAPI, service: EventsService, settings: Settings):
     get_claims = make_get_claims(settings)
 
     @app.get("/api/events")
-    async def events(claims: dict | None = Depends(get_claims)):
+    async def events(
+        claims: dict | None = Depends(get_claims)
+    ):
         q = BoundedQueue(maxsize=100)
 
         user = claims["sub"] if claims else None

@@ -4,6 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
 from app.services import StationConnectionsService, StationsService
+from shared.features import feature_flags, FeatureFlag
 
 
 def register(settings: Settings, injector: Injector):
@@ -18,32 +19,35 @@ def register(settings: Settings, injector: Injector):
         await stations.sync_stations_data()
 
     async def check_deye_status():
-        connections: StationConnectionsService = injector.get(StationConnectionsService)
-        sync_on_poll_ids = [
-            c.id for c in connections.get_connections() if c.sync_stations_on_poll
-        ]
-        if sync_on_poll_ids:
-            await sync_stations(sync_on_poll_ids)
+        # Only run Deye polling if migration is enabled
+        if not feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
+            connections: StationConnectionsService = injector.get(StationConnectionsService)
+            sync_on_poll_ids = [
+                c.id for c in connections.get_connections() if c.sync_stations_on_poll
+            ]
+            if sync_on_poll_ids:
+                await sync_stations(sync_on_poll_ids)
 
-            run_at = datetime.now() + timedelta(seconds=10)
-            job_id = f"check_deye_continue_{int(run_at.timestamp())}"
-            scheduler.add_job(
-                id       = job_id,
-                func     = sync_stations_data,
-                trigger  = 'date',
-                run_date = run_at,
-            )
-            return
+                run_at = datetime.now() + timedelta(seconds=10)
+                scheduler.add_job(
+                    id       = "check_deye_continue",
+                    func     = sync_stations_data,
+                    trigger  = 'date',
+                    run_date = run_at,
+                )
+                return
 
-        await sync_stations_data()
+            await sync_stations_data()
 
     async def sync_stations_scheduled():
-        connections: StationConnectionsService = injector.get(StationConnectionsService)
-        connection_ids = [
-            c.id for c in connections.get_connections() if not c.sync_stations_on_poll
-        ]
-        if connection_ids:
-            await sync_stations(connection_ids)
+        # Only run scheduled sync if migration is enabled
+        if not feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
+            connections: StationConnectionsService = injector.get(StationConnectionsService)
+            connection_ids = [
+                c.id for c in connections.get_connections() if not c.sync_stations_on_poll
+            ]
+            if connection_ids:
+                await sync_stations(connection_ids)
 
     scheduler.add_job(
         id            = 'check_deye_status',

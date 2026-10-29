@@ -18,6 +18,7 @@ class Settings:
     clients_path: Path
     timeout: int
     log_level: str
+    health_port: int = 8081
 
     def __str__(self) -> str:
         return (
@@ -57,6 +58,7 @@ def load_settings() -> Settings:
         clients_path=_resolve_path("CLIENTS_PATH", "clients.json"),
         timeout=int(os.getenv("HTTP_TIMEOUT", str(DEFAULT_TIMEOUT))),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        health_port=int(os.getenv("HEALTH_PORT", "8081")),
     )
     logging.debug("Loaded settings: %s", s)
     return s

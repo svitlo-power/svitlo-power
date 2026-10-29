@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: Svitlo Power
+    orgId: 1
+    folder: Svitlo Power
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

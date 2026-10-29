@@ -16,6 +16,9 @@ class EventsTransport(ABC):
 
 
 class LocalTransport(EventsTransport):
+    def __init__(self):
+        self.handler = None
+
     async def publish(self, channel, event):
         if self.handler:
             await self.handler(channel, event)
