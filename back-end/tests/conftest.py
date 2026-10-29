@@ -6,6 +6,19 @@ from pathlib import Path
 from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
+from shared.features import feature_flags, FeatureFlag
+
+
+def pytest_configure(config):
+    """Enable required feature flags for tests."""
+    # Enable feature flags needed for back-end tests
+    feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+    feature_flags.set_enabled(FeatureFlag.BACKEND_SSE_REDIS, True)
+    feature_flags.set_enabled(FeatureFlag.APP_BACKEND_SSE_REDIS, True)
+    feature_flags.set_enabled(FeatureFlag.CLEANUP_PROCESSING, True)
+    feature_flags.set_enabled(FeatureFlag.MESSAGE_DELIVERY_PROCESSING, True)
+    feature_flags.set_enabled(FeatureFlag.DEYE_POLLING_PROCESSING, True)
+    feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, True)
 
 # Ensure the back-end app and shared package are importable
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
