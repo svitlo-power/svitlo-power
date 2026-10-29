@@ -80,6 +80,22 @@ services:
       - web_network
     restart: "no"
 
+    svitlo-power-grid-reporter-tests:
+      image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
+      profiles: ["tests"]
+      environment:
+        - PYTHONDONTWRITEBYTECODE=1
+      command:
+        [
+          "sh",
+          "-c",
+          "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 pytest-aiohttp==0.3.0 --root-user-action=ignore && python -m pytest tests -v"
+        ]
+      working_dir: /grid-reporter
+      networks:
+        - web_network
+      restart: "no"
+
   svitlo-power-sse-back-end:
     build:
       context: .
@@ -185,6 +201,22 @@ services:
     networks:
       - web_network
     restart: "no"
+
+    svitlo-power-grid-reporter-tests:
+      image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
+      profiles: ["tests"]
+      environment:
+        - PYTHONDONTWRITEBYTECODE=1
+      command:
+        [
+          "sh",
+          "-c",
+          "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 pytest-aiohttp==0.3.0 --root-user-action=ignore && python -m pytest tests -v"
+        ]
+      working_dir: /grid-reporter
+      networks:
+        - web_network
+      restart: "no"
 
   svitlo-power-front-end:
     build:
