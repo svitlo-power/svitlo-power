@@ -4,6 +4,11 @@ from unittest.mock import MagicMock, AsyncMock
 
 import aiohttp
 
+from shared.features import feature_flags, FeatureFlag
+
+# Enable feature flags BEFORE importing job modules
+feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, True)
+
 from app.jobs.outages_schedule import register
 from shared.services import OutagesScheduleService
 from shared.services.settings.service import SettingsService
