@@ -27,26 +27,8 @@ class ClientWorker:
         self.session = session
         self.state_store = state_store
         self.settings = settings
-        self.interval = client.poll_interval or settings.poll_interval
 
-    async def run(self) -> None:
-        try:
-            await self.deye_client.init()
-
-            while True:
-                try:
-                    await self._poll_and_sync()
-                except asyncio.CancelledError:
-                    logging.info("Client loop cancelled: %s", self.client.client_id)
-                    raise
-                except Exception:
-                    logging.exception("Client loop failed: %s", self.client.client_id)
-                await asyncio.sleep(self.interval)
-        except asyncio.CancelledError:
-            logging.info("Client worker shutting down: %s", self.client.client_id)
-            raise
-
-    async def _poll_and_sync(self) -> None:
+    async def poll_and_sync(self) -> None:
         prev_state = self.state_store.load(self.client.client_id)
         raw = await self.deye_client.get_station_data(self.client.station_id)
         logging.info("DEYE raw for %s: %s", self.client.client_id, raw)

@@ -1,5 +1,5 @@
 """Scheduled job metrics."""
-from prometheus_client import Counter, Gauge, Histogram
+from prometheus_client import Counter, Histogram
 
 # Job execution duration
 JOB_EXECUTION_DURATION = Histogram(
