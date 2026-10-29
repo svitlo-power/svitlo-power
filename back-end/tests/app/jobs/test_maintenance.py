@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 from app.jobs.maintenance import register
 from app.services import MaintenanceService
+from shared.features import feature_flags, FeatureFlag
 
 
 class TestRegister:
@@ -19,6 +20,8 @@ class TestRegister:
         mock_service.delete_old_data = AsyncMock()
 
         with patch("app.jobs.maintenance.MaintenanceService", return_value=mock_service):
+            # Enable the feature flag for this test
+            feature_flags.set_enabled(FeatureFlag.CLEANUP_PROCESSING, True)
             register(settings, injector)
 
         # Verify scheduler.add_job was called
@@ -41,6 +44,7 @@ class TestRegister:
         mock_service.delete_old_data = AsyncMock()
 
         with patch("app.jobs.maintenance.MaintenanceService", return_value=mock_service):
+            feature_flags.set_enabled(FeatureFlag.CLEANUP_PROCESSING, True)
             register(settings, injector)
 
         injector.get.assert_called()
@@ -63,6 +67,7 @@ class TestRegister:
 
         injector.get.side_effect = get_side_effect
 
+        feature_flags.set_enabled(FeatureFlag.CLEANUP_PROCESSING, True)
         register(settings, injector)
 
         # Get the job function and execute it

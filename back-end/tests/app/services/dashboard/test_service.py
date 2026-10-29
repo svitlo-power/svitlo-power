@@ -20,6 +20,7 @@ from shared.models.station import Station
 from shared.models.station_data import StationData
 from shared.models.ext_data import ExtData
 from shared.models.user import User
+from shared.features import feature_flags, FeatureFlag
 
 
 class TestDashboardServiceInit:
@@ -108,6 +109,8 @@ class TestDashboardServiceSaveConfig:
                 "queue": "queue1",
             },
         )
+        # Enable feature flag for this test
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
         result = await service.save_config(request)
         assert isinstance(result, DashboardConfigResponse)
         mock_settings.bulk_update.assert_awaited_once()
@@ -141,6 +144,7 @@ class TestDashboardServiceSaveConfig:
             title=LocalizableValue({"en": "Test"}),
             enableOutagesSchedule=False,
         )
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
 
         with pytest.raises(RuntimeError, match="Unable to save dashboard settings"):
             await service.save_config(request)
@@ -172,6 +176,7 @@ class TestDashboardServiceSaveConfig:
             MagicMock(),
             mock_settings,
         )
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
 
         await service.save_config(SaveDashboardConfigRequest(
             title=LocalizableValue({"en": "Test"}),
@@ -308,6 +313,7 @@ class TestDashboardServiceCreateBuilding:
             enabled=True,
             order=1,
         )
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
         result = await service.create_building(request)
         assert result is not None
         mock_dashboard_repo.create_building.assert_called_once()
@@ -334,6 +340,7 @@ class TestDashboardServiceDeleteBuilding:
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
         service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
         result = await service.delete_building(PydanticObjectId())
         assert result is True
         mock_dashboard_repo.delete_building.assert_called_once()
@@ -390,6 +397,7 @@ class TestDashboardServiceEditBuilding:
             enabled=True,
             order=2,
         )
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
         result = await service.edit_building(PydanticObjectId(), request)
         assert result is not None
         mock_dashboard_repo.edit_building.assert_called_once()
