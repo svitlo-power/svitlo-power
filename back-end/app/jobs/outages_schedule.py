@@ -28,8 +28,8 @@ def register(_: Settings, injector: Injector):
     scheduler = injector.get(AsyncIOScheduler)
 
     async def update_outages_schedule():
-        # Only update outages schedule if admin CRUD migration is enabled
-        if feature_flags.is_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING):
+        # Only update outages schedule if admin CRUD migration is NOT enabled (legacy path)
+        if not feature_flags.is_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING):
             service = injector.get(OutagesScheduleService)
             settings = injector.get(SettingsService)
             enabled = await settings.get_boolean(

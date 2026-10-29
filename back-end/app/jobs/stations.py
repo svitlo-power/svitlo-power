@@ -19,8 +19,8 @@ def register(settings: Settings, injector: Injector):
         await stations.sync_stations_data()
 
     async def check_deye_status():
-        # Only run Deye polling if migration is enabled
-        if feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
+        # Only run Deye polling if migration is NOT enabled (legacy path)
+        if not feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
             connections: StationConnectionsService = injector.get(StationConnectionsService)
             sync_on_poll_ids = [
                 c.id for c in connections.get_connections() if c.sync_stations_on_poll
@@ -40,8 +40,8 @@ def register(settings: Settings, injector: Injector):
             await sync_stations_data()
 
     async def sync_stations_scheduled():
-        # Only run scheduled sync if migration is enabled
-        if feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
+        # Only run scheduled sync if migration is NOT enabled (legacy path)
+        if not feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING):
             connections: StationConnectionsService = injector.get(StationConnectionsService)
             connection_ids = [
                 c.id for c in connections.get_connections() if not c.sync_stations_on_poll

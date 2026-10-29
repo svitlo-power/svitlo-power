@@ -4,14 +4,10 @@ from unittest.mock import MagicMock, AsyncMock
 
 import aiohttp
 
-from shared.features import feature_flags, FeatureFlag
-
-# Enable feature flags BEFORE importing job modules
-feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, True)
-
 from app.jobs.outages_schedule import register
 from shared.services import OutagesScheduleService
 from shared.services.settings.service import SettingsService
+from shared.features import feature_flags, FeatureFlag
 
 
 class TestRegister:
@@ -85,6 +81,9 @@ class TestRegister:
 
     def test_update_outages_schedule_job_calls_service(self):
         """Test that update_outages_schedule job calls OutagesScheduleService.update."""
+        from shared.features import feature_flags, FeatureFlag
+        feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, False)
+
         settings = MagicMock()
         injector = MagicMock()
         scheduler = MagicMock()
@@ -138,12 +137,17 @@ class TestRegister:
         job, _ = self._job_for_service(service, enabled=False)
         service.fetch_regions.assert_not_awaited()
         asyncio.run(job())
+        service.fetch_regions.assert_not_awaited()
+        service.update.assert_not_awaited()
         job, _ = self._job_for_service(service, enabled=True, region="", dso="")
         asyncio.run(job())
         service.fetch_regions.assert_not_awaited()
         service.update.assert_not_awaited()
 
     def test_disabled_schedule_still_migrates_legacy_location_names(self):
+        from shared.features import feature_flags, FeatureFlag
+        feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, False)
+
         service = MagicMock()
         service.fetch_regions = AsyncMock(return_value=[{
             "id": 25,
@@ -171,6 +175,9 @@ class TestRegister:
         service.update.assert_not_awaited()
 
     def test_update_outages_schedule_job_skips_unknown_region_or_provider(self):
+        from shared.features import feature_flags, FeatureFlag
+        feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, False)
+
         service = MagicMock()
         service.update = AsyncMock()
         service.fetch_regions = AsyncMock(return_value=[{
@@ -191,6 +198,9 @@ class TestRegister:
         service.update.assert_not_awaited()
 
     def test_update_outages_schedule_job_logs_region_discovery_failures(self):
+        from shared.features import feature_flags, FeatureFlag
+        feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, False)
+
         service = MagicMock()
         service.fetch_regions = AsyncMock(side_effect=aiohttp.ClientError("offline"))
         service.update = AsyncMock()
