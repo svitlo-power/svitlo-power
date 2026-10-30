@@ -26,6 +26,9 @@ services:
       - DEBUG=False
     expose:
       - "5005"
+      - "9096"
+    ports:
+      - "127.0.0.1:9096:9096"
     networks:
       - web_network
     labels:
@@ -88,6 +91,9 @@ services:
       - DEBUG=False
     expose:
       - "5005"
+      - "9098"
+    ports:
+      - "127.0.0.1:9098:9098"
     networks:
       - web_network
     labels:
@@ -112,11 +118,16 @@ services:
     restart: always
     env_file: .env
     environment:
-      CLIENTS_PATH: /app/clients.json
-      STATE_PATH: /app/state.json
+      - CLIENTS_PATH=/app/clients.json
+      - STATE_PATH=/app/state.json
+      - HEALTH_PORT=9099
     volumes:
       - ./clients.json:/app/clients.json
       - ./grid-reporter/state.json:/app/state.json
+    expose:
+      - "9099"
+    ports:
+      - "127.0.0.1:9099:9099"
     stop_grace_period: 10s
     depends_on:
       svitlo-power-front-end:
@@ -126,17 +137,21 @@ services:
 
   svitlo-power-app-back-end:
     build:
-        context: .
-        dockerfile: app-back-end/Dockerfile
-        args:
-          VERSION: ${TAG:-latest}
+      context: .
+      dockerfile: app-back-end/Dockerfile
+      args:
+        VERSION: ${TAG:-latest}
     image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
       - DEBUG=False
+    expose:
+      - "5005"
+      - "9097"
     ports:
-      - "${APP_BACKEND_PORT:-8000}:5005"
+      - "127.0.0.1:${APP_BACKEND_PORT:-8000}:5005"
+      - "127.0.0.1:9097:9097"
     networks:
       - web_network
     labels:
@@ -171,6 +186,22 @@ services:
       - web_network
     restart: "no"
 
+  svitlo-power-grid-reporter-tests:
+    image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
+    profiles: ["tests"]
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 pytest-aiohttp==0.3.0 --root-user-action=ignore && python -m pytest tests -v"
+      ]
+    working_dir: /grid-reporter
+    networks:
+      - web_network
+    restart: "no"
+
   svitlo-power-front-end:
     build:
       context: front-end
@@ -179,7 +210,7 @@ services:
     image: ${REGISTRY_URL}/svitlo-power-front-end:${TAG:-latest}
     restart: always
     ports:
-      - "${OUTPUT_PORT:-5005}:80"
+      - "127.0.0.1:${OUTPUT_PORT:-5005}:80"
     networks:
       - web_network
     labels:

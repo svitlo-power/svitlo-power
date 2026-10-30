@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 from app.jobs.messages import register
 from app.services import MessageProcessorService
+from shared.features import feature_flags, FeatureFlag
 
 
 class TestRegister:
@@ -24,6 +25,7 @@ class TestRegister:
 
         injector.get.side_effect = get_side_effect
 
+        feature_flags.set_enabled(FeatureFlag.MESSAGE_DELIVERY_PROCESSING, True)
         register(settings, injector)
 
         # Verify scheduler.add_job was called
@@ -50,6 +52,7 @@ class TestRegister:
 
         injector.get.side_effect = get_side_effect
 
+        feature_flags.set_enabled(FeatureFlag.MESSAGE_DELIVERY_PROCESSING, True)
         register(settings, injector)
 
         injector.get.assert_called()
@@ -70,6 +73,7 @@ class TestRegister:
 
         injector.get.side_effect = get_side_effect
 
+        feature_flags.set_enabled(FeatureFlag.MESSAGE_DELIVERY_PROCESSING, True)
         register(settings, injector)
 
         # Get the job function and execute it

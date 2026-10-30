@@ -3,11 +3,14 @@ import logging
 import sys
 from uvicorn.logging import DefaultFormatter
 from fastapi import FastAPI
+from prometheus_client import ProcessCollector, REGISTRY
 from app.settings import Settings
 from app.routes import register_routes
+from app.container import create_injector, set_injector
 from shared.services import EventsService
 from shared.services.events.models import EventsServiceConfig
 from shared.utils.signals import register_chained_signal_handlers
+from shared.metrics.endpoint import add_metrics_endpoint
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(DefaultFormatter("%(levelprefix)s %(message)s", use_colors=True))
@@ -16,6 +19,13 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[handler]
 )
+
+# Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
+try:
+    REGISTRY.register(ProcessCollector())
+except ValueError:
+    # Already registered (e.g., in tests or shared process)
+    pass
 
 async def make_shutdown_handler(events: EventsService):
     async def shutdown(signum: int):
@@ -42,10 +52,15 @@ def create_app(settings: Settings = None):
         lifespan = lifespan,
     )
 
+    # Create injector
+    injector = create_injector(settings)
+    set_injector(app, injector)
+    
     config = EventsServiceConfig(str(settings.REDIS_URI), settings.DEBUG)
     events = EventsService(config)
     app.state.events = events
     register_routes(app, events, settings)
+    add_metrics_endpoint(app)
 
     # Set apscheduler loggers to WARNING level in production to reduce noise
     if not settings.DEBUG:

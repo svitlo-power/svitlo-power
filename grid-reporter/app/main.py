@@ -6,15 +6,21 @@ import platform
 import sys
 from typing import Any
 
-import aiohttp
-from aiohttp import ClientTimeout
+from prometheus_client import ProcessCollector, REGISTRY
 
-from shared.services.deye_api import BaseDeyeClient
 
-from .client_worker import ClientWorker
+# Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
+try:
+    REGISTRY.register(ProcessCollector())
+except ValueError:
+    # Already registered (e.g., in tests or shared process)
+    pass
+
+from .scheduler import create_scheduler, setup_scheduler_jobs, shutdown_scheduler
 from .service import load_clients
 from .settings import load_settings
-from .state_store import StateStore
+from .health_checks import register_health_checks
+from .health_server import run_health_server
 
 
 _shutdown_event: asyncio.Event | None = None
@@ -22,6 +28,7 @@ _shutdown_event: asyncio.Event | None = None
 def _signal_handler(signum: int, frame: Any) -> None:
     if _shutdown_event:
         _shutdown_event.set()
+
 
 async def run() -> ExitStack:
     global _shutdown_event
@@ -45,41 +52,35 @@ async def run() -> ExitStack:
     )
     logging.getLogger().handlers[0].flush()
 
-    clients = load_clients(settings.clients_path, settings)
-    if not clients:
-        logging.error("No clients loaded; exiting")
+    # Register health checks
+    register_health_checks()
+
+    # Create scheduler and jobs
+    scheduler = create_scheduler()
+    workers = setup_scheduler_jobs(scheduler, settings)
+    if not workers:
+        logging.error("No workers created; exiting")
         return
+    
+    scheduler.start()
+    logging.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
 
-    timeout = ClientTimeout(total=settings.timeout)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        state_store = StateStore(settings.state_path)
-        tasks = []
+    # Start health check server in background
+    health_task = asyncio.create_task(run_health_server(settings.health_port if hasattr(settings, 'health_port') else 8081))
 
-        for client in clients:
-            deye_client = BaseDeyeClient(client.deye, session)
-            worker = ClientWorker(client, deye_client, session, state_store, settings)
-            tasks.append(asyncio.create_task(worker.run()))
-
-        try:
-            shutdown_task = asyncio.create_task(_shutdown_event.wait())
-
-            done, pending = await asyncio.wait(
-                tasks + [shutdown_task],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-
-            if shutdown_task in done:
-                logging.info("Shutdown signal received, cancelling all tasks...")
-                for task in tasks:
-                    task.cancel()
-
-            await asyncio.gather(*tasks, return_exceptions=True)
-            logging.info("All tasks cancelled")
-        except asyncio.CancelledError:
-            logging.info("Shutdown signal received, cancelling all tasks...")
-            for task in tasks:
-                task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            logging.info("All tasks cancelled")
-            logging.shutdown()
-            raise
+    try:
+        # Wait only for shutdown signal
+        await _shutdown_event.wait()
+        logging.info("Shutdown signal received, cancelling all tasks...")
+        health_task.cancel()
+        await shutdown_scheduler(scheduler, workers)
+        await asyncio.gather(health_task, return_exceptions=True)
+        logging.info("All tasks cancelled")
+    except asyncio.CancelledError:
+        logging.info("Shutdown signal received, cancelling all tasks...")
+        health_task.cancel()
+        await shutdown_scheduler(scheduler, workers)
+        await asyncio.gather(health_task, return_exceptions=True)
+        logging.info("All tasks cancelled")
+        logging.shutdown()
+        raise

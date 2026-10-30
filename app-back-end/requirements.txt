@@ -23,3 +23,4 @@ pytest-asyncio==0.25.3
 pytest-cov==6.0.0
 httpx==0.28.1
 faker==33.1.0
+prometheus-client==0.21.1

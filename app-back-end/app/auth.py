@@ -11,6 +11,10 @@ async def verify_app_token(
     request: Request,
     x_app_token: Optional[str] = Header(default=None, alias=APP_TOKEN_HEADER),
 ):
+    # Skip auth for metrics endpoint
+    if request.url.path == "/metrics":
+        return
+    
     expected = request.app.state.settings.APP_ACCESS_TOKEN
     if not expected:
         return

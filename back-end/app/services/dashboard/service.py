@@ -6,6 +6,7 @@ from shared.models.assumed_station_status import AssumedStationStatus
 from shared.models.building import Building
 from shared.services.events.service import EventsService
 from shared.services.dashboard import ReadOnlyDashboardService
+from shared.features import feature_flags, FeatureFlag
 from app.repositories import (
     IDashboardRepository,
     IExtDataRepository,
@@ -49,6 +50,15 @@ class DashboardService(ReadOnlyDashboardService):
             users=users,
             settings=settings,
         )
+    
+    def _should_publish_snapshot(self) -> bool:
+        """Check if dashboard snapshot publishing is enabled via feature flag."""
+        return feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
+    
+    async def _broadcast_if_enabled(self, event_type: str, data: dict = None):
+        """Broadcast event only if snapshot publishing is enabled."""
+        if self._should_publish_snapshot():
+            await self.broadcast_public(event_type, data)
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         schedule = config.outages_schedule
@@ -70,7 +80,7 @@ class DashboardService(ReadOnlyDashboardService):
             raise RuntimeError(
                 f"Unable to save dashboard settings: {', '.join(failed_settings)}"
             )
-        await self.broadcast_public("dashboard_config_updated")
+        await self._broadcast_if_enabled("dashboard_config_updated")
         return await self.get_config()
 
     async def edit_building(
@@ -93,7 +103,7 @@ class DashboardService(ReadOnlyDashboardService):
             building.order = request.order
 
             await self._dashboard.edit_building(building)
-            await self.broadcast_public("buildings_updated")
+            await self._broadcast_if_enabled("buildings_updated")
             return building_id
 
         return None
@@ -114,7 +124,7 @@ class DashboardService(ReadOnlyDashboardService):
         )
 
         building_id = await self._dashboard.create_building(building)
-        await self.broadcast_public("buildings_updated")
+        await self._broadcast_if_enabled("buildings_updated")
         return building_id
 
     async def delete_building(self, building_id: PydanticObjectId) -> bool:
@@ -123,6 +133,6 @@ class DashboardService(ReadOnlyDashboardService):
             await self._dashboard.delete_building(building)
             remaining_buildings = await self._dashboard.get_buildings(all=True)
             await self._dashboard.reorder_buildings(remaining_buildings)
-            await self.broadcast_public("buildings_updated")
+            await self._broadcast_if_enabled("buildings_updated")
             return True
         return False
