@@ -9,6 +9,7 @@ from app.repositories import IExtDeviceRepository, IUsersRepository, IExtDataRep
 from shared.services.events.service import EventsService
 from ..interfaces import IExtDeviceService
 from app.models.api import DevicePingRequest, ExtDeviceResponse
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 
 
 logger = logging.getLogger(__name__)
@@ -21,11 +22,13 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         ext_device: IExtDeviceRepository,
         users: IUsersRepository,
         ext_data: IExtDataRepository,
+        snapshot_service: DashboardSnapshotService,
     ):
         super().__init__(events)
         self._ext_device = ext_device
         self._users = users
         self._ext_data = ext_data
+        self._snapshot_service = snapshot_service
 
 
     async def _update_grid_state(self, user_id, active: bool, now: datetime):
@@ -71,6 +74,7 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         await self._events.broadcast_private("ext_device_updated")
 
         await self._update_grid_state(user.id, active=True, now=datetime.now(timezone.utc))
+        await self._snapshot_service.refresh_and_publish()
 
 
     async def get_all_devices(self) -> list[ExtDeviceResponse]:

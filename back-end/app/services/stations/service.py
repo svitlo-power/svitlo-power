@@ -9,6 +9,7 @@ from shared.models import Station, StationData
 from shared.services.events.service import EventsService
 from ..base import BaseService
 from ..station_connections import StationConnectionsService
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 
 
 @inject
@@ -19,11 +20,13 @@ class StationsService(BaseService):
         station_connections: StationConnectionsService,
         stations: IStationsRepository,
         stations_data: IStationsDataRepository,
+        snapshot_service: DashboardSnapshotService,
     ):
         super().__init__(events)
         self._station_connections = station_connections
         self._stations = stations
         self._stations_data = stations_data
+        self._snapshot_service = snapshot_service
 
     async def get_stations(self):
         return await self._stations.get_stations(all=True)
@@ -91,6 +94,7 @@ class StationsService(BaseService):
                 continue
             for station in stations.station_list:
                 await self._stations.add_station(station, connection.id)
+        await self._snapshot_service.refresh_and_publish()
 
     async def sync_stations_data(self):
         stations = await self._stations.get_stations()
@@ -106,3 +110,4 @@ class StationsService(BaseService):
 
             await self._stations_data.add_station_data(station, station_data)
         await self.broadcast_public("station_data_updated")
+        await self._snapshot_service.refresh_and_publish()

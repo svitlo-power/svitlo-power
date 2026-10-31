@@ -22,6 +22,7 @@ from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
 from .push import FcmSender, PushService
 from .interfaces import IMessageGeneratorService, IExtDeviceService
+from .dashboard_snapshot.service import DashboardSnapshotService
 
 
 class ServicesContainer(Module):
@@ -70,6 +71,8 @@ class ServicesContainer(Module):
         binder.bind(IExtDeviceService, to=ExtDeviceService)
 
         binder.bind(DashboardService, scope=noscope)
+
+        binder.bind(DashboardSnapshotService, scope=singleton)
 
         binder.bind(FcmSender, scope=singleton)
         binder.bind(PushService, scope=noscope)

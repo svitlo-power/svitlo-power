@@ -11,7 +11,15 @@ from app.settings import Settings
 from app.jobs import register_jobs
 from app.scheduler_metrics import register_scheduler_metrics
 from app.routes import register_routes
-from app.services import AuthorizationService, BeanieInitializer, BotsService, TelegramService, StationConnectionsService, PushService
+from app.services import (
+    AuthorizationService,
+    BeanieInitializer,
+    BotsService,
+    TelegramService,
+    StationConnectionsService,
+    PushService,
+    DashboardSnapshotService,
+)
 from app.state import set_injector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -96,6 +104,10 @@ async def lifespan(app: FastAPI):
     await setup_push_topics(injector)
     await setup_settings(injector)
 
+    # Initialize dashboard snapshot service
+    snapshot_service = injector.get(DashboardSnapshotService)
+    await snapshot_service.start()
+
     register_chained_signal_handlers(
         handler=await make_shutdown_handler(events)
     )
@@ -109,6 +121,7 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    await snapshot_service.stop()
     await events.shutdown()
     await telegram_service.shutdown()
     await deye_connections.shutdown()

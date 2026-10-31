@@ -20,6 +20,7 @@ from shared.services.dashboard.config_settings import (
     LEGACY_YASNO_REGION_NAME,
 )
 from shared.features import feature_flags, FeatureFlag
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,8 @@ def register(_: Settings, injector: Injector):
             if not enabled:
                 return
             await service.update(region["id"], provider["id"])
+            snapshot_service = injector.get(DashboardSnapshotService)
+            await snapshot_service.refresh_and_publish()
 
     scheduler.add_job(
         id            = 'update_outages_schedule',
