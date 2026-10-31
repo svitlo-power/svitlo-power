@@ -22,3 +22,10 @@ scrape_configs:
     static_configs:
       - targets:
           - svitlo-power-grid-reporter:9099
+
+  - job_name: svitlo-power-front-end
+    metrics_path: /metrics
+    fallback_scrape_protocol: prometheus
+    static_configs:
+      - targets:
+          - svitlo-power-front-end:5005
