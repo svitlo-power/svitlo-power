@@ -33,13 +33,15 @@ class TestDashboardServiceInit:
         mock_users_repo = MagicMock()
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_snapshot_service = AsyncMock()
 
         service = DashboardService(
             mock_events, mock_dashboard_repo, mock_ext_data_repo,
             mock_stations_repo, mock_stations_data_repo, mock_users_repo,
-            mock_settings
+            mock_settings, mock_snapshot_service
         )
         assert service._dashboard is mock_dashboard_repo
+        assert service._snapshot_service is mock_snapshot_service
         assert service._ext_data is mock_ext_data_repo
         assert service._stations is mock_stations_repo
         assert service._stations_data is mock_stations_data_repo
@@ -58,13 +60,14 @@ class TestDashboardServiceGetConfig:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_snapshot_service = AsyncMock()
         mock_settings.get_localizable_text = AsyncMock(
             return_value=LocalizableValue({"en": "My Dashboard"})
         )
         mock_settings.get_boolean = AsyncMock(return_value=True)
         mock_settings.get_value = AsyncMock(side_effect=[25, 902])
         mock_settings.get_text = AsyncMock(return_value="queue1")
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_config()
         assert isinstance(result, DashboardConfigResponse)
         assert result.enable_outages_schedule is True
@@ -86,6 +89,7 @@ class TestDashboardServiceSaveConfig:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_snapshot_service = AsyncMock()
         mock_settings.bulk_update = AsyncMock(return_value={
             "dashboard_title": True,
             "dashboard_outages_schedule_enabled": True,
@@ -99,7 +103,7 @@ class TestDashboardServiceSaveConfig:
         mock_settings.get_boolean = AsyncMock(return_value=True)
         mock_settings.get_value = AsyncMock(side_effect=[25, 902])
         mock_settings.get_text = AsyncMock(return_value="queue1")
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         request = SaveDashboardConfigRequest(
             title=LocalizableValue({"en": "Test"}),
             outagesSchedule={
@@ -131,6 +135,7 @@ class TestDashboardServiceSaveConfig:
             "dashboard_title": True,
             "dashboard_outages_schedule_enabled": False,
         })
+        mock_snapshot_service = AsyncMock()
         service = DashboardService(
             mock_events,
             MagicMock(),
@@ -139,6 +144,7 @@ class TestDashboardServiceSaveConfig:
             MagicMock(),
             MagicMock(),
             mock_settings,
+            mock_snapshot_service,
         )
         request = SaveDashboardConfigRequest(
             title=LocalizableValue({"en": "Test"}),
@@ -167,6 +173,7 @@ class TestDashboardServiceSaveConfig:
         mock_settings.get_boolean = AsyncMock(return_value=False)
         mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
         mock_settings.get_text = AsyncMock(return_value="queue1")
+        mock_snapshot_service = AsyncMock()
         service = DashboardService(
             mock_events,
             MagicMock(),
@@ -175,6 +182,7 @@ class TestDashboardServiceSaveConfig:
             MagicMock(),
             MagicMock(),
             mock_settings,
+            mock_snapshot_service,
         )
         feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
 
@@ -204,8 +212,9 @@ class TestDashboardServiceProcessBuilding:
         mock_users_repo = MagicMock()
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
+        mock_snapshot_service = AsyncMock()
 
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
 
         building = Building(
             name=LocalizableValue({"en": "Building 1"}),
@@ -239,7 +248,8 @@ class TestDashboardServiceGetBuildings:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_buildings(all=True)
         assert len(result) == 2
         assert isinstance(result[0], BuildingResponse)
@@ -266,7 +276,8 @@ class TestDashboardServiceGetBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_building(PydanticObjectId())
         assert result is not None
         assert result.name.root == {"en": "Building 1"}
@@ -284,7 +295,8 @@ class TestDashboardServiceGetBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_building(PydanticObjectId())
         assert result is None
 
@@ -304,7 +316,8 @@ class TestDashboardServiceCreateBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         request = SaveBuildingRequest(
             name=LocalizableValue({"en": "New Building"}),
             color="#FF0000",
@@ -339,7 +352,8 @@ class TestDashboardServiceDeleteBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
         result = await service.delete_building(PydanticObjectId())
         assert result is True
@@ -360,7 +374,8 @@ class TestDashboardServiceDeleteBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.delete_building(PydanticObjectId())
         assert result is False
         mock_dashboard_repo.delete_building.assert_not_called()
@@ -388,7 +403,8 @@ class TestDashboardServiceEditBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         request = SaveBuildingRequest(
             name=LocalizableValue({"en": "Updated Building"}),
             color="#00FF00",
@@ -417,7 +433,8 @@ class TestDashboardServiceEditBuilding:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         request = SaveBuildingRequest(
             name=LocalizableValue({"en": "Updated Building"}),
             color="#00FF00",
@@ -452,7 +469,8 @@ class TestDashboardServiceGetBuildingsSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_buildings_summary([PydanticObjectId()])
         assert len(result) == 1
         assert isinstance(result[0], BuildingSummaryResponse)
@@ -472,7 +490,8 @@ class TestDashboardServiceGetPowerLogs:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_power_logs(PydanticObjectId(), datetime.now(timezone.utc), datetime.now(timezone.utc))
         assert result is None
 
@@ -495,7 +514,8 @@ class TestDashboardServiceGetPowerLogs:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_power_logs(PydanticObjectId(), datetime.now(timezone.utc), datetime.now(timezone.utc))
         assert result is None
 
@@ -514,7 +534,8 @@ class TestDashboardServiceComputeTotalGeneratorTime:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._compute_total_generator_time("station_id", datetime.now(timezone.utc), datetime.now(timezone.utc))
         assert result == 0
 
@@ -549,7 +570,8 @@ class TestDashboardServiceComputeTotalGeneratorTime:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._compute_total_generator_time("station_id", now - timedelta(minutes=30), now)
         assert result > 0
 
@@ -594,7 +616,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.is_charging is True
@@ -634,7 +657,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.is_grid_available is True
@@ -658,7 +682,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
 
@@ -700,7 +725,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.is_discharging is True
@@ -743,7 +769,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.is_offline is True
@@ -786,7 +813,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.is_offline is True
@@ -829,7 +857,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.charge_source == ChargeSource.GENERATOR
@@ -872,7 +901,8 @@ class TestDashboardServiceProcessBuildingSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service._process_building_summary(building, 25)
         assert isinstance(result, BuildingSummaryResponse)
         assert result.charge_source == ChargeSource.RECUPERATION
@@ -901,7 +931,8 @@ class TestDashboardServiceGetBuildingsWithSummary:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_buildings_with_summary()
         assert len(result) == 1
 
@@ -940,7 +971,8 @@ class TestDashboardServiceEditBuildingWithStation:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         request = SaveBuildingRequest(
             name=LocalizableValue({"en": "Updated Building"}),
             color="#00FF00",
@@ -990,7 +1022,8 @@ class TestDashboardServiceGetPowerLogsWithData:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_power_logs(PydanticObjectId(), start_date, end_date)
         assert result is not None
         assert len(result.periods) > 0
@@ -1028,7 +1061,8 @@ class TestDashboardServiceGetPowerLogsWithData:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_power_logs(PydanticObjectId(), start_date, end_date)
         assert result is not None
         assert len(result.periods) == 1
@@ -1063,6 +1097,7 @@ class TestDashboardServiceGetPowerLogsWithData:
 
         mock_settings = AsyncMock()
         mock_settings.get_number = AsyncMock(return_value=25)
-        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings)
+        mock_snapshot_service = AsyncMock()
+        service = DashboardService(mock_events, mock_dashboard_repo, mock_ext_data_repo, mock_stations_repo, mock_stations_data_repo, mock_users_repo, mock_settings, mock_snapshot_service)
         result = await service.get_power_logs(PydanticObjectId(), start_date, end_date)
         assert result is not None

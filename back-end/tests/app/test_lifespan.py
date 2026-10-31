@@ -6,6 +6,10 @@ from fastapi import FastAPI
 
 from app.lifespan import lifespan, create_user, setup_bots, make_shutdown_handler, setup_settings
 from app.settings import Settings
+from app.services import BeanieInitializer, StationConnectionsService, TelegramService, DashboardSnapshotService
+from shared.services.events.service import EventsService
+from shared.services.settings.service import SettingsService
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 class TestCreateUser:
@@ -122,14 +126,24 @@ class TestLifespan:
             mock_events.start = AsyncMock()
             mock_events.shutdown = AsyncMock()
 
-            mock_injector.get = MagicMock(side_effect=[
-                mock_beanie,  # BeanieInitializer
-                mock_conn,  # StationConnectionsService
-                mock_tg,  # TelegramService
-                mock_events,  # EventsService
-                mock_scheduler,  # AsyncIOScheduler
-                            MagicMock(),  # SettingsService
-                        ])
+            mock_snapshot_service = AsyncMock()
+
+            def get_side_effect(cls):
+                if cls is mock_beanie_cls:
+                    return mock_beanie
+                if cls is mock_conn_cls:
+                    return mock_conn
+                if cls is mock_tg_cls:
+                    return mock_tg
+                if cls is mock_events_cls:
+                    return mock_events
+                if cls is mock_scheduler_cls:
+                    return mock_scheduler
+                if cls is DashboardSnapshotService:
+                    return mock_snapshot_service
+                return MagicMock()
+
+            mock_injector.get = MagicMock(side_effect=get_side_effect)
 
             async with lifespan(app):
                 pass
@@ -188,32 +202,60 @@ class TestLifespan:
             mock_injector = MagicMock()
             mock_init_container.return_value = mock_injector
 
+            async def mock_init():
+                pass
+
+            async def mock_conn_init():
+                pass
+
+            async def mock_conn_shutdown():
+                pass
+
+            async def mock_tg_shutdown():
+                pass
+
+            async def mock_events_start():
+                pass
+
+            async def mock_events_shutdown():
+                pass
+
             mock_beanie = MagicMock()
-            mock_beanie.init = AsyncMock()
+            mock_beanie.init = mock_init
 
             mock_conn = MagicMock()
-            mock_conn.init = AsyncMock()
-            mock_conn.shutdown = AsyncMock()
+            mock_conn.init = mock_conn_init
+            mock_conn.shutdown = mock_conn_shutdown
 
             mock_tg = MagicMock()
-            mock_tg.shutdown = AsyncMock()
+            mock_tg.shutdown = mock_tg_shutdown
 
             mock_scheduler = MagicMock()
             mock_scheduler.start = MagicMock()
             mock_scheduler.shutdown = MagicMock()
 
             mock_events = MagicMock()
-            mock_events.start = AsyncMock()
-            mock_events.shutdown = AsyncMock()
+            mock_events.start = mock_events_start
+            mock_events.shutdown = mock_events_shutdown
 
-            mock_injector.get = MagicMock(side_effect=[
-                mock_beanie,  # BeanieInitializer
-                mock_conn,  # StationConnectionsService
-                mock_tg,  # TelegramService
-                mock_events,  # EventsService
-                mock_scheduler,  # AsyncIOScheduler
-                MagicMock(),  # SettingsService
-            ])
+            mock_snapshot_service = AsyncMock()
+
+            def get_side_effect(cls):
+                if cls is mock_beanie_cls:
+                    return mock_beanie
+                if cls is mock_conn_cls:
+                    return mock_conn
+                if cls is mock_tg_cls:
+                    return mock_tg
+                if cls is mock_events_cls:
+                    return mock_events
+                if cls is mock_scheduler_cls:
+                    return mock_scheduler
+                if cls is DashboardSnapshotService:
+                    return mock_snapshot_service
+                return MagicMock()
+
+            mock_injector.get = MagicMock(side_effect=get_side_effect)
 
             # Mock the metrics server lifespan context manager
             mock_metrics_cm = AsyncMock()

@@ -17,8 +17,10 @@ class TestExtDataServiceInit:
         mock_events = MagicMock()
         mock_ext_data_repo = MagicMock()
         mock_users_repo = MagicMock()
+        mock_snapshot_service = AsyncMock()
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         assert service._ext_data is mock_ext_data_repo
         assert service._users is mock_users_repo
 
@@ -28,8 +30,10 @@ class TestExtDataServiceProcessExtData:
         mock_events = MagicMock()
         mock_ext_data_repo = MagicMock()
         mock_users_repo = MagicMock()
+        mock_snapshot_service = AsyncMock()
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
 
         ext_data = ExtData(user_id=PydanticObjectId(), grid_state=True, received_at=datetime.now(timezone.utc))
         result = service._process_ext_data(ext_data)
@@ -49,7 +53,8 @@ class TestExtDataServiceAddExtData:
         user = User(name="testuser", password="hashed", is_active=True, is_reporter=False)
         mock_users_repo.get_user = AsyncMock(return_value=user)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.add_ext_data("testuser", True)
         assert result is not None
         mock_users_repo.get_user.assert_called_once_with("testuser")
@@ -65,7 +70,8 @@ class TestExtDataServiceAddExtData:
 
         mock_users_repo.get_user = AsyncMock(return_value=None)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.add_ext_data("nonexistent", True)
         assert result is None
         mock_ext_data_repo.add_ext_data.assert_not_called()
@@ -83,7 +89,8 @@ class TestExtDataServiceAddExtDataByUserId:
         user = User(name="testuser", password="hashed", is_active=True, is_reporter=False)
         mock_users_repo.get_user_by_id = AsyncMock(return_value=user)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.add_ext_data_by_user_id(PydanticObjectId(), True)
         assert result is not None
         mock_users_repo.get_user_by_id.assert_called_once()
@@ -98,7 +105,8 @@ class TestExtDataServiceAddExtDataByUserId:
 
         mock_users_repo.get_user_by_id = AsyncMock(return_value=None)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.add_ext_data_by_user_id(PydanticObjectId(), True)
         assert result is None
 
@@ -117,7 +125,8 @@ class TestExtDataServiceGetExtData:
         ]
         mock_ext_data_repo.get_ext_data = AsyncMock(return_value=(ext_data_list, 2))
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         request = ExtDataListRequest(
             paging=PagingConfig(page=1, pageSize=10),
             sorting=SortingConfig(column="received_at", order="desc"),
@@ -140,7 +149,8 @@ class TestExtDataServiceGetById:
         ext_data = ExtData(user_id=PydanticObjectId(), grid_state=True, received_at=now)
         mock_ext_data_repo.get_ext_data_by_id = AsyncMock(return_value=ext_data)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.get_by_id(PydanticObjectId())
         assert isinstance(result, ExtDataItemResponse)
         assert result.grid_state is True
@@ -153,7 +163,8 @@ class TestExtDataServiceGetById:
 
         mock_ext_data_repo.get_ext_data_by_id = AsyncMock(return_value=None)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.get_by_id(PydanticObjectId())
         assert result is None
 
@@ -168,7 +179,8 @@ class TestExtDataServiceDeleteExtData:
 
         mock_ext_data_repo.delete = AsyncMock(return_value=True)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.delete_ext_data(PydanticObjectId())
         assert result is True
         mock_events.broadcast_public.assert_called_once_with("ext_data_updated", None)
@@ -182,7 +194,8 @@ class TestExtDataServiceDeleteExtData:
 
         mock_ext_data_repo.delete = AsyncMock(return_value=False)
 
-        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
         result = await service.delete_ext_data(PydanticObjectId())
         assert result is False
         mock_events.broadcast_public.assert_not_called()

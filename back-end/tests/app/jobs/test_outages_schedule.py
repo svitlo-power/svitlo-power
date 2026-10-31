@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, AsyncMock
 import aiohttp
 
 from app.jobs.outages_schedule import register
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 from shared.services import OutagesScheduleService
 from shared.services.settings.service import SettingsService
 from shared.features import feature_flags, FeatureFlag
@@ -19,9 +20,12 @@ class TestRegister:
         mock_settings.get_boolean = AsyncMock(return_value=enabled)
         mock_settings.get_value = AsyncMock(side_effect=[region, dso])
         mock_settings.set_value = AsyncMock(return_value=None)
+        mock_snapshot_service = MagicMock()
+        mock_snapshot_service.refresh_and_publish = AsyncMock()
         injector.get.side_effect = lambda cls: (
             mock_service if cls is OutagesScheduleService
             else mock_settings if cls is SettingsService
+            else mock_snapshot_service if cls is DashboardSnapshotService
             else scheduler
         )
         register(MagicMock(), injector)
@@ -100,11 +104,16 @@ class TestRegister:
         mock_settings.get_value = AsyncMock(side_effect=["Kyiv", "Yasno"])
         mock_settings.set_value = AsyncMock(return_value=None)
 
+        mock_snapshot_service = MagicMock()
+        mock_snapshot_service.refresh_and_publish = AsyncMock()
+
         def get_side_effect(cls):
             if cls is OutagesScheduleService:
                 return mock_service
             if cls is SettingsService:
                 return mock_settings
+            if cls is DashboardSnapshotService:
+                return mock_snapshot_service
             return scheduler
 
         injector.get.side_effect = get_side_effect
@@ -129,6 +138,7 @@ class TestRegister:
             "dashboard_outages_schedule_dso",
             902,
         )
+        mock_snapshot_service.refresh_and_publish.assert_awaited_once()
 
     def test_update_outages_schedule_job_skips_missing_or_incomplete_config(self):
         service = MagicMock()

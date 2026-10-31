@@ -16,8 +16,10 @@ class TestStationsServiceInit:
         mock_station_connections = MagicMock()
         mock_stations_repo = MagicMock()
         mock_stations_data_repo = MagicMock()
+        mock_snapshot_service = AsyncMock()
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         assert service._station_connections is mock_station_connections
         assert service._stations is mock_stations_repo
         assert service._stations_data is mock_stations_data_repo
@@ -34,7 +36,8 @@ class TestStationsServiceGetStations:
         stations = [Station(station_id=1, station_name="Station 1"), Station(station_id=2, station_name="Station 2")]
         mock_stations_repo.get_stations = AsyncMock(return_value=stations)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         result = await service.get_stations()
         assert result == stations
         mock_stations_repo.get_stations.assert_called_once_with(all=True)
@@ -53,7 +56,8 @@ class TestStationsServiceGetStationData:
         mock_stations_repo.get_station = AsyncMock(return_value=station)
         mock_stations_data_repo.get_full_station_data = AsyncMock(return_value=station_data)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         result_station, result_data = await service.get_station_data(str(station.id), 3600)
         assert result_station == station
         assert result_data == station_data
@@ -67,7 +71,8 @@ class TestStationsServiceGetStationData:
 
         mock_stations_repo.get_station = AsyncMock(return_value=None)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         result_station, result_data = await service.get_station_data("nonexistent", 3600)
         assert result_station is None
         assert result_data is None
@@ -86,7 +91,8 @@ class TestStationsServiceGetStationsData:
         mock_stations_repo.get_stations = AsyncMock(return_value=[station1, station2])
         mock_stations_data_repo.get_full_station_data = AsyncMock(return_value=[])
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         result = await service.get_stations_data(3600)
         assert len(result) == 2
         assert result[0][0] == station1
@@ -105,7 +111,8 @@ class TestStationsServiceGetStationsDataRange:
         mock_stations_repo.get_stations = AsyncMock(return_value=[station1])
         mock_stations_data_repo.get_full_station_data_range = AsyncMock(return_value=[])
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         start = datetime.now(timezone.utc)
         end = datetime.now(timezone.utc)
         result = await service.get_stations_data_range(start, end)
@@ -123,7 +130,8 @@ class TestStationsServiceEditStation:
 
         mock_stations_repo.edit_station = AsyncMock()
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.edit_station("station-id", True, 1, 10.5, "alias")
         mock_stations_repo.edit_station.assert_called_once_with(
             station_id="station-id",
@@ -144,7 +152,8 @@ class TestStationsServiceSyncStations:
 
         mock_station_connections.get_connections = MagicMock(return_value=[])
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations(None)
         mock_stations_repo.add_station.assert_not_called()
 
@@ -161,7 +170,8 @@ class TestStationsServiceSyncStations:
         mock_station_connections.get_connections = MagicMock(return_value=[conn])
         mock_station_connections.get_client = AsyncMock(return_value=None)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations(None)
         mock_stations_repo.add_station.assert_not_called()
 
@@ -181,7 +191,8 @@ class TestStationsServiceSyncStations:
         mock_client.get_station_list = AsyncMock(return_value=None)
         mock_station_connections.get_client = AsyncMock(return_value=mock_client)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations(None)
         mock_stations_repo.add_station.assert_not_called()
 
@@ -197,7 +208,8 @@ class TestStationsServiceSyncStationsData:
 
         mock_stations_repo.get_stations = AsyncMock(return_value=[])
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations_data()
         mock_stations_data_repo.add_station_data.assert_not_called()
 
@@ -213,7 +225,8 @@ class TestStationsServiceSyncStationsData:
         mock_stations_repo.get_stations = AsyncMock(return_value=[station])
         mock_station_connections.get_client = AsyncMock(return_value=None)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations_data()
         mock_stations_data_repo.add_station_data.assert_not_called()
 
@@ -237,7 +250,8 @@ class TestStationsServiceSyncStationsData:
         mock_client.get_station_list = AsyncMock(return_value=None)
         mock_station_connections.get_client = AsyncMock(return_value=mock_client)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations([conn1.id])
         # Only conn1 should be processed
         mock_station_connections.get_client.assert_called_once_with(conn1.id)
@@ -263,7 +277,8 @@ class TestStationsServiceSyncStationsData:
 
         mock_stations_repo.add_station = AsyncMock()
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations(None)
         assert mock_stations_repo.add_station.call_count == 2
 
@@ -286,7 +301,8 @@ class TestStationsServiceSyncStationsData:
 
         mock_stations_data_repo.add_station_data = AsyncMock()
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations_data()
         mock_stations_data_repo.add_station_data.assert_called_once_with(station, mock_station_data)
         mock_events.broadcast_public.assert_called_once_with("station_data_updated", None)
@@ -307,6 +323,7 @@ class TestStationsServiceSyncStationsData:
         mock_client.get_station_data = AsyncMock(return_value=None)
         mock_station_connections.get_client = AsyncMock(return_value=mock_client)
 
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations_data()
         mock_stations_data_repo.add_station_data.assert_not_called()
