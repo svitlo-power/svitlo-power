@@ -10,7 +10,9 @@ from app.container import create_injector, set_injector
 from shared.services import EventsService
 from shared.services.events.models import EventsServiceConfig
 from shared.utils.signals import register_chained_signal_handlers
+from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.endpoint import add_metrics_endpoint
+from shared.utils import get_version
 
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(DefaultFormatter("%(levelprefix)s %(message)s", use_colors=True))
@@ -61,6 +63,10 @@ def create_app(settings: Settings = None):
     app.state.events = events
     register_routes(app, events, settings)
     add_metrics_endpoint(app)
+
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="sse-back-end", version=version).set(1)
 
     # Set apscheduler loggers to WARNING level in production to reduce noise
     if not settings.DEBUG:

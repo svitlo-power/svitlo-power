@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from prometheus_client import ProcessCollector, REGISTRY
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
+from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.endpoint import add_metrics_endpoint
+from shared.utils import get_version
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -38,6 +40,10 @@ async def lifespan(app: FastAPI):
 
     # Add metrics endpoint
     add_metrics_endpoint(app)
+
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="app-back-end", version=version).set(1)
 
     yield
 

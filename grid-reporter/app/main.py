@@ -7,6 +7,8 @@ import sys
 from typing import Any
 
 from prometheus_client import ProcessCollector, REGISTRY
+from shared.metrics.jobs import SERVICE_VERSION_INFO
+from shared.utils.version import get_version
 
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
@@ -64,6 +66,10 @@ async def run() -> ExitStack:
     
     scheduler.start()
     logging.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
+
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="grid-reporter", version=version).set(1)
 
     # Start health check server in background
     health_task = asyncio.create_task(run_health_server(settings.health_port if hasattr(settings, 'health_port') else 8081))

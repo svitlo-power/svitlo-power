@@ -16,7 +16,9 @@ from shared.metrics import (
     JOB_EXECUTION_DURATION,
     JOB_EXECUTION_FAILURE,
     JOB_EXECUTION_SUCCESS,
+    SERVICE_VERSION_INFO,
 )
+from shared.utils import get_version
 
 SERVICE = "grid-reporter"
 

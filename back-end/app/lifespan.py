@@ -19,7 +19,9 @@ from shared.services.events.service import EventsService
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
 from shared.utils.signals import register_chained_signal_handlers
+from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.endpoint import add_metrics_endpoint
+from shared.utils import get_version
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -85,6 +87,10 @@ async def lifespan(app: FastAPI):
 
     register_routes(app)
     add_metrics_endpoint(app)
+
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="back-end", version=version).set(1)
 
     await setup_bots(injector)
     await create_user(settings, injector)
