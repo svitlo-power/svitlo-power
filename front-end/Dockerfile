@@ -14,6 +14,7 @@ FROM nginx:latest
 
 # Version argument (injected at build time)
 ARG VERSION=0000.00.00
+ENV VERSION=${VERSION}
 RUN mkdir -p /var/www/front-end && echo "${VERSION}" > /var/www/front-end/VERSION
 
 # Install gettext for envsubst
