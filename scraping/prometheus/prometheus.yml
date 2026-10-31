@@ -28,4 +28,4 @@ scrape_configs:
     fallback_scrape_protocol: PrometheusText1.0.0
     static_configs:
       - targets:
-          - svitlo-power-front-end:5005
+            - svitlo-power-front-end:80
