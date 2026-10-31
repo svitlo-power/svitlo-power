@@ -11,7 +11,7 @@ from shared.services import EventsService
 from shared.services.events.models import EventsServiceConfig
 from shared.utils.signals import register_chained_signal_handlers
 from shared.metrics import SERVICE_VERSION_INFO
-from shared.metrics.endpoint import add_metrics_endpoint
+from shared.metrics.server import metrics_server_lifespan
 from shared.utils import get_version
 
 handler = logging.StreamHandler(sys.stdout)
@@ -43,7 +43,10 @@ async def lifespan(app: FastAPI):
         handler=await make_shutdown_handler(events)
     )
 
-    yield
+    # Start metrics server on port 9098
+    async with metrics_server_lifespan(host="0.0.0.0", port=9098):
+        yield
+
     await events.shutdown()
 
 def create_app(settings: Settings = None):
@@ -57,12 +60,11 @@ def create_app(settings: Settings = None):
     # Create injector
     injector = create_injector(settings)
     set_injector(app, injector)
-    
+
     config = EventsServiceConfig(str(settings.REDIS_URI), settings.DEBUG)
     events = EventsService(config)
     app.state.events = events
     register_routes(app, events, settings)
-    add_metrics_endpoint(app)
 
     # Register service version metric
     version = get_version()

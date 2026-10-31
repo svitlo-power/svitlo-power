@@ -31,6 +31,11 @@ from .jobs import (
     JOB_EXECUTION_FAILURE,
     SERVICE_VERSION_INFO,
 )
+from .server import (
+    MetricsServer,
+    metrics_server_lifespan,
+    run_metrics_server,
+)
 
 __all__ = [
     # Dashboard
@@ -61,4 +66,8 @@ __all__ = [
     "JOB_EXECUTION_SUCCESS",
     "JOB_EXECUTION_FAILURE",
     "SERVICE_VERSION_INFO",
+    # Server
+    "MetricsServer",
+    "metrics_server_lifespan",
+    "run_metrics_server"
 ]
