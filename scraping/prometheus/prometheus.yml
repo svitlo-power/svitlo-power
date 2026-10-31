@@ -26,4 +26,4 @@ scrape_configs:
   - job_name: svitlo-power-front-end
     static_configs:
       - targets:
-          - svitlo-power-front-end:80
+          - svitlo-power-front-end:5005
