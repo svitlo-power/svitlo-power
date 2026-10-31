@@ -19,7 +19,9 @@ from shared.services.events.service import EventsService
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
 from shared.utils.signals import register_chained_signal_handlers
-from shared.metrics.endpoint import add_metrics_endpoint
+from shared.metrics import SERVICE_VERSION_INFO
+from shared.metrics.server import metrics_server_lifespan
+from shared.utils import get_version
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -84,7 +86,10 @@ async def lifespan(app: FastAPI):
     scheduler.start()
 
     register_routes(app)
-    add_metrics_endpoint(app)
+
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="back-end", version=version).set(1)
 
     await setup_bots(injector)
     await create_user(settings, injector)
@@ -95,7 +100,9 @@ async def lifespan(app: FastAPI):
         handler=await make_shutdown_handler(events)
     )
 
-    yield
+    # Start metrics server on port 9096
+    async with metrics_server_lifespan(host="0.0.0.0", port=9096):
+        yield
 
     try:
         scheduler.shutdown(wait=False)

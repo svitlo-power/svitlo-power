@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from prometheus_client import ProcessCollector, REGISTRY
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
-from shared.metrics.endpoint import add_metrics_endpoint
+from shared.metrics import SERVICE_VERSION_INFO
+from shared.metrics.server import metrics_server_lifespan
+from shared.utils import get_version
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -36,10 +38,13 @@ async def lifespan(app: FastAPI):
     settings_service = app.state.injector.get(SettingsService)
     set_settings_service(settings_service)
 
-    # Add metrics endpoint
-    add_metrics_endpoint(app)
+    # Register service version metric
+    version = get_version()
+    SERVICE_VERSION_INFO.labels(service="app-back-end", version=version).set(1)
 
-    yield
+    # Start metrics server on port 9097
+    async with metrics_server_lifespan(host="0.0.0.0", port=9097):
+        yield
 
     # Shutdown - close resources in reverse order
     import logging

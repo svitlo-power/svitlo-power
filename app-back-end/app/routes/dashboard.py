@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 from beanie import PydanticObjectId
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi_injector import Injected
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,7 +15,6 @@ from shared.models.api.dashboard import (
     PowerLogsRequest,
     PowerLogsResponse
 )
-from shared.features import feature_flags, FeatureFlag
 
 
 class AppDashboardConfigResponse(BaseModel):
@@ -30,18 +29,9 @@ class AppDashboardConfigResponse(BaseModel):
 
 
 def register(app: FastAPI):
-    
-    async def check_redis_reads_enabled():
-        """Dependency to check if Redis reads are enabled."""
-        if not feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_READS):
-            raise HTTPException(
-                status_code=503,
-                detail="Redis-backed dashboard reads not enabled"
-            )
   
     @app.get("/api/dashboard/buildings")
     async def get_buildings(
-            _=Depends(check_redis_reads_enabled),
             dashboard=Injected(ReadOnlyDashboardService),
         ) -> List[BuildingResponse]:
             """Get list of buildings (basic info) - Android endpoint"""
@@ -50,7 +40,6 @@ def register(app: FastAPI):
     @app.post("/api/dashboard/buildings/summary")
     async def get_buildings_summary(
         body: BuildingsSummaryRequest,
-            _=Depends(check_redis_reads_enabled),
             dashboard=Injected(ReadOnlyDashboardService),
         ) -> List[BuildingSummaryResponse]:
             """Get building summaries (battery, grid status, etc.) - Android endpoint"""
@@ -58,7 +47,6 @@ def register(app: FastAPI):
 
     @app.get("/api/buildings/buildings")
     async def get_buildings_data(
-            _=Depends(check_redis_reads_enabled),
             dashboard=Injected(ReadOnlyDashboardService),
         ) -> List[BuildingWithSummaryResponse]:
             """Buildings with summary combined - Android endpoint (alias)"""
@@ -67,7 +55,6 @@ def register(app: FastAPI):
     @app.get("/api/dashboard/config")
     @app.get("/api/buildings/dashboardConfig")
     async def get_dashboard_config(
-            _=Depends(check_redis_reads_enabled),
             dashboard=Injected(ReadOnlyDashboardService),
         ) -> AppDashboardConfigResponse:
             """Dashboard configuration (title, outages schedule) - Android endpoint"""
@@ -84,7 +71,6 @@ def register(app: FastAPI):
     async def get_building_power_logs(
         building_id: PydanticObjectId,
         body: PowerLogsRequest,
-            _=Depends(check_redis_reads_enabled),
             dashboard=Injected(ReadOnlyDashboardService),
         ) -> PowerLogsResponse:
             """Power logs for a building (date range) - Android endpoint"""

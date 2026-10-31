@@ -16,7 +16,6 @@ feature_flags.set_enabled(FeatureFlag.CLEANUP_PROCESSING, True)
 feature_flags.set_enabled(FeatureFlag.MESSAGE_DELIVERY_PROCESSING, True)
 feature_flags.set_enabled(FeatureFlag.DEYE_POLLING_PROCESSING, True)
 feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, True)
-feature_flags.set_enabled(FeatureFlag.APP_BACKEND_REDIS_READS, True)
 
 # Ensure the back-end app and shared package are importable
 BACKEND_ROOT = Path(__file__).resolve().parent.parent

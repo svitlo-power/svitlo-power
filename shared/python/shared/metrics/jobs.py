@@ -1,5 +1,5 @@
 """Scheduled job metrics."""
-from prometheus_client import Counter, Histogram
+from prometheus_client import Counter, Gauge, Histogram
 
 # Job execution duration
 JOB_EXECUTION_DURATION = Histogram(
@@ -21,4 +21,11 @@ JOB_EXECUTION_FAILURE = Counter(
     "job_execution_failure_total",
     "Total number of failed job executions",
     ["job_id", "service", "error_type"],
+)
+
+# Service version info
+SERVICE_VERSION_INFO = Gauge(
+    "service_version_info",
+    "Service version information",
+    ["service", "version"],
 )
