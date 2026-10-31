@@ -6,19 +6,24 @@ scrape_configs:
   - job_name: svitlo-power-back-end
     static_configs:
       - targets:
-          - svitlo-power-back-end:5005
+          - svitlo-power-back-end:9096
 
   - job_name: svitlo-power-app-back-end
     static_configs:
       - targets:
-          - svitlo-power-app-back-end:5005
+          - svitlo-power-app-back-end:9097
 
   - job_name: svitlo-power-sse-back-end
     static_configs:
       - targets:
-          - svitlo-power-sse-back-end:5005
+          - svitlo-power-sse-back-end:9098
 
   - job_name: svitlo-power-grid-reporter
     static_configs:
       - targets:
           - svitlo-power-grid-reporter:9099
+
+  - job_name: svitlo-power-front-end
+    static_configs:
+      - targets:
+          - svitlo-power-front-end:5005

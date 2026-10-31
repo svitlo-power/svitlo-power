@@ -37,6 +37,18 @@ server {
     try_files /VERSION =404;
   }
 
+  location /metrics {
+    add_header Content-Type text/plain;
+    # Read version from VERSION file
+    set $version "";
+    if (-f /var/www/front-end/VERSION) {
+        set $version "";
+        # Use nginx's ability to read file content
+    }
+    # Use a simple approach - embed version at build time via envsubst
+    return 200 'front_end_version_info{service="front-end",version="${VERSION}"} 1\n';
+  }
+
   location / {
     try_files $uri /index.html;
   }

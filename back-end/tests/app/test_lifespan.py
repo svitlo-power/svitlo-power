@@ -143,3 +143,88 @@ class TestLifespan:
             mock_setup_push_topics.assert_called_once()
             mock_setup_settings.assert_called_once()
             mock_register_signals.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_lifespan_starts_metrics_server(self):
+        """Test that lifespan starts the metrics server on port 9096."""
+        app = FastAPI()
+        settings = MagicMock(spec=Settings)
+        settings.DEBUG = False
+        settings.STATISTIC_KEEP_DAYS = 3
+        settings.SSE_PING_INTERVAL = 45
+        settings.DEYE_FETCH_INTERVAL = 120
+        settings.DEYE_SYNC_STATIONS_ON_POLL = False
+        settings.DEYE_BASE_URL = None
+        settings.DEYE_APP_ID = None
+        settings.DEYE_APP_SECRET = None
+        settings.DEYE_EMAIL = None
+        settings.DEYE_PASSWORD = None
+        settings.TG_HOOK_BASE_URL = None
+        settings.ADMIN_USER = None
+        settings.ADMIN_PASSWORD = None
+        settings.BOT_TIMEZONE = "utc"
+        settings.MONGO_URI = "mongodb://localhost:27017"
+        settings.MONGO_DB = "test-db"
+        settings.REDIS_URI = "redis://localhost:6379"
+        settings.I18N_PATH = "../shared/i18n"
+        app.state.settings = settings
+
+        with patch("app.lifespan.init_container") as mock_init_container, \
+             patch("app.lifespan.bind_client_session") as mock_bind, \
+             patch("app.lifespan.BeanieInitializer") as mock_beanie_cls, \
+             patch("app.lifespan.StationConnectionsService") as mock_conn_cls, \
+             patch("app.lifespan.TelegramService") as mock_tg_cls, \
+             patch("app.lifespan.EventsService") as mock_events_cls, \
+             patch("app.lifespan.AsyncIOScheduler") as mock_scheduler_cls, \
+             patch("app.lifespan.register_jobs") as mock_register_jobs, \
+             patch("app.lifespan.register_routes") as mock_register_routes, \
+             patch("app.lifespan.setup_bots") as mock_setup_bots, \
+             patch("app.lifespan.create_user") as mock_create_user, \
+             patch("app.lifespan.setup_push_topics") as mock_setup_push_topics, \
+             patch("app.lifespan.setup_settings") as mock_setup_settings, \
+             patch("app.lifespan.register_chained_signal_handlers") as mock_register_signals, \
+             patch("app.lifespan.metrics_server_lifespan") as mock_metrics_lifespan:
+
+            mock_injector = MagicMock()
+            mock_init_container.return_value = mock_injector
+
+            mock_beanie = MagicMock()
+            mock_beanie.init = AsyncMock()
+
+            mock_conn = MagicMock()
+            mock_conn.init = AsyncMock()
+            mock_conn.shutdown = AsyncMock()
+
+            mock_tg = MagicMock()
+            mock_tg.shutdown = AsyncMock()
+
+            mock_scheduler = MagicMock()
+            mock_scheduler.start = MagicMock()
+            mock_scheduler.shutdown = MagicMock()
+
+            mock_events = MagicMock()
+            mock_events.start = AsyncMock()
+            mock_events.shutdown = AsyncMock()
+
+            mock_injector.get = MagicMock(side_effect=[
+                mock_beanie,  # BeanieInitializer
+                mock_conn,  # StationConnectionsService
+                mock_tg,  # TelegramService
+                mock_events,  # EventsService
+                mock_scheduler,  # AsyncIOScheduler
+                MagicMock(),  # SettingsService
+            ])
+
+            # Mock the metrics server lifespan context manager
+            mock_metrics_cm = AsyncMock()
+            mock_metrics_cm.__aenter__ = AsyncMock()
+            mock_metrics_cm.__aexit__ = AsyncMock()
+            mock_metrics_lifespan.return_value = mock_metrics_cm
+
+            async with lifespan(app):
+                pass
+
+            # Verify metrics_server_lifespan was called with correct port
+            mock_metrics_lifespan.assert_called_once_with(host="0.0.0.0", port=9096)
+            mock_metrics_cm.__aenter__.assert_called_once()
+            mock_metrics_cm.__aexit__.assert_called_once()
