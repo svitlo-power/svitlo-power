@@ -8,9 +8,43 @@
   "links": [],
   "panels": [
     {
+      "id": null,
+      "type": "stat",
+      "title": "Fleet version info",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "service_version_info",
+          "instant": true,
+          "range": false,
+          "format": "time_series",
+          "legendFormat": "{{service}} · {{version}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "horizontal",
+        "textMode": "name",
+        "wideLayout": false,
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center"
       },
       "fieldConfig": {
         "defaults": {
@@ -21,95 +55,14 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
                 "color": "green",
-                "value": 1
+                "value": null
               }
             ]
           }
         },
         "overrides": []
-      },
-      "gridPos": {
-        "h": 12,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "vertical",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": {
-            "includeByName": [
-              "version"
-            ]
-          },
-          "values": false
-        },
-        "textMode": "value_and_title",
-        "text": {
-          "title": true
-        }
-      },
-      "targets": [
-        {
-          "expr": "service_version_info{service=\"back-end\"}",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "back-end",
-          "refId": "A"
-        },
-        {
-          "expr": "service_version_info{service=\"app-back-end\"}",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "app-back-end",
-          "refId": "B"
-        },
-        {
-          "expr": "service_version_info{service=\"sse-back-end\"}",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "sse-back-end",
-          "refId": "C"
-        },
-        {
-          "expr": "service_version_info{service=\"grid-reporter\"}",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "grid-reporter",
-          "refId": "D"
-        },
-        {
-          "expr": "front_end_version_info",
-          "format": "table",
-          "instant": true,
-          "legendFormat": "front-end",
-          "refId": "E"
-        }
-      ],
-      "title": "Service Versions",
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "labels": [
-              "version"
-            ]
-          }
-        }
-      ],
-      "type": "stat"
+      }
     }
   ],
   "refresh": "30s",
