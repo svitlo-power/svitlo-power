@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lis
 
 COPY --from=build /app/dist /var/www/front-end
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY nginx-site.conf /etc/nginx/conf.d/default.conf.template
+COPY nginx-site.conf.template /etc/nginx/conf.d/default.conf.template
 
 # Use envsubst to substitute VERSION in nginx config
 CMD envsubst '${VERSION}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"
