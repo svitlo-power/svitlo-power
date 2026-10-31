@@ -94,7 +94,7 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value",
+        "textMode": "value_and_title",
         "text": {
           "title": true
         }
@@ -137,6 +137,30 @@
         }
       ],
       "title": "Service Versions",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "labels": [
+              "version"
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "service": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "version": "Value"
+            }
+          }
+        }
+      ],
       "type": "stat"
     }
   ],
