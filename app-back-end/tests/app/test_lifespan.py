@@ -19,6 +19,8 @@ class TestLifespan:
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
+        mock_shadow_compare = AsyncMock()
 
         # Configure the injector.get to return different mocks based on what's requested
         def injector_get_side_effect(cls):
@@ -30,6 +32,10 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
+            elif cls.__name__ == 'ShadowCompareMiddleware':
+                return mock_shadow_compare
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -44,11 +50,17 @@ class TestLifespan:
                 assert mock_app.state.aiohttp_session == mock_aiohttp_session
                 assert mock_app.state.redis_client == mock_redis_client
 
+                # Snapshot client and shadow compare should be started
+                mock_snapshot_client.start.assert_called_once()
+                mock_shadow_compare.start.assert_called_once()
+
                 # Settings service should be retrieved and set
                 mock_app.state.injector.get.assert_any_call(SettingsService)
                 mock_set_settings.assert_called_once_with(mock_settings_service)
 
             # After exiting context, shutdown should close resources
+            mock_shadow_compare.stop.assert_called_once()
+            mock_snapshot_client.stop.assert_called_once()
             mock_aiohttp_session.close.assert_called_once()
             mock_redis_client.close.assert_called_once()
             mock_beanie_initializer._client.close.assert_called_once()
@@ -78,6 +90,8 @@ class TestLifespan:
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
+        mock_shadow_compare = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -88,6 +102,10 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
+            elif cls.__name__ == 'ShadowCompareMiddleware':
+                return mock_shadow_compare
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -111,6 +129,8 @@ class TestLifespan:
         mock_aiohttp_session = None
         mock_redis_client = None
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
+        mock_shadow_compare = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -121,6 +141,10 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
+            elif cls.__name__ == 'ShadowCompareMiddleware':
+                return mock_shadow_compare
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -145,6 +169,8 @@ class TestLifespan:
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
+        mock_shadow_compare = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -155,6 +181,10 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
+            elif cls.__name__ == 'ShadowCompareMiddleware':
+                return mock_shadow_compare
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
