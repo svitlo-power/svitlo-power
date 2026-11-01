@@ -12,6 +12,7 @@ class FeatureFlag(str, Enum):
     
     # Phase 2: App back-end Redis reads
     APP_BACKEND_REDIS_READS = "app_backend_redis_reads"
+    APP_BACKEND_REDIS_DASHBOARD_ENABLED = "app_backend_redis_dashboard_enabled"
     
     # Phase 3: SSE migration
     BACKEND_SSE_REDIS = "backend_sse_redis"
