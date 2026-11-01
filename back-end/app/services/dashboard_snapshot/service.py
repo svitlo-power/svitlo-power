@@ -316,9 +316,15 @@ class DashboardSnapshotService:
                 ),
             )
 
-            # Build outages schedules snapshot
+            # Build outages schedules snapshot — only include the configured queue
+            # when outages are enabled, to avoid duplicating all queues in Redis
             outages_schedules = {}
+            configured_queue = (
+                outages_schedule.queue if outages_schedule and outages_schedule.enable else None
+            )
             for queue, unit_schedule in all_schedules.root.items():
+                if configured_queue is not None and queue != configured_queue:
+                    continue
                 days = []
                 for day in unit_schedule.days:
                     slots = [
