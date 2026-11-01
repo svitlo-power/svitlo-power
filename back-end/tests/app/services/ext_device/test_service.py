@@ -18,8 +18,10 @@ class TestExtDeviceServiceInit:
         mock_ext_device_repo = MagicMock()
         mock_users_repo = MagicMock()
         mock_ext_data_repo = MagicMock()
+        mock_snapshot_service = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         assert service._ext_device is mock_ext_device_repo
         assert service._users is mock_users_repo
         assert service._ext_data is mock_ext_data_repo
@@ -42,7 +44,8 @@ class TestExtDeviceServiceProcessPingRequest:
         user = User(name="testuser", password="hashed", is_active=True, is_reporter=False)
         mock_users_repo.get_user = AsyncMock(return_value=user)
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         ping_request = DevicePingRequest(
             macAddress="00:11:22:33:44:55",
             fwVersion="1.0.0",
@@ -77,7 +80,8 @@ class TestExtDeviceServiceProcessPingRequest:
         mock_ext_device_repo.get_ext_device = AsyncMock(return_value=existing_device)
         mock_ext_device_repo.update_device = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         ping_request = DevicePingRequest(
             macAddress="00:11:22:33:44:55",
             fwVersion="1.0.0",
@@ -97,7 +101,8 @@ class TestExtDeviceServiceProcessPingRequest:
 
         mock_users_repo.get_user = AsyncMock(return_value=None)
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         ping_request = DevicePingRequest(
             macAddress="00:11:22:33:44:55",
             fwVersion="1.0.0",
@@ -128,7 +133,8 @@ class TestExtDeviceServiceGetAllDevices:
         mock_ext_device_repo.get_all_devices = AsyncMock(return_value=[device])
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=None)
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         result = await service.get_all_devices()
         assert len(result) == 1
         assert isinstance(result[0], ExtDeviceResponse)
@@ -143,7 +149,8 @@ class TestExtDeviceServiceGetAllDevices:
 
         mock_ext_device_repo.get_all_devices = AsyncMock(return_value=[])
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         result = await service.get_all_devices()
         assert result == []
 
@@ -168,7 +175,8 @@ class TestExtDeviceServiceGetAllDevices:
         ext_data = ExtData(user_id=user.id, grid_state=True, received_at=datetime.now(timezone.utc))
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=ext_data)
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         result = await service.get_all_devices()
         assert len(result) == 1
         assert result[0].grid_state is True
@@ -193,7 +201,8 @@ class TestExtDeviceServiceGetAllDevices:
 
         mock_ext_device_repo.get_all_devices = AsyncMock(return_value=[device])
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         result = await service.get_all_devices()
         assert len(result) == 1
         assert result[0].user_id is None
@@ -212,7 +221,8 @@ class TestExtDeviceServiceUpdateGridState:
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=None)
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service._update_grid_state(PydanticObjectId(), active=True, now=datetime.now(timezone.utc))
         mock_ext_data_repo.add_ext_data.assert_called_once()
         mock_events.broadcast_public.assert_called_once_with("ext_data_updated")
@@ -230,7 +240,8 @@ class TestExtDeviceServiceUpdateGridState:
         )
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service._update_grid_state(PydanticObjectId(), active=True, now=datetime.now(timezone.utc))
         mock_ext_data_repo.add_ext_data.assert_called_once()
         mock_events.broadcast_public.assert_called_once_with("ext_data_updated")
@@ -248,7 +259,8 @@ class TestExtDeviceServiceUpdateGridState:
         )
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service._update_grid_state(PydanticObjectId(), active=False, now=datetime.now(timezone.utc))
         mock_ext_data_repo.add_ext_data.assert_called_once()
         mock_events.broadcast_public.assert_called_once_with("ext_data_updated")
@@ -265,7 +277,8 @@ class TestExtDeviceServiceUpdateGridState:
             return_value=ExtData(user_id=PydanticObjectId(), grid_state=True)
         )
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service._update_grid_state(PydanticObjectId(), active=True, now=datetime.now(timezone.utc))
         mock_ext_data_repo.add_ext_data.assert_not_called()
         mock_events.broadcast_public.assert_not_called()
@@ -282,7 +295,8 @@ class TestExtDeviceServiceCheckPings:
 
         mock_ext_device_repo.get_all_devices = AsyncMock(return_value=[])
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_not_called()
 
@@ -307,7 +321,8 @@ class TestExtDeviceServiceCheckPings:
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=None)
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_called_once()
 
@@ -334,7 +349,8 @@ class TestExtDeviceServiceCheckPings:
         )
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_called_once()
 
@@ -357,7 +373,8 @@ class TestExtDeviceServiceCheckPings:
 
         mock_ext_device_repo.get_all_devices = AsyncMock(return_value=[device])
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_not_called()
 
@@ -385,6 +402,7 @@ class TestExtDeviceServiceCheckPings:
         mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=None)
         mock_ext_data_repo.add_ext_data = AsyncMock()
 
-        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo)
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_called_once()

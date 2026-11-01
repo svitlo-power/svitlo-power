@@ -27,6 +27,13 @@ from shared.services.dashboard.config_settings import (
     DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
     DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
 )
+_snapshot_service: "DashboardSnapshotService | None" = None
+
+
+def set_snapshot_service(service):
+    """Set the DashboardSnapshotService instance (called from lifespan)."""
+    global _snapshot_service
+    _snapshot_service = service
 
 
 @inject
@@ -50,6 +57,10 @@ class DashboardService(ReadOnlyDashboardService):
             users=users,
             settings=settings,
         )
+
+    def _get_snapshot_service(self):
+        """Get DashboardSnapshotService to avoid circular dependency."""
+        return _snapshot_service
     
     def _should_publish_snapshot(self) -> bool:
         """Check if dashboard snapshot publishing is enabled via feature flag."""
@@ -59,6 +70,13 @@ class DashboardService(ReadOnlyDashboardService):
         """Broadcast event only if snapshot publishing is enabled."""
         if self._should_publish_snapshot():
             await self.broadcast_public(event_type, data)
+
+    async def _refresh_snapshot_if_enabled(self) -> None:
+        """Refresh dashboard snapshot if publishing is enabled."""
+        if self._should_publish_snapshot():
+            snapshot_service = self._get_snapshot_service()
+            if snapshot_service:
+                await snapshot_service.refresh_and_publish()
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         schedule = config.outages_schedule
@@ -81,6 +99,7 @@ class DashboardService(ReadOnlyDashboardService):
                 f"Unable to save dashboard settings: {', '.join(failed_settings)}"
             )
         await self._broadcast_if_enabled("dashboard_config_updated")
+        await self._refresh_snapshot_if_enabled()
         return await self.get_config()
 
     async def edit_building(
@@ -104,6 +123,7 @@ class DashboardService(ReadOnlyDashboardService):
 
             await self._dashboard.edit_building(building)
             await self._broadcast_if_enabled("buildings_updated")
+            await self._refresh_snapshot_if_enabled()
             return building_id
 
         return None
@@ -125,6 +145,7 @@ class DashboardService(ReadOnlyDashboardService):
 
         building_id = await self._dashboard.create_building(building)
         await self._broadcast_if_enabled("buildings_updated")
+        await self._refresh_snapshot_if_enabled()
         return building_id
 
     async def delete_building(self, building_id: PydanticObjectId) -> bool:
@@ -134,5 +155,6 @@ class DashboardService(ReadOnlyDashboardService):
             remaining_buildings = await self._dashboard.get_buildings(all=True)
             await self._dashboard.reorder_buildings(remaining_buildings)
             await self._broadcast_if_enabled("buildings_updated")
+            await self._refresh_snapshot_if_enabled()
             return True
         return False

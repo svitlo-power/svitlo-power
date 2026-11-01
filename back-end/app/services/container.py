@@ -3,6 +3,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.settings import Settings
 from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
+from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.settings.service import SettingsService
 from .beanie_initializer import BeanieInitializer
 from .authorization import AuthorizationService
@@ -22,6 +23,7 @@ from .message_generator import MessageGeneratorService, MessageGeneratorConfig
 from .message_processor import MessageProcessorService
 from .push import FcmSender, PushService
 from .interfaces import IMessageGeneratorService, IExtDeviceService
+from .dashboard_snapshot.service import DashboardSnapshotService
 
 
 class ServicesContainer(Module):
@@ -70,6 +72,8 @@ class ServicesContainer(Module):
         binder.bind(IExtDeviceService, to=ExtDeviceService)
 
         binder.bind(DashboardService, scope=noscope)
+        binder.bind(ReadOnlyDashboardService, to=DashboardService, scope=noscope)
+        binder.bind(DashboardSnapshotService, scope=singleton)
 
         binder.bind(FcmSender, scope=singleton)
         binder.bind(PushService, scope=noscope)

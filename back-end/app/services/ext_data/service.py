@@ -8,6 +8,7 @@ from ..base import BaseService
 from app.models.api import ExtDataItemResponse, ExtDataListRequest, ExtDataListResponse
 from shared.services.events.service import EventsService
 from app.repositories import DataQuery, IExtDataRepository, IUsersRepository
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 
 
 @inject
@@ -17,10 +18,12 @@ class ExtDataService(BaseService):
         events: EventsService,
         ext_data: IExtDataRepository,
         users: IUsersRepository,
+        snapshot_service: DashboardSnapshotService,
     ):
         super().__init__(events)
         self._ext_data = ext_data
         self._users = users
+        self._snapshot_service = snapshot_service
 
 
     def _process_ext_data(self, ext_data: ExtData):
@@ -35,6 +38,7 @@ class ExtDataService(BaseService):
     async def _add_ext_data(self, user: User, grid_state: bool, date: datetime) -> PydanticObjectId:
         id = await self._ext_data.add_ext_data(user.id, grid_state, date)
         await self.broadcast_public("ext_data_updated")
+        await self._snapshot_service.refresh_and_publish()
         return id
 
 
@@ -88,5 +92,6 @@ class ExtDataService(BaseService):
     async def delete_ext_data(self, ext_data_id: PydanticObjectId):
         if await self._ext_data.delete(ext_data_id):
             await self.broadcast_public("ext_data_updated")
+            await self._snapshot_service.refresh_and_publish()
             return True
         return False

@@ -9,6 +9,7 @@ from app.repositories import IExtDeviceRepository, IUsersRepository, IExtDataRep
 from shared.services.events.service import EventsService
 from ..interfaces import IExtDeviceService
 from app.models.api import DevicePingRequest, ExtDeviceResponse
+from app.services.dashboard_snapshot.service import DashboardSnapshotService
 
 
 logger = logging.getLogger(__name__)
@@ -21,24 +22,31 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         ext_device: IExtDeviceRepository,
         users: IUsersRepository,
         ext_data: IExtDataRepository,
+        snapshot_service: DashboardSnapshotService,
     ):
         super().__init__(events)
         self._ext_device = ext_device
         self._users = users
         self._ext_data = ext_data
+        self._snapshot_service = snapshot_service
 
 
-    async def _update_grid_state(self, user_id, active: bool, now: datetime):
+    async def _update_grid_state(self, user_id, active: bool, now: datetime) -> bool:
+        """Update grid state and return True if state actually changed."""
         last_data = await self._ext_data.get_last_ext_data_by_user_id(user_id)
 
         if active:
             if not last_data or last_data.grid_state == False:
                 await self._ext_data.add_ext_data(user_id, grid_state=True, date=now)
                 await self._events.broadcast_public("ext_data_updated")
+                return True
+            return False
         else:
             if last_data and last_data.grid_state == True:
                 await self._ext_data.add_ext_data(user_id, grid_state=False, date=now)
                 await self._events.broadcast_public("ext_data_updated")
+                return True
+            return False
 
 
     async def process_ping_request(
@@ -70,7 +78,9 @@ class ExtDeviceService(BaseService, IExtDeviceService):
             await self._ext_device.update_device(device)
         await self._events.broadcast_private("ext_device_updated")
 
-        await self._update_grid_state(user.id, active=True, now=datetime.now(timezone.utc))
+        state_changed = await self._update_grid_state(user.id, active=True, now=datetime.now(timezone.utc))
+        if state_changed:
+            await self._snapshot_service.refresh_and_publish()
 
 
     async def get_all_devices(self) -> list[ExtDeviceResponse]:
@@ -113,4 +123,6 @@ class ExtDeviceService(BaseService, IExtDeviceService):
 
         for user_id, devices in user_devices.items():
             active = any((now - d.updated_at).total_seconds() < 120 for d in devices)
-            await self._update_grid_state(user_id, active, now)
+            state_changed = await self._update_grid_state(user_id, active, now)
+            if state_changed:
+                await self._snapshot_service.refresh_and_publish()

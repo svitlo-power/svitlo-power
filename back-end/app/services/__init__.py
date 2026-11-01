@@ -14,6 +14,7 @@ from .lookups import LookupsService
 from .chats import ChatsService
 from .ext_data import ExtDataService
 from .dashboard import DashboardService
+from .dashboard_snapshot.service import DashboardSnapshotService
 from .maintenance import MaintenanceService
 from .message_processor import MessageProcessorService
 from .push import PushService, PushMessage
@@ -24,7 +25,7 @@ __all__ = [BeanieInitializer, BotsService, DeyeConfig, DeyeApiService,
            StationConnectionsService, TelegramConfig, TelegramService, ServicesContainer,
            AuthorizationService, VisitCounterService, EventsService, EventItem,
            MessagesService, OutagesScheduleService, StationsService, LookupsService,
-           ChatsService, ExtDataService, DashboardService, UsersService,
-           MaintenanceService, IMessageGeneratorService, MessageItem,
+           ChatsService, ExtDataService, DashboardService, DashboardSnapshotService,
+           UsersService, MaintenanceService, IMessageGeneratorService, MessageItem,
            MessageProcessorService, TranslationService, IExtDeviceService,
            PushService, PushMessage]
