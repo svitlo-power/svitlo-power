@@ -679,13 +679,13 @@ class TestHandleRefreshRequest:
         )
 
         service._redis = mock_redis
+        mock_redis.incr = AsyncMock(return_value=1)
 
         service._lease_token = "test-lease-token"
 
         service._epoch = 1700000000000
 
         service._version = 1
-
 
 
         result = await service.handle_refresh_request(reason="cache-miss", requested_by="test-client")
