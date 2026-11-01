@@ -59,3 +59,29 @@ DASHBOARD_PARITY_MISMATCHES = Counter(
     "Total number of parity mismatches between legacy API and Redis snapshot",
     ["field_path"],
 )
+
+# Redis snapshot version lag (local vs Redis)
+REDIS_SNAPSHOT_VERSION_LAG = Gauge(
+    "redis_snapshot_version_lag",
+    "Lag between local and Redis snapshot version",
+)
+
+# Redis snapshot reconciliation results
+REDIS_SNAPSHOT_RECONCILIATION_TOTAL = Counter(
+    "redis_snapshot_reconciliation_total",
+    "Total number of dashboard snapshot reconciliation attempts",
+    ["result"],
+)
+
+# Redis snapshot cache misses
+REDIS_SNAPSHOT_CACHE_MISS_TOTAL = Counter(
+    "redis_snapshot_cache_miss_total",
+    "Total number of dashboard snapshot cache misses",
+)
+
+# Shadow comparison latency delta (Redis vs legacy)
+SHADOW_PARITY_LATENCY_DELTA_MS = Histogram(
+    "shadow_parity_latency_delta_ms",
+    "Latency delta between Redis snapshot and legacy calculation (ms)",
+    buckets=[1, 5, 10, 25, 50, 100, 250, 500],
+)

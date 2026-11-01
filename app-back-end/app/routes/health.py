@@ -7,6 +7,7 @@ from shared.metrics import (
     DASHBOARD_SNAPSHOT_AGE_SECONDS,
 )
 from shared.services.dashboard import ReadOnlyDashboardService
+from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
 import time
 
 
@@ -133,4 +134,88 @@ def register(app: FastAPI):
             "component": "dashboard_snapshot",
             "details": snapshot_check.get("details", {}),
             "timestamp": time.time(),
+        }
+
+    @app.get("/health/redis-dashboard")
+    async def redis_dashboard_health():
+        """Redis dashboard snapshot health (Phase 2)."""
+        import json
+        
+        injector = app.state.injector
+        try:
+            client: DashboardSnapshotClient = injector.get(DashboardSnapshotClient)
+        except Exception:
+            client = None
+        
+        if client is None:
+            return {
+                "status": "unhealthy",
+                "localEpoch": None,
+                "localVersion": None,
+                "redisEpoch": None,
+                "redisVersion": None,
+                "versionLag": None,
+                "snapshotAgeSeconds": None,
+                "isStale": True,
+                "subscribed": False,
+                "lastNotificationAt": None,
+                "error": "DashboardSnapshotClient not available",
+            }
+        
+        snapshot = client.get_snapshot()
+        local_epoch = client.epoch
+        local_version = client.version
+        is_stale = client.is_stale
+        age_seconds = client.age_seconds
+        subscribed = client.subscribed
+        last_notification = client._last_notification_at
+        
+        # Get Redis values for comparison
+        redis_epoch = None
+        redis_version = None
+        try:
+            snapshot_json = await client._redis.get("cache:dashboard:v1:global")
+            if snapshot_json:
+                data = json.loads(snapshot_json)
+                redis_epoch = data.get("epoch")
+                redis_version = data.get("version")
+        except Exception:
+            pass
+        
+        version_lag = None
+        if redis_version is not None and local_version is not None:
+            version_lag = redis_version - local_version
+        
+        # Determine health status
+        unhealthy = False
+        degraded = False
+        if version_lag is not None and version_lag > 1:
+            unhealthy = True
+        if not subscribed:
+            unhealthy = True
+        if age_seconds > 600:
+            unhealthy = True
+        elif age_seconds > 300:
+            degraded = True
+        if local_epoch is not None and redis_epoch is not None and local_epoch != redis_epoch:
+            unhealthy = True
+        
+        if unhealthy:
+            status = "unhealthy"
+        elif degraded:
+            status = "degraded"
+        else:
+            status = "healthy"
+        
+        return {
+            "status": status,
+            "localEpoch": local_epoch,
+            "localVersion": local_version,
+            "redisEpoch": redis_epoch,
+            "redisVersion": redis_version,
+            "versionLag": version_lag,
+            "snapshotAgeSeconds": round(age_seconds, 1) if age_seconds != float("inf") else None,
+            "isStale": is_stale,
+            "subscribed": subscribed,
+            "lastNotificationAt": last_notification.isoformat() + "Z" if last_notification else None,
         }

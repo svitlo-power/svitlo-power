@@ -16,6 +16,9 @@ tzlocal==5.3.1
 # Shared package (local)
 -e ../shared/python/
 
+# Deep diff for shadow comparison
+deepdiff==6.6.1
+
 # Testing
 pytest==8.3.5
 pytest-asyncio==0.25.3

@@ -5,6 +5,8 @@ from beanie import init_beanie
 import redis.asyncio as redis
 
 from app.settings import get_settings, Settings
+from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from app.middleware.shadow_compare import ShadowCompareMiddleware
 from shared.repositories.implementations import (
     DashboardReadRepository,
     ExtDataReadRepository,
@@ -148,6 +150,36 @@ class AppModule(Module):
     @provider
     def provide_push_topics_repository(self) -> IPushTopicsRepository:
         return PushTopicsRepository()
+
+    @singleton
+    @provider
+    def provide_dashboard_snapshot_client(
+        self,
+        settings: Settings,
+        redis_client: redis.Redis,
+        aiohttp_session: aiohttp.ClientSession,
+    ) -> DashboardSnapshotClient:
+        producer_refresh_url = None
+        if not settings.DEBUG:
+            producer_refresh_url = "http://back-end:8000/internal/v1/snapshots/refresh"
+        return DashboardSnapshotClient(
+            redis_client,
+            stale_threshold_seconds=300,
+            producer_refresh_url=producer_refresh_url,
+            aiohttp_session=aiohttp_session,
+        )
+
+    @singleton
+    @provider
+    def provide_shadow_compare_middleware(
+        self,
+        snapshot_client: DashboardSnapshotClient,
+        dashboard: ReadOnlyDashboardService,
+    ) -> ShadowCompareMiddleware:
+        return ShadowCompareMiddleware(
+            snapshot_client=snapshot_client,
+            legacy_get_buildings_with_summary=dashboard.get_buildings_with_summary,
+        )
 
     @singleton
     @provider
