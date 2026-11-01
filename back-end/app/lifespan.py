@@ -20,6 +20,7 @@ from app.services import (
     PushService,
     DashboardSnapshotService,
 )
+from app.services.dashboard.service import set_snapshot_service
 from app.state import set_injector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -106,6 +107,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize dashboard snapshot service
     snapshot_service = injector.get(DashboardSnapshotService)
+    set_snapshot_service(snapshot_service)
     await snapshot_service.start()
 
     register_chained_signal_handlers(

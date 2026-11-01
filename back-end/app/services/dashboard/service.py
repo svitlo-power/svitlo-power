@@ -27,7 +27,13 @@ from shared.services.dashboard.config_settings import (
     DASHBOARD_OUTAGES_SCHEDULE_DSO_SETTING_KEY,
     DASHBOARD_OUTAGES_SCHEDULE_QUEUE_SETTING_KEY,
 )
-from app.services.dashboard_snapshot.service import DashboardSnapshotService
+_snapshot_service: "DashboardSnapshotService | None" = None
+
+
+def set_snapshot_service(service):
+    """Set the DashboardSnapshotService instance (called from lifespan)."""
+    global _snapshot_service
+    _snapshot_service = service
 
 
 @inject
@@ -41,7 +47,6 @@ class DashboardService(ReadOnlyDashboardService):
         stations_data: IStationsDataRepository,
         users: IUsersRepository,
         settings: SettingsService,
-        snapshot_service: DashboardSnapshotService,
     ):
         super().__init__(
             events=events,
@@ -52,7 +57,10 @@ class DashboardService(ReadOnlyDashboardService):
             users=users,
             settings=settings,
         )
-        self._snapshot_service = snapshot_service
+
+    def _get_snapshot_service(self):
+        """Get DashboardSnapshotService to avoid circular dependency."""
+        return _snapshot_service
     
     def _should_publish_snapshot(self) -> bool:
         """Check if dashboard snapshot publishing is enabled via feature flag."""
@@ -66,7 +74,9 @@ class DashboardService(ReadOnlyDashboardService):
     async def _refresh_snapshot_if_enabled(self) -> None:
         """Refresh dashboard snapshot if publishing is enabled."""
         if self._should_publish_snapshot():
-            await self._snapshot_service.refresh_and_publish()
+            snapshot_service = self._get_snapshot_service()
+            if snapshot_service:
+                await snapshot_service.refresh_and_publish()
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         schedule = config.outages_schedule

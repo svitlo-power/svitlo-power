@@ -26,6 +26,10 @@ from app.services.dashboard_snapshot.models import (
 from shared.features import feature_flags, FeatureFlag
 
 
+class _MockSettings:
+    REDIS_URI = "redis://localhost:6379"
+
+
 class TestDashboardSnapshotServiceInit:
     def test_init_stores_dependencies(self):
         mock_events = MagicMock()
@@ -37,7 +41,7 @@ class TestDashboardSnapshotServiceInit:
         mock_users = MagicMock()
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -50,10 +54,8 @@ class TestDashboardSnapshotServiceInit:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         assert service._events is mock_events
-        assert service._dashboard is mock_dashboard
         assert service._lease_token is None
         assert service._epoch is None
         assert service._version is None
@@ -81,7 +83,7 @@ class TestBuildSnapshot:
         mock_outages_repo.get_all_schedules = AsyncMock(
             return_value=MagicMock(root={})
         )
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -94,7 +96,6 @@ class TestBuildSnapshot:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._epoch = 1700000000000
         service._version = 1
@@ -121,7 +122,7 @@ class TestPublishSnapshot:
         mock_users = MagicMock()
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -134,7 +135,6 @@ class TestPublishSnapshot:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._lease_token = None
 
@@ -164,7 +164,7 @@ class TestPublishSnapshot:
         mock_users = MagicMock()
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -177,7 +177,6 @@ class TestPublishSnapshot:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._lease_token = "test-lease-token"
 
@@ -214,7 +213,7 @@ class TestPublishSnapshot:
         mock_users = MagicMock()
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -227,7 +226,6 @@ class TestPublishSnapshot:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._redis = mock_redis
         service._lease_token = "test-lease-token"
@@ -269,7 +267,7 @@ class TestPublishSnapshot:
         mock_users = MagicMock()
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -282,7 +280,6 @@ class TestPublishSnapshot:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._redis = mock_redis
         service._lease_token = "test-lease-token"
@@ -328,7 +325,7 @@ class TestHandleRefreshRequest:
         mock_outages_schedule = MagicMock()
         mock_outages_repo = MagicMock()
         mock_outages_repo.get_all_schedules = AsyncMock(return_value=MagicMock(root={}))
-        mock_settings = MagicMock()
+        mock_settings = _MockSettings()
 
         service = DashboardSnapshotService(
             mock_events,
@@ -341,7 +338,6 @@ class TestHandleRefreshRequest:
             mock_outages_schedule,
             mock_outages_repo,
             mock_settings,
-            "redis://localhost:6379",
         )
         service._redis = mock_redis
         service._lease_token = "test-lease-token"

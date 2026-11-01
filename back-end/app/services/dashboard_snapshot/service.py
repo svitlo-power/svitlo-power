@@ -38,6 +38,7 @@ from app.repositories import (
     IUsersRepository,
     IOutagesScheduleRepository,
 )
+from app.settings import Settings
 from app.services.dashboard_snapshot.models import (
     DashboardSnapshot,
     BuildingSnapshot,
@@ -116,8 +117,7 @@ class DashboardSnapshotService:
         users: IUsersRepository,
         outages_schedule: OutagesScheduleService,
         outages_repo: IOutagesScheduleRepository,
-        settings: SettingsService,
-        redis_uri: str,
+        settings: Settings,
     ):
         self._events = events
         self._dashboard = dashboard
@@ -130,7 +130,9 @@ class DashboardSnapshotService:
         self._outages_repo = outages_repo
         self._settings = settings
 
-        self._redis: Optional[Redis] = Redis.from_url(redis_uri, decode_responses=True)
+        self._redis: Optional[Redis] = Redis.from_url(
+            str(settings.REDIS_URI), decode_responses=True
+        )
         self._lease_token: Optional[str] = None
         self._epoch: Optional[int] = None
         self._version: Optional[int] = None

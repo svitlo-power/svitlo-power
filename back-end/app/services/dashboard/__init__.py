@@ -1,3 +1,3 @@
-from .service import DashboardService
+from .service import DashboardService, set_snapshot_service
 
-__all__ = [DashboardService]
+__all__ = [DashboardService, set_snapshot_service]
