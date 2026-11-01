@@ -31,7 +31,7 @@ class AppDashboardConfigResponse(BaseModel):
 
 
 def _is_redis_reads_enabled() -> bool:
-    return feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_DASHBOARD_ENABLED)
+    return feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_READS)
 
 
 def _building_from_snapshot(building) -> BuildingResponse:

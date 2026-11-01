@@ -96,7 +96,7 @@ async def shadow_compare_sample(request: Request, legacy_response):
 - `GET /api/outagesSchedule/outagesSchedule/{queue}` (mobile)
 
 ### 3. Feature Flag
-**Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`)
+**Flag**: `APP_BACKEND_REDIS_READS` (default: `false`)
 
 | Value | Behavior |
 |-------|----------|
@@ -147,7 +147,7 @@ async def shadow_compare_sample(request: Request, legacy_response):
 
 ## Rollback Procedure
 
-1. **Immediate**: Set `APP_BACKEND_REDIS_DASHBOARD_ENABLED=false`
+1. **Immediate**: Set `APP_BACKEND_REDIS_READS=false`
 2. **Effect**: All responses served from legacy calculation; shadow comparison continues
 3. **Verification**: Confirm error rate drops, latency returns to baseline
 4. **Investigation**: Analyze parity mismatches, Redis connectivity, version lag

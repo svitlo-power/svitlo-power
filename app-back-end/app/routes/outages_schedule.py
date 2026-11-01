@@ -13,7 +13,7 @@ def register(app: FastAPI):
         snapshot_client=Injected(DashboardSnapshotClient),
     ):
         """Outage schedule for a queue - Android endpoint"""
-        if feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_DASHBOARD_ENABLED):
+        if feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_READS):
             sched = snapshot_client.get_outages_schedule(queue)
             if sched is None:
                 raise HTTPException(status_code=404, detail=f"No schedule found for queue {queue}")
