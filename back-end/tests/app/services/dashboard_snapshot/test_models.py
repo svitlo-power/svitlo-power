@@ -10,7 +10,6 @@ from app.services.dashboard_snapshot.models import (
     UnitScheduleSnapshot,
     DayScheduleSnapshot,
     SlotSnapshot,
-    LocalizableValue,
 )
 
 
@@ -52,18 +51,11 @@ class TestUnitScheduleSnapshot:
         assert len(unit.days) == 1
 
 
-class TestLocalizableValue:
-    def test_valid_localizable(self):
-        lv = LocalizableValue(uk="Тест", en="Test")
-        assert lv.uk == "Тест"
-        assert lv.en == "Test"
-
-
 class TestBuildingSnapshot:
     def test_valid_building(self):
         building = BuildingSnapshot(
             id="507f1f77bcf86cd799439011",
-            name=LocalizableValue(uk="Будинок", en="Building"),
+            name={"uk": "Будинок", "en": "Building"},
             color="#FF0000",
             order=1,
             has_bound_station=True,
@@ -83,12 +75,13 @@ class TestBuildingSnapshot:
         assert building.id == "507f1f77bcf86cd799439011"
         assert building.has_bound_station is True
         assert building.battery_percent == 85.5
+        assert building.name == {"uk": "Будинок", "en": "Building"}
 
     def test_invalid_id_rejected(self):
         with pytest.raises(ValueError):
             BuildingSnapshot(
                 id="invalid-id",
-                name=LocalizableValue(uk="Будинок", en="Building"),
+                name={"uk": "Будинок", "en": "Building"},
                 color="#FF0000",
                 order=1,
                 has_bound_station=False,
@@ -99,7 +92,7 @@ class TestBuildingSnapshot:
 class TestConfigSnapshot:
     def test_valid_config(self):
         config = ConfigSnapshot(
-            title=LocalizableValue(uk="Панель", en="Dashboard"),
+            title={"uk": "Панель", "en": "Dashboard"},
             outages_schedule={
                 "enable": True,
                 "region_id": 25,
@@ -107,12 +100,12 @@ class TestConfigSnapshot:
                 "queue": "queue1",
             },
         )
-        assert config.title.en == "Dashboard"
+        assert config.title == {"uk": "Панель", "en": "Dashboard"}
         assert config.outages_schedule["enable"] is True
 
     def test_config_without_schedule(self):
         config = ConfigSnapshot(
-            title=LocalizableValue(uk="Панель", en="Dashboard"),
+            title={"uk": "Панель", "en": "Dashboard"},
             outages_schedule=None,
         )
         assert config.outages_schedule is None
@@ -127,7 +120,7 @@ class TestDashboardSnapshot:
             buildings=[
                 BuildingSnapshot(
                     id="507f1f77bcf86cd799439011",
-                    name=LocalizableValue(uk="Будинок", en="Building"),
+                    name={"uk": "Будинок", "en": "Building"},
                     color="#FF0000",
                     order=1,
                     has_bound_station=False,
@@ -135,7 +128,7 @@ class TestDashboardSnapshot:
                 )
             ],
             config=ConfigSnapshot(
-                title=LocalizableValue(uk="Панель", en="Dashboard"),
+                title={"uk": "Панель", "en": "Dashboard"},
                 outages_schedule=None,
             ),
             outages_schedules={},
@@ -151,7 +144,7 @@ class TestDashboardSnapshot:
             generated_at=datetime(2026, 10, 31, 18, 0, 0, tzinfo=timezone.utc),
             buildings=[],
             config=ConfigSnapshot(
-                title=LocalizableValue(uk="Панель", en="Dashboard"),
+                title={"uk": "Панель", "en": "Dashboard"},
                 outages_schedule=None,
             ),
             outages_schedules={},
@@ -168,7 +161,7 @@ class TestDashboardSnapshot:
             generated_at=datetime(2026, 10, 31, 18, 0, 0, tzinfo=timezone.utc),
             buildings=[],
             config=ConfigSnapshot(
-                title=LocalizableValue(uk="Панель", en="Dashboard"),
+                title={"uk": "Панель", "en": "Dashboard"},
                 outages_schedule=None,
             ),
             outages_schedules={},

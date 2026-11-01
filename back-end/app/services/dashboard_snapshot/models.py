@@ -43,7 +43,7 @@ class LocalizableValue(BaseModel):
 
 class BuildingSnapshot(BaseModel):
     id: str = Field(..., pattern=r"^[0-9a-f]{24}$")
-    name: LocalizableValue
+    name: dict[str, str]
     color: str
     order: int
     has_bound_station: bool = Field(alias="hasBoundStation")
@@ -68,7 +68,7 @@ class BuildingSnapshot(BaseModel):
 
 
 class ConfigSnapshot(BaseModel):
-    title: LocalizableValue
+    title: dict[str, str]
     outages_schedule: Optional[dict] = Field(None, alias="outagesSchedule")
 
     model_config = ConfigDict(populate_by_name=True)

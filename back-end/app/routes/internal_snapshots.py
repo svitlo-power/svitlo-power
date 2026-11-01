@@ -27,8 +27,8 @@ def register(app: FastAPI):
     )
     async def refresh_snapshot(
         body: SnapshotRefreshRequest,
-        snapshot_service: Injected(DashboardSnapshotService),
         _ = Depends(jwt_required),
+        snapshot_service = Injected(DashboardSnapshotService),
     ) -> SnapshotRefreshResponse:
         """Trigger a dashboard snapshot refresh (internal endpoint)."""
         result = await snapshot_service.handle_refresh_request(

@@ -275,7 +275,7 @@ class DashboardSnapshotService:
                 building_snapshots.append(
                     BuildingSnapshot(
                         id=str(building.id),
-                        name=building.name,
+                        name=building.name.root,
                         color=building.color,
                         order=building.order,
                         has_bound_station=building.has_bound_station,
@@ -299,7 +299,11 @@ class DashboardSnapshotService:
             # Build config snapshot
             outages_schedule = config.outages_schedule
             config_snapshot = ConfigSnapshot(
-                title=config.title,
+                title=(
+                    config.title.root
+                    if hasattr(config.title, "root")
+                    else config.title
+                ),
                 outages_schedule=(
                     {
                         "enable": outages_schedule.enable,
