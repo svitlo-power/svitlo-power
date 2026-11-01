@@ -142,6 +142,7 @@ class DashboardSnapshotService:
         self._refresh_scheduled = False
         self._last_snapshot: Optional[DashboardSnapshot] = None
         self._start_time_ms: Optional[int] = None
+        self._age_metrics_task: Optional[asyncio.Task] = None
 
     @property
     def is_publish_enabled(self) -> bool:
@@ -157,6 +158,20 @@ class DashboardSnapshotService:
             await self._init_version_keys()
             await self.refresh_and_publish()
             self._lease_renew_task = asyncio.create_task(self._lease_renew_loop())
+            self._age_metrics_task = asyncio.create_task(self._age_metrics_loop())
+
+    async def _age_metrics_loop(self) -> None:
+        """Periodically update snapshot age metric."""
+        while True:
+            try:
+                await asyncio.sleep(15)
+                if self._last_snapshot:
+                    age = (datetime.now(timezone.utc) - self._last_snapshot.generated_at).total_seconds()
+                    DASHBOARD_SNAPSHOT_AGE_SECONDS.set(age)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning("Age metrics loop error: %s", e)
 
     async def stop(self) -> None:
         """Release lease and stop background tasks."""
@@ -168,8 +183,19 @@ class DashboardSnapshotService:
                 pass
             self._lease_renew_task = None
 
+        if self._age_metrics_task:
+            self._age_metrics_task.cancel()
+            try:
+                await self._age_metrics_task
+            except asyncio.CancelledError:
+                pass
+            self._age_metrics_task = None
+
         if self.is_publish_enabled and self._lease_token:
             await self._release_lease()
+
+        if self._redis:
+            await self._redis.close()
 
     async def _acquire_lease(self) -> bool:
         """Acquire the processing lease."""
@@ -220,7 +246,7 @@ class DashboardSnapshotService:
                 logger.warning("Lease renewal error: %s", e)
 
     async def _renew_lease(self) -> None:
-        """Renew the lease if we hold it."""
+        """Renew the lease if we hold it; reacquire if transiently lost."""
         if not self._lease_token:
             return
         renew_script = """
@@ -235,8 +261,10 @@ class DashboardSnapshotService:
                 renew_script, 1, LEASE_KEY, self._lease_token
             )
             if result == 0:
-                logger.warning("Lease lost, cannot renew: %s", self._lease_token)
+                logger.warning("Lease lost, attempting reacquisition: %s", self._lease_token)
                 self._lease_token = None
+                # Attempt to reacquire the lease
+                await self._acquire_lease()
         except Exception as e:
             logger.warning("Lease renewal error: %s", e)
 
@@ -257,7 +285,7 @@ class DashboardSnapshotService:
         if existing_committed is None:
             await self._redis.set(VERSION_COMMITTED_KEY, 0)
 
-    async def build_snapshot(self) -> DashboardSnapshot:
+    async def build_snapshot(self, version: int | None = None) -> DashboardSnapshot:
         """Build a DashboardSnapshot from current data sources."""
         with DASHBOARD_SNAPSHOT_BUILD_DURATION.time():
             # Get config
@@ -307,8 +335,8 @@ class DashboardSnapshotService:
                 outages_schedule=(
                     {
                         "enable": outages_schedule.enable,
-                        "region_id": outages_schedule.region_id,
-                        "dso_id": outages_schedule.dso_id,
+                        "regionId": outages_schedule.region_id,
+                        "dsoId": outages_schedule.dso_id,
                         "queue": outages_schedule.queue,
                     }
                     if outages_schedule
@@ -322,9 +350,13 @@ class DashboardSnapshotService:
             configured_queue = (
                 outages_schedule.queue if outages_schedule and outages_schedule.enable else None
             )
-            for queue, unit_schedule in all_schedules.root.items():
-                if configured_queue is not None and queue != configured_queue:
-                    continue
+            if configured_queue is None:
+                # Outages disabled: no schedules to include
+                pass
+            else:
+                for queue, unit_schedule in all_schedules.root.items():
+                    if queue != configured_queue:
+                        continue
                 days = []
                 for day in unit_schedule.days:
                     slots = [
@@ -353,7 +385,7 @@ class DashboardSnapshotService:
 
             snapshot = DashboardSnapshot(
                 epoch=self._epoch or int(time.time() * 1000),
-                version=self._version or 1,
+                version=version or self._version or 1,
                 generated_at=datetime.now(timezone.utc),
                 buildings=building_snapshots,
                 config=config_snapshot,
@@ -379,7 +411,7 @@ class DashboardSnapshotService:
 
         try:
             with DASHBOARD_SNAPSHOT_PUBLISH_DURATION.time():
-                snapshot_json = snapshot.model_dump_json()
+                snapshot_json = snapshot.model_dump_json(by_alias=True)
                 notification = {
                     "key": SNAPSHOT_KEY,
                     "epoch": snapshot.epoch,
@@ -437,7 +469,9 @@ class DashboardSnapshotService:
 
     async def refresh_and_publish(self) -> DashboardSnapshot:
         """Build and publish a fresh snapshot."""
-        snapshot = await self.build_snapshot()
+        # Allocate version via INCR on the version allocator key
+        version = await self._redis.incr(VERSION_NEXT_KEY)
+        snapshot = await self.build_snapshot(version=version)
         await self.publish_snapshot(snapshot)
         self._last_snapshot = snapshot
         return snapshot
