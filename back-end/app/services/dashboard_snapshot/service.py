@@ -448,22 +448,31 @@ class DashboardSnapshotService:
         """Handle an HTTP refresh request with server-side coalescing."""
         DASHBOARD_REFRESH_REQUESTS.labels(reason=reason).inc()
 
-        # If a refresh is already scheduled, coalesce this request
+        # Try to become the leader for this refresh cycle.
+        # The lock is never held while awaiting, avoiding deadlock with
+        # the in-flight request's finally block which also needs the lock.
         async with self._refresh_lock:
             if self._refresh_scheduled:
+                # Another refresh is in progress - coalesce this request
                 DASHBOARD_REFRESH_COALESCED.inc()
-                # Wait for the in-flight refresh to complete
-                await self._refresh_event.wait()
-                if self._last_snapshot:
-                    return {
-                        "accepted": True,
-                        "epoch": self._last_snapshot.epoch,
-                        "version": self._last_snapshot.version,
-                        "coalesced": True,
-                    }
-                return {"accepted": True, "coalesced": True}
+                event = self._refresh_event
+                leader = False
+            else:
+                self._refresh_scheduled = True
+                event = None
+                leader = True
 
-            self._refresh_scheduled = True
+        if not leader:
+            # Wait for the in-flight refresh to complete
+            await event.wait()
+            if self._last_snapshot:
+                return {
+                    "accepted": True,
+                    "epoch": self._last_snapshot.epoch,
+                    "version": self._last_snapshot.version,
+                    "coalesced": True,
+                }
+            return {"accepted": True, "coalesced": True}
 
         try:
             # Debounce: wait briefly to coalesce concurrent requests
@@ -479,5 +488,8 @@ class DashboardSnapshotService:
         finally:
             async with self._refresh_lock:
                 self._refresh_scheduled = False
-                self._refresh_event.set()
-                self._refresh_event.clear()
+                # Wake up any coalesced waiters on the old event, then
+                # replace it with a fresh one for the next cycle
+                old_event = self._refresh_event
+                self._refresh_event = asyncio.Event()
+                old_event.set()
