@@ -1,16 +1,15 @@
 """Internal routes for dashboard snapshot management."""
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi_injector import Injected
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.services import DashboardSnapshotService
-from app.utils.jwt_dependencies import jwt_required
 
 
 class SnapshotRefreshRequest(BaseModel):
     reason: str = "cache-miss"
-    requested_by: str = "internal"
+    requested_by: str = Field("internal", alias="requestedBy")
 
 
 class SnapshotRefreshResponse(BaseModel):
@@ -27,10 +26,13 @@ def register(app: FastAPI):
     )
     async def refresh_snapshot(
         body: SnapshotRefreshRequest,
-        _ = Depends(jwt_required),
         snapshot_service = Injected(DashboardSnapshotService),
     ) -> SnapshotRefreshResponse:
-        """Trigger a dashboard snapshot refresh (internal endpoint)."""
+        """Trigger a dashboard snapshot refresh (internal endpoint).
+
+        Internal BFF-to-backend endpoint called on cache misses.
+        No user JWT required - authenticated via network segmentation.
+        """
         result = await snapshot_service.handle_refresh_request(
             reason=body.reason,
             requested_by=body.requested_by,
