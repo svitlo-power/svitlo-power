@@ -8,6 +8,8 @@ import asyncio
 import logging
 import random
 from typing import Any, Callable, Optional
+from bson import ObjectId
+from enum import Enum
 
 from deepdiff import DeepDiff
 
@@ -127,17 +129,26 @@ class ShadowCompareMiddleware:
             logger.error("Shadow sample compare failed: %s", e)
 
     @staticmethod
+    def _serialize_value(value: Any) -> Any:
+        """Serialize a single value to a plain JSON-compatible form."""
+        if isinstance(value, ObjectId):
+            return str(value)
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, dict):
+            return {k: ShadowCompareMiddleware._serialize_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [ShadowCompareMiddleware._serialize_value(v) for v in value]
+        if hasattr(value, "model_dump"):
+            return ShadowCompareMiddleware._serialize_value(value.model_dump())
+        if hasattr(value, "dict"):
+            return ShadowCompareMiddleware._serialize_value(value.dict())
+        return value
+
+    @staticmethod
     def _serialize_legacy(legacy: Any) -> Any:
         """Serialize legacy service response to plain dict for comparison."""
-        if legacy is None:
-            return None
-        if isinstance(legacy, list):
-            return [ShadowCompareMiddleware._serialize_legacy(item) for item in legacy]
-        if hasattr(legacy, "model_dump"):
-            return legacy.model_dump()
-        if hasattr(legacy, "dict"):
-            return legacy.dict()
-        return legacy
+        return ShadowCompareMiddleware._serialize_value(legacy)
 
     @staticmethod
     def _serialize_legacy_response(response: Any) -> Any:
@@ -145,10 +156,7 @@ class ShadowCompareMiddleware:
         if response is None:
             return None
         if isinstance(response, list):
-            return [
-                ShadowCompareMiddleware._serialize_legacy_response(item)
-                for item in response
-            ]
+            return [ShadowCompareMiddleware._serialize_value(item) for item in response]
         if hasattr(response, "body"):
             import json
 
@@ -156,21 +164,9 @@ class ShadowCompareMiddleware:
                 return json.loads(response.body)
             except Exception:
                 return str(response.body)
-        if hasattr(response, "model_dump"):
-            return response.model_dump()
-        if hasattr(response, "dict"):
-            return response.dict()
-        return response
+        return ShadowCompareMiddleware._serialize_value(response)
 
     @staticmethod
     def _serialize_redis(snapshot) -> Any:
         """Serialize Redis snapshot to plain dict for comparison."""
-        if snapshot is None:
-            return None
-        if isinstance(snapshot, list):
-            return [ShadowCompareMiddleware._serialize_redis(item) for item in snapshot]
-        if hasattr(snapshot, "model_dump"):
-            return snapshot.model_dump()
-        if hasattr(snapshot, "dict"):
-            return snapshot.dict()
-        return snapshot
+        return ShadowCompareMiddleware._serialize_value(snapshot)
