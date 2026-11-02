@@ -131,6 +131,8 @@ class ShadowCompareMiddleware:
         """Serialize legacy service response to plain dict for comparison."""
         if legacy is None:
             return None
+        if isinstance(legacy, list):
+            return [ShadowCompareMiddleware._serialize_legacy(item) for item in legacy]
         if hasattr(legacy, "model_dump"):
             return legacy.model_dump()
         if hasattr(legacy, "dict"):
@@ -142,8 +144,14 @@ class ShadowCompareMiddleware:
         """Serialize a per-request legacy response (e.g. FastAPI response body)."""
         if response is None:
             return None
+        if isinstance(response, list):
+            return [
+                ShadowCompareMiddleware._serialize_legacy_response(item)
+                for item in response
+            ]
         if hasattr(response, "body"):
             import json
+
             try:
                 return json.loads(response.body)
             except Exception:
@@ -159,6 +167,8 @@ class ShadowCompareMiddleware:
         """Serialize Redis snapshot to plain dict for comparison."""
         if snapshot is None:
             return None
+        if isinstance(snapshot, list):
+            return [ShadowCompareMiddleware._serialize_redis(item) for item in snapshot]
         if hasattr(snapshot, "model_dump"):
             return snapshot.model_dump()
         if hasattr(snapshot, "dict"):
