@@ -2,6 +2,8 @@
 
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+from bson import ObjectId
+from enum import Enum
 
 import pytest
 
@@ -89,6 +91,57 @@ class TestShadowCompareSample:
         with patch('app.middleware.shadow_compare.random.random', return_value=0.001):
             asyncio.run(shadow_compare.shadow_compare_sample({}))
             # Should not raise, just skip
+
+
+class TestShadowCompareSerialization:
+    """Tests that reproduce real parity mismatch issues from production logs."""
+
+    def test_serialize_objectid_to_string(self):
+        """ObjectId should serialize to str to avoid false type mismatch."""
+        oid = ObjectId("697500e7368fdf8165975521")
+        result = ShadowCompareMiddleware._serialize_value(oid)
+        assert result == "697500e7368fdf8165975521"
+        assert isinstance(result, str)
+
+    def test_serialize_enum_to_value(self):
+        """Enum should serialize to its string value to avoid false type mismatch."""
+
+        class ChargeSource(Enum):
+            NONE = "None"
+            GRID = "Grid"
+
+        result = ShadowCompareMiddleware._serialize_value(ChargeSource.NONE)
+        assert result == "None"
+        assert isinstance(result, str)
+
+    def test_serialize_legacy_building_with_objectid_and_enum(self):
+        """A legacy building dict with ObjectId id and Enum charge_source should
+        serialize to match the snapshot's string id and string charge_source."""
+        legacy = {
+            "id": ObjectId("6942dbe8b32fac50e885e628"),
+            "name": {"en": "Building 1", "uk": "Будинок 1"},
+            "color": "blue.4",
+            "order": 1,
+            "charge_source": "None",  # already a string in snapshot
+        }
+        result = ShadowCompareMiddleware._serialize_legacy(legacy)
+        assert result["id"] == "6942dbe8b32fac50e885e628"
+        assert isinstance(result["id"], str)
+        assert result["charge_source"] == "None"
+
+    def test_serialize_nested_dict_with_objectid_and_enum(self):
+        """Nested dicts containing ObjectId and Enum should be fully serialized."""
+        legacy = {
+            "buildings": [
+                {
+                    "id": ObjectId("6942dbe8b32fac50e885e628"),
+                    "charge_source": "Grid",
+                }
+            ]
+        }
+        result = ShadowCompareMiddleware._serialize_value(legacy)
+        assert result["buildings"][0]["id"] == "6942dbe8b32fac50e885e628"
+        assert result["buildings"][0]["charge_source"] == "Grid"
 
 
 class TestShadowCompareCompareOnce:
