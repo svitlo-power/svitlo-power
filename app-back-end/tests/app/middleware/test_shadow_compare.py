@@ -89,3 +89,45 @@ class TestShadowCompareSample:
         with patch('app.middleware.shadow_compare.random.random', return_value=0.001):
             asyncio.run(shadow_compare.shadow_compare_sample({}))
             # Should not raise, just skip
+
+
+class TestShadowCompareCompareOnce:
+    @pytest.mark.asyncio
+    async def test_compare_once_compares_buildings_lists(
+        self, shadow_compare, mock_snapshot_client, mock_legacy_service
+    ):
+        """_compare_once should compare legacy buildings list vs snapshot.buildings list."""
+        legacy_buildings = [
+            {"id": "b1", "name": {"en": "B1"}, "color": "red", "order": 1}
+        ]
+        mock_legacy_service.get_buildings_with_summary.return_value = legacy_buildings
+
+        snapshot = MagicMock()
+        snapshot.buildings = [
+            {"id": "b1", "name": {"en": "B1"}, "color": "red", "order": 1}
+        ]
+        mock_snapshot_client.get_snapshot.return_value = snapshot
+
+        with patch(
+            "app.middleware.shadow_compare.DeepDiff", return_value={}
+        ) as mock_deepdiff:
+            await shadow_compare._compare_once()
+
+        # DeepDiff should be called with legacy list and snapshot.buildings list
+        mock_deepdiff.assert_called_once()
+        args = mock_deepdiff.call_args[0]
+        assert args[0] == legacy_buildings
+        assert args[1] == snapshot.buildings
+
+    @pytest.mark.asyncio
+    async def test_compare_once_skips_when_no_snapshot(
+        self, shadow_compare, mock_snapshot_client, mock_legacy_service
+    ):
+        mock_snapshot_client.get_snapshot.return_value = None
+
+        with patch(
+            "app.middleware.shadow_compare.DeepDiff"
+        ) as mock_deepdiff:
+            await shadow_compare._compare_once()
+
+        mock_deepdiff.assert_not_called()
