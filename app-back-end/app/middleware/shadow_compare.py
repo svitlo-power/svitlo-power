@@ -74,14 +74,18 @@ class ShadowCompareMiddleware:
                 logger.error("Shadow compare failed: %s", e)
 
     async def _compare_once(self) -> None:
-        """Perform a single legacy vs Redis snapshot comparison."""
+        """Perform a single legacy vs Redis snapshot comparison.
+
+        Compares the buildings list from the legacy service against the
+        buildings list from the Redis snapshot (same shape).
+        """
         legacy = await self._legacy_get_buildings_with_summary()
         redis_snapshot = self._snapshot_client.get_snapshot()
         if redis_snapshot is None:
             return
 
         legacy_data = self._serialize_legacy(legacy)
-        redis_data = self._serialize_redis(redis_snapshot)
+        redis_data = self._serialize_redis(redis_snapshot.buildings)
 
         diff = DeepDiff(legacy_data, redis_data, ignore_order=True)
         if diff:
