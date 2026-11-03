@@ -19,24 +19,16 @@ from redis.asyncio import Redis
 
 
 from app.services.dashboard_snapshot.service import (
-
     DashboardSnapshotService,
-
     SNAPSHOT_KEY,
-
     INVALIDATION_CHANNEL,
-
     LEASE_KEY,
-
     EPOCH_KEY,
-
     VERSION_COMMITTED_KEY,
-
     VERSION_NEXT_KEY,
-
     LUA_WRITE_SCRIPT,
-
 )
+from shared.models.localizable_value import LocalizableValue
 
 from app.services.dashboard_snapshot.models import (
 
@@ -134,13 +126,14 @@ class TestBuildSnapshot:
 
         mock_dashboard.get_config = AsyncMock()
 
-        mock_dashboard.get_config.return_value.title = {
+        mock_dashboard.get_config.return_value.title = LocalizableValue(
+            root={
+                "uk": "\u041f\u0430\u043d\u0435\u043b",
 
-            "uk": "\u041f\u0430\u043d\u0435\u043b",
+                "en": "Dashboard",
 
-            "en": "Dashboard",
-
-        }
+            }
+        )
 
         mock_dashboard.get_config.return_value.outages_schedule = None
 
@@ -212,7 +205,9 @@ class TestBuildSnapshot:
 
         assert snapshot.buildings == []
 
-        assert snapshot.config.title == {"uk": "Панел", "en": "Dashboard"}
+        assert snapshot.config.title == LocalizableValue(
+            root={"uk": "Панел", "en": "Dashboard"}
+        )
 
         assert snapshot.outages_schedules == {}
 
@@ -622,13 +617,14 @@ class TestHandleRefreshRequest:
 
         mock_dashboard.get_config = AsyncMock()
 
-        mock_dashboard.get_config.return_value.title = {
+        mock_dashboard.get_config.return_value.title = LocalizableValue(
+            root={
+                "uk": "\u041f\u0430\u043d\u0435\u043b",
 
-            "uk": "\u041f\u0430\u043d\u0435\u043b",
+                "en": "Dashboard",
 
-            "en": "Dashboard",
-
-        }
+            }
+        )
 
         mock_dashboard.get_config.return_value.outages_schedule = None
 

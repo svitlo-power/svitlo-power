@@ -43,9 +43,9 @@ from app.services.dashboard_snapshot.models import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitScheduleSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
     LocalizableValue,
 )
 
@@ -303,7 +303,7 @@ class DashboardSnapshotService:
                 building_snapshots.append(
                     BuildingSnapshot(
                         id=str(building.id),
-                        name=building.name.root,
+                        name=building.name,
                         color=building.color,
                         order=building.order,
                         has_bound_station=building.has_bound_station,
@@ -327,11 +327,7 @@ class DashboardSnapshotService:
             # Build config snapshot
             outages_schedule = config.outages_schedule
             config_snapshot = ConfigSnapshot(
-                title=(
-                    config.title.root
-                    if hasattr(config.title, "root")
-                    else config.title
-                ),
+                title=config.title,
                 outages_schedule=(
                     {
                         "enable": outages_schedule.enable,
@@ -360,7 +356,7 @@ class DashboardSnapshotService:
                 days = []
                 for day in unit_schedule.days:
                     slots = [
-                        SlotSnapshot(
+                        Slot(
                             start=slot.start,
                             end=slot.end,
                             type=slot.type.value
@@ -370,7 +366,7 @@ class DashboardSnapshotService:
                         for slot in day.slots
                     ]
                     days.append(
-                        DayScheduleSnapshot(
+                        DaySchedule(
                             slots=slots,
                             date=day.date,
                             status=day.status.value
@@ -378,7 +374,7 @@ class DashboardSnapshotService:
                             else str(day.status),
                         )
                     )
-                outages_schedules[queue] = UnitScheduleSnapshot(
+                outages_schedules[queue] = UnitSchedule(
                     days=days,
                     updatedOn=unit_schedule.updatedOn,
                 )

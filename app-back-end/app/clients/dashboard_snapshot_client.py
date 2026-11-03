@@ -17,7 +17,7 @@ from app.clients.snapshot_models import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitScheduleSnapshot,
+    UnitSchedule,
 )
 from shared.features import feature_flags, FeatureFlag
 from shared.metrics import (
@@ -122,7 +122,7 @@ class DashboardSnapshotClient:
             return None
         return self._snapshot.config
 
-    def get_outages_schedule(self, queue: str) -> Optional[UnitScheduleSnapshot]:
+    def get_outages_schedule(self, queue: str) -> Optional[UnitSchedule]:
         """Return outage schedule for a queue."""
         if self._snapshot is None:
             return None

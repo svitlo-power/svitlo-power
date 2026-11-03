@@ -1,5 +1,7 @@
 """Pydantic models for DashboardSnapshot v1 schema used by app-back-end.
 
+Reuses Slot, DaySchedule, UnitSchedule from shared outages_schedule models.
+Defines snapshot-specific BuildingSnapshot, ConfigSnapshot, DashboardSnapshot.
 Matches docs/architecture/snapshot-schema.json.
 """
 
@@ -8,32 +10,11 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from shared.models.localizable_value import LocalizableValue
-
-
-class SlotSnapshot(BaseModel):
-    start: int = Field(..., description="Minutes from midnight")
-    end: int = Field(..., description="Minutes from midnight")
-    type: str = Field(..., description="Definite or NotPlanned")
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class DayScheduleSnapshot(BaseModel):
-    slots: list[SlotSnapshot]
-    date: datetime
-    status: str = Field(
-        ...,
-        description="ScheduleApplies, EmergencyShutdowns, WaitingForSchedule, NoOutages",
-    )
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class UnitScheduleSnapshot(BaseModel):
-    days: list[DayScheduleSnapshot]
-    updatedOn: datetime
-
-    model_config = ConfigDict(populate_by_name=True)
+from shared.services.outages_schedule.models import (
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+)
 
 
 class BuildingSnapshot(BaseModel):
@@ -75,8 +56,17 @@ class DashboardSnapshot(BaseModel):
     generated_at: datetime = Field(alias="generatedAt")
     buildings: list[BuildingSnapshot]
     config: ConfigSnapshot
-    outages_schedules: dict[str, UnitScheduleSnapshot] = Field(
+    outages_schedules: dict[str, UnitSchedule] = Field(
         alias="outagesSchedules"
     )
 
     model_config = ConfigDict(populate_by_name=True)
+
+__all__ = [
+    "Slot",
+    "DaySchedule",
+    "UnitSchedule",
+    "BuildingSnapshot",
+    "ConfigSnapshot",
+    "DashboardSnapshot",
+]

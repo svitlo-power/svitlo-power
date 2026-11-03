@@ -17,11 +17,11 @@ from app.clients.snapshot_models import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitScheduleSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
-    LocalizableValue,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
 )
+from shared.models.localizable_value import LocalizableValue
 
 
 @pytest.fixture
@@ -74,11 +74,11 @@ def sample_snapshot():
             },
         ),
         outages_schedules={
-            "queue_1": UnitScheduleSnapshot(
+            "queue_1": UnitSchedule(
                 days=[
-                    DayScheduleSnapshot(
+                    DaySchedule(
                         slots=[
-                            SlotSnapshot(start=0, end=24, type="Definite"),
+                            Slot(start=0, end=24, type="Definite"),
                         ],
                         date=datetime.now(timezone.utc),
                         status="ScheduleApplies",
