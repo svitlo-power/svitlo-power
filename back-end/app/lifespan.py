@@ -20,6 +20,7 @@ from app.services import (
     PushService,
     DashboardSnapshotService,
 )
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from app.services.dashboard.service import set_snapshot_service
 from app.state import set_injector
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -110,6 +111,10 @@ async def lifespan(app: FastAPI):
     set_snapshot_service(snapshot_service)
     await snapshot_service.start()
 
+    # Start dashboard snapshot client (consumer)
+    snapshot_client = injector.get(DashboardSnapshotClient)
+    await snapshot_client.start()
+
     register_chained_signal_handlers(
         handler=await make_shutdown_handler(events)
     )
@@ -124,6 +129,7 @@ async def lifespan(app: FastAPI):
         pass
 
     await snapshot_service.stop()
+    await snapshot_client.stop()
     await events.shutdown()
     await telegram_service.shutdown()
     await deye_connections.shutdown()
