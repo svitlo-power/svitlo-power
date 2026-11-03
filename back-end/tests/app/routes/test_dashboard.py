@@ -31,9 +31,11 @@ class TestDashboardRoute:
         mock_injector = MagicMock()
         mock_dashboard = MagicMock()
         mock_dashboard.get_buildings = AsyncMock(return_value=[])
+        mock_snapshot_client = MagicMock()
+        mock_snapshot_client.get_buildings = MagicMock(return_value=[])
         mock_settings = MagicMock()
         mock_settings.JWT_SECRET_KEY = "test-key"
-        mock_injector.get = MagicMock(side_effect=lambda cls: mock_dashboard if cls.__name__ == "DashboardService" else mock_settings)
+        mock_injector.get = MagicMock(side_effect=lambda cls: mock_dashboard if cls.__name__ == "DashboardService" else (mock_snapshot_client if cls.__name__ == "DashboardSnapshotClient" else mock_settings))
         app.state.injector = mock_injector
 
         client = TestClient(app)

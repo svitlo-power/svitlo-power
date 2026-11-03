@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import redis.asyncio as redis
 
-from app.clients.dashboard_snapshot_client import (
+from shared.clients.dashboard_snapshot_client import (
     DashboardSnapshotClient,
     SNAPSHOT_KEY,
     INVALIDATION_CHANNEL,
 )
-from app.clients.snapshot_models import (
+from shared.models.snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,

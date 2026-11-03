@@ -3,10 +3,12 @@
 from datetime import datetime, timezone
 import pytest
 
-from app.services.dashboard_snapshot.models import (
+from shared.models.snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
+)
+from shared.models.schedule_types import (
     UnitSchedule,
     DaySchedule,
     Slot,

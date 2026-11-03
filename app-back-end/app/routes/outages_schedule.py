@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Path
 from fastapi_injector import Injected
 from shared.services import OutagesScheduleService
 from shared.features import feature_flags, FeatureFlag
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 
 
 def register(app: FastAPI):

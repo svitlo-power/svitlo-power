@@ -16,7 +16,7 @@ from shared.models.api.dashboard import (
     PowerLogsRequest,
     PowerLogsResponse
 )
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 
 
 class AppDashboardConfigResponse(BaseModel):

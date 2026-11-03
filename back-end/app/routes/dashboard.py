@@ -6,6 +6,7 @@ from fastapi_injector import Injected
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.services import DashboardService
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from app.utils.jwt_dependencies import get_current_jwt_optional, jwt_required
 from app.models.api import SaveBuildingRequest, PowerLogsRequest, PowerLogsResponse
 from shared.models.api.dashboard import (
@@ -18,6 +19,7 @@ from shared.models.api.dashboard import (
     SaveDashboardConfigRequest,
 )
 from shared.models.localizable_value import LocalizableValue
+from shared.features import feature_flags, FeatureFlag
 
 
 class LegacyDashboardConfigResponse(BaseModel):
@@ -28,14 +30,32 @@ class LegacyDashboardConfigResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+def _is_redis_reads_enabled() -> bool:
+    return feature_flags.is_enabled(FeatureFlag.APP_BACKEND_REDIS_READS)
+
+
+def _building_response_from_snapshot(building) -> BuildingResponse:
+    return BuildingResponse(
+        id=building.id,
+        color=building.color,
+        name=building.name.root,
+        has_bound_station=building.has_bound_station,
+        order=building.order,
+    )
+
+
 def register(app: FastAPI):
 
     @app.get("/api/dashboard/buildings")
     async def get_buildings(
         dashboard = Injected(DashboardService),
+        snapshot_client = Injected(DashboardSnapshotClient),
         current_claims: dict | None = Depends(get_current_jwt_optional),
     ) -> List[BuildingResponse]:
         all = current_claims.get("sub", False) is not None if current_claims else False
+        if _is_redis_reads_enabled() and not all:
+            buildings = snapshot_client.get_buildings()
+            return [_building_response_from_snapshot(b) for b in buildings]
         return await dashboard.get_buildings(all=all)
 
 

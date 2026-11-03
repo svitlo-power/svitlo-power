@@ -1,36 +1,20 @@
-from typing import Dict, List
+"""Outage schedule service models.
+
+Reuses Slot, DaySchedule, UnitSchedule from shared/models/schedule_types.py.
+"""
+
+from typing import Dict
 from datetime import datetime
 from pydantic import BaseModel, RootModel, model_validator
 from enum import Enum
 
-
-class SlotType(str, Enum):
-    Definite = "Definite"
-    NotPlanned = "NotPlanned"
-
-
-class DayStatus(str, Enum):
-    ScheduleApplies = "ScheduleApplies"
-    EmergencyShutdowns = "EmergencyShutdowns"
-    WaitingForSchedule = "WaitingForSchedule"
-    NoOutages = "NoOutages"
-
-
-class Slot(BaseModel):
-    start: int
-    end: int
-    type: SlotType
-
-
-class DaySchedule(BaseModel):
-    slots: List[Slot]
-    date: datetime
-    status: DayStatus
-
-
-class UnitSchedule(BaseModel):
-    days: List[DaySchedule]
-    updatedOn: datetime
+from shared.models.schedule_types import (
+    SlotType,
+    DayStatus,
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+)
 
 
 def keep_only_definite_slots(schedule: "SchedulesResponse") -> "SchedulesResponse":

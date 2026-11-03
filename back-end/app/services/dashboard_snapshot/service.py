@@ -43,11 +43,13 @@ from app.services.dashboard_snapshot.models import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitSchedule,
-    DaySchedule,
-    Slot,
-    LocalizableValue,
 )
+from shared.services.outages_schedule.models import (
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+)
+from shared.models.localizable_value import LocalizableValue
 
 logger = logging.getLogger(__name__)
 

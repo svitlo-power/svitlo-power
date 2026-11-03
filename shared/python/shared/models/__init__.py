@@ -19,6 +19,18 @@ from .push_device import PushDevice, PushPlatform
 from .push_topic import PushTopic
 from .beanie_filter import BeanieFilter
 from .system_setting import SystemSetting, SystemSettingCategory
+from .snapshot import (
+    BuildingSnapshot,
+    ConfigSnapshot,
+    DashboardSnapshot,
+)
+from .schedule_types import (
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+    SlotType,
+    DayStatus,
+)
 from .api.dashboard import (
     BuildingResponse,
     ChargeSource,
@@ -53,6 +65,14 @@ __all__ = [
     PowerLogsResponse,
     SystemSetting,
     SystemSettingCategory,
+    BuildingSnapshot,
+    ConfigSnapshot,
+    DashboardSnapshot,
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+    SlotType,
+    DayStatus,
 ]
 
 BEANIE_MODELS = [Bot, AllowedChat, ChatRequest,

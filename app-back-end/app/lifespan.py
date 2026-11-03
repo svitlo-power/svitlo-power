@@ -6,7 +6,7 @@ from shared.utils.power_estimation import set_settings_service
 from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.server import metrics_server_lifespan
 from shared.utils import get_version
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from app.middleware.shadow_compare import ShadowCompareMiddleware
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration

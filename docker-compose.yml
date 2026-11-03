@@ -7,6 +7,8 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     networks:
       - web_network
+    ports:
+      - 6379:6379
     labels:
       io.hass.type: "addon"
     healthcheck:
@@ -148,14 +150,14 @@ services:
       - "5005"
       - "9097"
     ports:
-      - "127.0.0.1:${APP_BACKEND_PORT:-8000}:5005"
+      - "127.0.0.1:${APP_BACKEND_PORT:-8000}:8000"
       - "127.0.0.1:9097:9097"
     networks:
       - web_network
     labels:
       io.hass.type: "addon"
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 5005)); s.close(); exit(0 if result==0 else 1)"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 8000)); s.close(); exit(0 if result==0 else 1)"]
       interval: 10s
       timeout: 5s
       retries: 5

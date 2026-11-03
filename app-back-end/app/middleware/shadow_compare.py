@@ -13,8 +13,7 @@ from enum import Enum
 
 from deepdiff import DeepDiff
 
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
-from shared.features import feature_flags, FeatureFlag
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from shared.metrics import DASHBOARD_PARITY_MISMATCHES
 
 logger = logging.getLogger(__name__)

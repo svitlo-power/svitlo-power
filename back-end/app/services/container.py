@@ -1,7 +1,9 @@
 from injector import Binder, Module, singleton, noscope
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import redis.asyncio as redis
 
 from app.settings import Settings
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.settings.service import SettingsService
@@ -74,6 +76,15 @@ class ServicesContainer(Module):
         binder.bind(DashboardService, scope=noscope)
         binder.bind(ReadOnlyDashboardService, to=DashboardService, scope=noscope)
         binder.bind(DashboardSnapshotService, scope=singleton)
+
+        redis_client = redis.Redis.from_url(
+            str(self._settings.REDIS_URI), decode_responses=True
+        )
+        binder.bind(
+            DashboardSnapshotClient,
+            to=DashboardSnapshotClient(redis_client),
+            scope=singleton,
+        )
 
         binder.bind(FcmSender, scope=singleton)
         binder.bind(PushService, scope=noscope)

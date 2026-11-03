@@ -1,5 +1,6 @@
-"""Redis-backed dashboard snapshot client for app-back-end.
+"""Redis-backed dashboard snapshot client.
 
+Shared between back-end (producer) and app-back-end (consumer).
 Implements Phase 2 of the migration: subscribe-before-read, reconnect recovery,
 reconciliation, and cache-miss refresh via the producer HTTP endpoint.
 """
@@ -7,18 +8,17 @@ reconciliation, and cache-miss refresh via the producer HTTP endpoint.
 import asyncio
 import json
 import logging
-import time
 from datetime import datetime, timezone
 from typing import Optional
 
 import redis.asyncio as redis
 
-from app.clients.snapshot_models import (
+from shared.models.snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitSchedule,
 )
+from shared.services.outages_schedule.models import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 from shared.metrics import (
     DASHBOARD_SNAPSHOT_EPOCH,
@@ -68,7 +68,7 @@ class DashboardSnapshotClient:
         self._subscribed = False
 
         self._pubsub: Optional[redis.client.PubSub] = None
-        _subscriber_task: Optional[asyncio.Task] = None
+        self._subscriber_task: Optional[asyncio.Task] = None
         self._reconciliation_task: Optional[asyncio.Task] = None
         self._stop_event = asyncio.Event()
 
@@ -288,7 +288,7 @@ class DashboardSnapshotClient:
         try:
             async with self._aiohttp_session.post(
                 self._producer_refresh_url,
-                json={"reason": "cache-miss", "requestedBy": "app-back-end"},
+                json={"reason": "cache-miss", "requestedBy": "back-end"},
             ) as resp:
                 if resp.status == 200:
                     body = await resp.json()
@@ -314,7 +314,6 @@ class DashboardSnapshotClient:
 
     async def _wait_for_newer_notification(self) -> None:
         """Wait until a newer notification arrives or stop is requested."""
-        # This is a simple polling approach: check if snapshot became newer
         while not self._stop_event.is_set():
             snapshot_json = await self._redis.get(SNAPSHOT_KEY)
             if snapshot_json is not None:

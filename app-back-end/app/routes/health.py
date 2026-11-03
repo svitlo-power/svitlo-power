@@ -7,7 +7,7 @@ from shared.metrics import (
     DASHBOARD_SNAPSHOT_AGE_SECONDS,
 )
 from shared.services.dashboard import ReadOnlyDashboardService
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 import time
 
 

@@ -5,7 +5,7 @@ from beanie import init_beanie
 import redis.asyncio as redis
 
 from app.settings import get_settings, Settings
-from app.clients.dashboard_snapshot_client import DashboardSnapshotClient
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from app.middleware.shadow_compare import ShadowCompareMiddleware
 from shared.repositories.implementations import (
     DashboardReadRepository,
