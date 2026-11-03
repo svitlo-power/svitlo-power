@@ -151,7 +151,7 @@ def register(app: FastAPI):
                     )
                 schedule = config.outages_schedule
                 return AppDashboardConfigResponse(
-                    title=LocalizableValue(config.title),
+                    title=config.title,
                     enable_outages_schedule=bool(schedule and schedule.get("enable")),
                     outages_schedule_queue=schedule.get("queue") if schedule else None,
                 )

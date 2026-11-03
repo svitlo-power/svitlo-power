@@ -7,6 +7,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
+from shared.models.localizable_value import LocalizableValue
+
 
 class SlotSnapshot(BaseModel):
     start: int = Field(..., description="Minutes from midnight")
@@ -34,16 +36,9 @@ class UnitScheduleSnapshot(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-class LocalizableValue(BaseModel):
-    uk: str
-    en: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
 class BuildingSnapshot(BaseModel):
     id: str = Field(..., pattern=r"^[0-9a-f]{24}$")
-    name: dict[str, str]
+    name: LocalizableValue
     color: str
     order: int
     has_bound_station: bool = Field(alias="hasBoundStation")
@@ -68,7 +63,7 @@ class BuildingSnapshot(BaseModel):
 
 
 class ConfigSnapshot(BaseModel):
-    title: dict[str, str]
+    title: LocalizableValue
     outages_schedule: Optional[dict] = Field(None, alias="outagesSchedule")
 
     model_config = ConfigDict(populate_by_name=True)
