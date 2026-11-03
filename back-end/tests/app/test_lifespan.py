@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.lifespan import lifespan, create_user, setup_bots, make_shutdown_handler, setup_settings
 from app.settings import Settings
 from app.services import BeanieInitializer, StationConnectionsService, TelegramService, DashboardSnapshotService
+from shared.clients.dashboard_snapshot_client import DashboardSnapshotClient
 from shared.services.events.service import EventsService
 from shared.services.settings.service import SettingsService
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -127,6 +128,7 @@ class TestLifespan:
             mock_events.shutdown = AsyncMock()
 
             mock_snapshot_service = AsyncMock()
+            mock_snapshot_client = AsyncMock()
 
             def get_side_effect(cls):
                 if cls is mock_beanie_cls:
@@ -141,6 +143,8 @@ class TestLifespan:
                     return mock_scheduler
                 if cls is DashboardSnapshotService:
                     return mock_snapshot_service
+                if cls is DashboardSnapshotClient:
+                    return mock_snapshot_client
                 return MagicMock()
 
             mock_injector.get = MagicMock(side_effect=get_side_effect)
@@ -239,6 +243,7 @@ class TestLifespan:
             mock_events.shutdown = mock_events_shutdown
 
             mock_snapshot_service = AsyncMock()
+            mock_snapshot_client = AsyncMock()
 
             def get_side_effect(cls):
                 if cls is mock_beanie_cls:
@@ -253,6 +258,8 @@ class TestLifespan:
                     return mock_scheduler
                 if cls is DashboardSnapshotService:
                     return mock_snapshot_service
+                if cls is DashboardSnapshotClient:
+                    return mock_snapshot_client
                 return MagicMock()
 
             mock_injector.get = MagicMock(side_effect=get_side_effect)
