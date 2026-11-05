@@ -6,6 +6,8 @@ from shared.utils.power_estimation import set_settings_service
 from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.server import metrics_server_lifespan
 from shared.utils import get_version
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from app.services import DashboardShadowComparison
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -38,6 +40,14 @@ async def lifespan(app: FastAPI):
     settings_service = app.state.injector.get(SettingsService)
     set_settings_service(settings_service)
 
+    snapshot_client = app.state.injector.get(DashboardSnapshotClient)
+    await snapshot_client.start()
+    app.state.dashboard_snapshot_client = snapshot_client
+
+    shadow_comparison = app.state.injector.get(DashboardShadowComparison)
+    await shadow_comparison.start()
+    app.state.dashboard_shadow_comparison = shadow_comparison
+
     # Register service version metric
     version = get_version()
     SERVICE_VERSION_INFO.labels(service="app-back-end", version=version).set(1)
@@ -49,6 +59,9 @@ async def lifespan(app: FastAPI):
     # Shutdown - close resources in reverse order
     import logging
     logging.info("Shutting down app-back-end...")
+
+    await app.state.dashboard_shadow_comparison.stop()
+    await app.state.dashboard_snapshot_client.stop()
 
     # Close aiohttp session
     if hasattr(app.state, 'aiohttp_session') and app.state.aiohttp_session:

@@ -27,6 +27,7 @@ from shared.repositories.interfaces import (
     IPushTopicsRepository,
 )
 from shared.services import (
+    DashboardSnapshotClient,
     EventsService,
     ReadOnlyDashboardService,
     OutagesScheduleService,
@@ -45,6 +46,7 @@ from shared.models import (
     SystemSetting,
     SystemSettingCategory,
 )
+from app.services import DashboardShadowComparison
 
 
 class BeanieInitializer:
@@ -89,6 +91,33 @@ class AppModule(Module):
         redis_uri = str(settings.REDIS_URI) if settings.REDIS_URI else "redis://localhost:6379/0"
         # redis://[:password]@host:port/db
         return redis.Redis.from_url(redis_uri, decode_responses=True)
+
+    @singleton
+    @provider
+    def provide_dashboard_snapshot_client(
+        self,
+        redis_client: redis.Redis,
+        session: aiohttp.ClientSession,
+        settings: Settings,
+    ) -> DashboardSnapshotClient:
+        return DashboardSnapshotClient(
+            redis=redis_client,
+            session=session,
+            refresh_url=settings.APP_BACKEND_SNAPSHOT_REFRESH_URL,
+            stale_threshold_seconds=(
+                settings.APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS
+            ),
+            requested_by="app-back-end",
+        )
+
+    @singleton
+    @provider
+    def provide_dashboard_shadow_comparison(
+        self,
+        dashboard: ReadOnlyDashboardService,
+        snapshot_client: DashboardSnapshotClient,
+    ) -> DashboardShadowComparison:
+        return DashboardShadowComparison(dashboard, snapshot_client)
 
     @singleton
     @provider

@@ -47,7 +47,7 @@ class Settings(BaseSettings, BaseDeyeAppSettings, BaseAppSettings, BaseJWTSettin
 
     # Redis-backed dashboard reads remain opt-in until parity thresholds are met.
     APP_BACKEND_REDIS_DASHBOARD_ENABLED: bool = False
-    APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS: int = 300
+    APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS: int = Field(default=300, gt=0)
     APP_BACKEND_SNAPSHOT_REFRESH_URL: str = (
         "http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh"
     )

@@ -12,7 +12,10 @@ Move the `app-back-end` to read dashboard data from Redis snapshots, initially i
 ## Deliverables
 
 ### 1. Redis Snapshot Client
-**Location**: `app-back-end/app/clients/dashboard_snapshot_client.py` (new)
+**Location**: `shared/python/shared/services/dashboard_snapshot/client.py` (new)
+
+The snapshot schema and client live in `shared` so other services can consume the
+same versioned snapshot contract without duplicating Redis subscription logic.
 
 ```python
 class DashboardSnapshotClient:
@@ -100,8 +103,8 @@ async def shadow_compare_sample(request: Request, legacy_response):
 
 | Value | Behavior |
 |-------|----------|
-| `false` | Legacy calculation only; shadow comparison runs but results discarded |
-| `true` | Redis snapshot used for response; legacy calculation retained as fallback |
+| `false` | Legacy calculation serves responses; shadow comparison runs in the background |
+| `true` | Fresh Redis snapshots serve responses; legacy calculation is the fallback when the snapshot is missing or stale |
 
 **Rollout**: Gradual (10% → 50% → 100% of app-back-end instances)
 
@@ -114,6 +117,9 @@ async def shadow_compare_sample(request: Request, legacy_response):
 | `redis_snapshot_age_seconds` | Gauge | — | < 300s |
 | `redis_snapshot_reconciliation_total` | Counter | result (ok, stale, error) | — |
 | `redis_snapshot_cache_miss_total` | Counter | — | 0 after warmup |
+
+The consumer exposes `GET /health/redis-dashboard`, including local/Redis epoch
+and version, lag, age, subscription state, and the most recent invalidation time.
 
 ### 5. Health Check
 **Endpoint**: `GET /health/redis-dashboard`
