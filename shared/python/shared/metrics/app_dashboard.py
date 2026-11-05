@@ -1,19 +1,6 @@
-"""Metrics for app-back-end dashboard snapshot consumption and shadow reads."""
+"""Metrics for app-back-end dashboard snapshot consumption."""
 
-from prometheus_client import Counter, Gauge, Histogram
-
-APP_BACKEND_SHADOW_PARITY_MISMATCHES = Counter(
-    "app_backend_shadow_parity_mismatches_total",
-    "Field-level differences found by app-back-end shadow comparisons",
-    ["path"],
-)
-
-APP_BACKEND_SHADOW_PARITY_LATENCY_DELTA_MS = Histogram(
-    "app_backend_shadow_parity_latency_delta_ms",
-    "Legacy dashboard calculation time saved by serving a snapshot",
-    ["endpoint"],
-    buckets=[1, 5, 10, 25, 50, 100, 250, 500, 1000, 5000],
-)
+from prometheus_client import Counter, Gauge
 
 REDIS_SNAPSHOT_VERSION_LAG = Gauge(
     "redis_snapshot_version_lag",

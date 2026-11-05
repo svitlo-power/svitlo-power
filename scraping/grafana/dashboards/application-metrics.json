@@ -270,17 +270,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (field_path) (increase(dashboard_parity_mismatches_total[1h])) or on() vector(0)",
-          "legendFormat": "{{field_path}}",
-          "refId": "A"
-        },
-        {
           "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total[1h])) or on() vector(0)",
-          "legendFormat": "write error: {{error_type}}",
-          "refId": "B"
+          "legendFormat": "{{error_type}}",
+          "refId": "A"
         }
       ],
-      "title": "Snapshot parity mismatches / write errors (last hour)",
+      "title": "Snapshot write errors (last hour)",
       "type": "timeseries"
     },
     {
@@ -477,82 +472,6 @@
       ],
       "title": "Snapshot reconciliation / cache misses",
       "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 43
-      },
-      "id": 13,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum by (path) (rate(app_backend_shadow_parity_mismatches_total{job=\"svitlo-power-app-back-end\"}[5m])) or on() vector(0)",
-          "legendFormat": "mismatch: {{path}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Snapshot shadow parity mismatches",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 50
-      },
-      "id": 14,
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.99, sum by (le, endpoint) (rate(app_backend_shadow_parity_latency_delta_ms_bucket{job=\"svitlo-power-app-back-end\"}[5m])))",
-          "legendFormat": "{{endpoint}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Snapshot shadow latency delta p99",
-      "type": "timeseries"
     }
   ],
   "refresh": "15s",
@@ -568,5 +487,5 @@
   "timezone": "browser",
   "title": "Svitlo Power - Application Metrics",
   "uid": "svitlo-application-metrics",
-  "version": 2
+  "version": 3
 }

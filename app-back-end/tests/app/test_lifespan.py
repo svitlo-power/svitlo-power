@@ -20,7 +20,6 @@ class TestLifespan:
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
         mock_snapshot_client = AsyncMock()
-        mock_shadow_comparison = AsyncMock()
 
         # Configure the injector.get to return different mocks based on what's requested
         def injector_get_side_effect(cls):
@@ -34,8 +33,6 @@ class TestLifespan:
                 return mock_settings_service
             elif cls.__name__ == 'DashboardSnapshotClient':
                 return mock_snapshot_client
-            elif cls.__name__ == 'DashboardShadowComparison':
-                return mock_shadow_comparison
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -54,13 +51,11 @@ class TestLifespan:
                 mock_app.state.injector.get.assert_any_call(SettingsService)
                 mock_set_settings.assert_called_once_with(mock_settings_service)
                 mock_snapshot_client.start.assert_awaited_once()
-                mock_shadow_comparison.start.assert_awaited_once()
 
             # After exiting context, shutdown should close resources
             mock_aiohttp_session.close.assert_called_once()
             mock_redis_client.close.assert_called_once()
             mock_beanie_initializer._client.close.assert_called_once()
-            mock_shadow_comparison.stop.assert_awaited_once()
             mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -89,7 +84,6 @@ class TestLifespan:
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
         mock_snapshot_client = AsyncMock()
-        mock_shadow_comparison = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -102,8 +96,6 @@ class TestLifespan:
                 return mock_settings_service
             elif cls.__name__ == 'DashboardSnapshotClient':
                 return mock_snapshot_client
-            elif cls.__name__ == 'DashboardShadowComparison':
-                return mock_shadow_comparison
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -116,7 +108,6 @@ class TestLifespan:
             mock_aiohttp_session.close.assert_called_once()
             mock_redis_client.close.assert_called_once()
             mock_beanie_initializer._client.close.assert_called_once()
-            mock_shadow_comparison.stop.assert_awaited_once()
             mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -130,7 +121,6 @@ class TestLifespan:
         mock_redis_client = None
         mock_settings_service = AsyncMock()
         mock_snapshot_client = AsyncMock()
-        mock_shadow_comparison = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -143,8 +133,6 @@ class TestLifespan:
                 return mock_settings_service
             elif cls.__name__ == 'DashboardSnapshotClient':
                 return mock_snapshot_client
-            elif cls.__name__ == 'DashboardShadowComparison':
-                return mock_shadow_comparison
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -158,7 +146,6 @@ class TestLifespan:
             mock_aiohttp_session.close.assert_not_called() if mock_aiohttp_session else None
             mock_redis_client.close.assert_not_called() if mock_redis_client else None
             mock_beanie_initializer._client.close.assert_not_called() if mock_beanie_initializer._client else None
-            mock_shadow_comparison.stop.assert_awaited_once()
             mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -172,7 +159,6 @@ class TestLifespan:
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
         mock_snapshot_client = AsyncMock()
-        mock_shadow_comparison = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -185,8 +171,6 @@ class TestLifespan:
                 return mock_settings_service
             elif cls.__name__ == 'DashboardSnapshotClient':
                 return mock_snapshot_client
-            elif cls.__name__ == 'DashboardShadowComparison':
-                return mock_shadow_comparison
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -207,7 +191,6 @@ class TestLifespan:
             mock_metrics_cm.__aenter__.assert_called_once()
             mock_metrics_cm.__aexit__.assert_called_once()
             mock_snapshot_client.stop.assert_awaited_once()
-            mock_shadow_comparison.stop.assert_awaited_once()
 
 
 if __name__ == "__main__":

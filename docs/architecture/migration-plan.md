@@ -35,7 +35,8 @@ Do not defer all production traffic changes until every service has been built.
   triggers an immediate coalesced refresh request via HTTP. Set stale-data alert
   limits from each upstream API's expected update cadence; do not add a long
   arbitrary observation delay.
-- **No code removal until Phase 9** — legacy calculation code stays runnable for rollback.
+- Keep core legacy calculation code runnable for rollback until Phase 9; temporary
+  shadow-comparison instrumentation may be removed after the Redis-read cutover.
 
 ## Phases
 
@@ -86,7 +87,8 @@ authoritative.
 
 ### 2. Move the app back end to Redis-backed dashboard data
 
-**Deploy:** Redis reads in the `app-back-end`, initially dark/shadow traffic.
+**Deploy:** Redis reads in the `app-back-end`, initially disabled behind the
+existing feature flag.
 
 - Subscribe before the initial snapshot load. Reload on subscription reconnect
   and periodically reconcile (epoch, version) so missed Pub/Sub messages do not leave
@@ -94,15 +96,13 @@ authoritative.
 - On a Redis cache miss, request a source refresh/read through the producer via
   HTTP `POST /internal/v1/snapshots/refresh`; do not rely on a Redis backup or treat a missing key as authoritative empty
   data.
-- In shadow mode, compare Redis-backed values against the app back end's
-  current calculations without returning the new values to clients (background sampling).
-- Add a feature flag to serve the Redis projection while retaining the current
-  calculation temporarily as a rollback path.
-- Enable gradually and compare response parity, error rates, and freshness.
+- Retain the legacy calculation as a fallback while Redis reads are rolled out.
+- Enable gradually and monitor error rates, snapshot freshness, and version lag.
 
-**Exit gate:** production parity and freshness remain within pre-agreed
-thresholds; restart and Redis reconnect tests show the app back end recovers
-from missed notifications. Mobile API response compatibility is verified.
+**Exit gate:** freshness remains within pre-agreed thresholds; restart and
+Redis reconnect tests show the app back end recovers from missed notifications.
+Mobile API response compatibility is verified. Shadow recalculation is not
+required; the consumer reconciles its local snapshot from Redis.
 
 **Rollback:** turn off the Redis-read flag and serve the legacy calculation.
 Keep publishing Redis snapshots while investigating.

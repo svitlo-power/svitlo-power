@@ -14,7 +14,6 @@ from shared.models.dashboard_snapshot import (
     ConfigSnapshot as DashboardConfigSnapshot,
     DashboardSnapshot,
 )
-from app.services import DashboardShadowComparison
 from shared.models.api.dashboard import (
     BuildingResponse,
     BuildingSummaryResponse,
@@ -49,16 +48,10 @@ def mock_snapshot_client():
 
 
 @pytest.fixture
-def mock_shadow_comparison():
-    return MagicMock(spec=DashboardShadowComparison)
-
-
-@pytest.fixture
 def app(
     mock_settings,
     mock_dashboard_service,
     mock_snapshot_client,
-    mock_shadow_comparison,
 ):
     """Create test app with mocked dependencies."""
     from fastapi_injector import InjectorMiddleware, attach_injector
@@ -75,10 +68,6 @@ def app(
         def provide_dashboard_snapshot_client(self) -> DashboardSnapshotClient:
             return mock_snapshot_client
 
-        @provider
-        def provide_dashboard_shadow_comparison(self) -> DashboardShadowComparison:
-            return mock_shadow_comparison
-    
     injector = Injector([AppModule(), TestModule()])
     app = create_app(mock_settings)
     app.add_middleware(InjectorMiddleware, injector=injector)

@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from shared.services import ReadOnlyDashboardService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
-from app.services import DashboardShadowComparison
 from app.snapshot_responses import (
     snapshot_building_response,
     snapshot_building_summary_response,
@@ -42,16 +41,10 @@ def register(app: FastAPI):
         request: Request,
         dashboard=Injected(ReadOnlyDashboardService),
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
-        shadow: DashboardShadowComparison = Injected(DashboardShadowComparison),
     ) -> List[BuildingResponse]:
         """Get list of buildings (basic info) - Android endpoint"""
         snapshot = snapshot_client.get_snapshot()
         if snapshot is not None:
-            shadow.sample(
-                "GET /api/dashboard/buildings",
-                lambda: dashboard.get_buildings(all=False),
-                lambda: [snapshot_building_response(b) for b in snapshot.buildings],
-            )
             if (
                 request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
                 and not snapshot_client.is_stale
@@ -65,7 +58,6 @@ def register(app: FastAPI):
         body: BuildingsSummaryRequest,
         dashboard=Injected(ReadOnlyDashboardService),
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
-        shadow: DashboardShadowComparison = Injected(DashboardShadowComparison),
     ) -> List[BuildingSummaryResponse]:
         """Get building summaries (battery, grid status, etc.) - Android endpoint"""
         snapshot = snapshot_client.get_snapshot()
@@ -79,11 +71,6 @@ def register(app: FastAPI):
                     for building in snapshot.buildings
                     if building.id in requested_ids_set
                 ]
-                shadow.sample(
-                    "POST /api/dashboard/buildings/summary",
-                    lambda: dashboard.get_buildings_summary(body.building_ids),
-                    snapshot_response,
-                )
                 if (
                     request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
                     and not snapshot_client.is_stale
@@ -96,7 +83,6 @@ def register(app: FastAPI):
         request: Request,
         dashboard=Injected(ReadOnlyDashboardService),
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
-        shadow: DashboardShadowComparison = Injected(DashboardShadowComparison),
     ) -> List[BuildingWithSummaryResponse]:
         """Buildings with summary combined - Android endpoint (alias)"""
         snapshot = snapshot_client.get_snapshot()
@@ -105,11 +91,6 @@ def register(app: FastAPI):
                 snapshot_building_with_summary_response(b)
                 for b in snapshot.buildings
             ]
-            shadow.sample(
-                "GET /api/buildings/buildings",
-                dashboard.get_buildings_with_summary,
-                snapshot_response,
-            )
             if (
                 request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
                 and not snapshot_client.is_stale
@@ -123,7 +104,6 @@ def register(app: FastAPI):
         request: Request,
         dashboard=Injected(ReadOnlyDashboardService),
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
-        shadow: DashboardShadowComparison = Injected(DashboardShadowComparison),
     ) -> AppDashboardConfigResponse:
         """Dashboard configuration (title, outages schedule) - Android endpoint"""
 
@@ -148,11 +128,6 @@ def register(app: FastAPI):
             )
 
         if snapshot is not None:
-            shadow.sample(
-                "GET /api/dashboard/config",
-                legacy_response,
-                snapshot_response,
-            )
             if (
                 request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
                 and not snapshot_client.is_stale

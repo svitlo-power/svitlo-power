@@ -52,10 +52,3 @@ DASHBOARD_REFRESH_COALESCED = Counter(
     "dashboard_refresh_coalesced_total",
     "Total number of coalesced refresh requests",
 )
-
-# Parity mismatches between legacy API and Redis snapshot
-DASHBOARD_PARITY_MISMATCHES = Counter(
-    "dashboard_parity_mismatches_total",
-    "Total number of parity mismatches between legacy API and Redis snapshot",
-    ["field_path"],
-)

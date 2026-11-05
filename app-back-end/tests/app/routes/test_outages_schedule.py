@@ -16,7 +16,6 @@ from shared.models.outages_schedule import (
     DayStatus,
 )
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
-from app.services import DashboardShadowComparison
 
 
 @pytest.fixture
@@ -42,12 +41,7 @@ def mock_snapshot_client():
 
 
 @pytest.fixture
-def mock_shadow_comparison():
-    return MagicMock(spec=DashboardShadowComparison)
-
-
-@pytest.fixture
-def app(mock_settings, mock_outages_service, mock_snapshot_client, mock_shadow_comparison):
+def app(mock_settings, mock_outages_service, mock_snapshot_client):
     """Create test app with mocked dependencies."""
     from fastapi_injector import InjectorMiddleware, attach_injector
     from injector import Injector, Module, provider
@@ -63,10 +57,6 @@ def app(mock_settings, mock_outages_service, mock_snapshot_client, mock_shadow_c
         def provide_dashboard_snapshot_client(self) -> DashboardSnapshotClient:
             return mock_snapshot_client
 
-        @provider
-        def provide_dashboard_shadow_comparison(self) -> DashboardShadowComparison:
-            return mock_shadow_comparison
-    
     injector = Injector([AppModule(), TestModule()])
     app = create_app(mock_settings)
     app.add_middleware(InjectorMiddleware, injector=injector)

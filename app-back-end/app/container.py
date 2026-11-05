@@ -46,7 +46,6 @@ from shared.models import (
     SystemSetting,
     SystemSettingCategory,
 )
-from app.services import DashboardShadowComparison
 
 
 class BeanieInitializer:
@@ -109,15 +108,6 @@ class AppModule(Module):
             ),
             requested_by="app-back-end",
         )
-
-    @singleton
-    @provider
-    def provide_dashboard_shadow_comparison(
-        self,
-        dashboard: ReadOnlyDashboardService,
-        snapshot_client: DashboardSnapshotClient,
-    ) -> DashboardShadowComparison:
-        return DashboardShadowComparison(dashboard, snapshot_client)
 
     @singleton
     @provider

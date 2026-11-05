@@ -1,7 +1,9 @@
-# Phase 2 Spec: App Back End Reads from Redis (Shadow Mode)
+# Phase 2 Spec: App Back End Reads from Redis
 
 ## Objective
-Move the `app-back-end` to read dashboard data from Redis snapshots, initially in shadow/dark mode comparing against legacy calculations without returning new values to clients.
+Move the `app-back-end` to read dashboard data from Redis snapshots. Keep the
+snapshot client current through Redis invalidations and periodic reconciliation;
+do not recalculate legacy dashboard responses for shadow comparisons.
 
 ## Scope
 - **Consumer**: `app-back-end` (mobile API + public pages)
@@ -59,46 +61,7 @@ class DashboardSnapshotClient:
 - Periodic reconciliation: every 60s `GET` snapshot key, compare (epoch, version)
 - On cache miss (local snapshot is None): call HTTP refresh endpoint on producer, wait for notification (max 5s), then `GET`
 
-### 2. Shadow Comparison (Off-Request-Path)
-**Location**: `app-back-end/app/middleware/shadow_compare.py` (new)
-
-**Important**: Do NOT run deep-diff on the hot request path. Instead:
-
-```python
-# Background task approach
-async def shadow_compare_task():
-    """Periodic background comparison, not per-request."""
-    while True:
-        await asyncio.sleep(60)  # Compare every minute
-        try:
-            legacy = await legacy_dashboard_service.get_buildings_with_summary()
-            redis_snapshot = snapshot_client.get_snapshot()
-            if redis_snapshot:
-                diff = deep_diff(legacy, redis_snapshot)
-                if diff:
-                    metrics.increment('shadow.parity.mismatch', 
-                        tags={'path': diff.path})
-                    logger.warning('Shadow parity mismatch', extra={'diff': diff})
-        except Exception as e:
-            logger.error('Shadow compare failed', exc_info=e)
-
-# For per-request sampling (1% of requests)
-async def shadow_compare_sample(request: Request, legacy_response):
-    if random.random() < 0.01:  # 1% sample
-        redis_snapshot = snapshot_client.get_snapshot()
-        if redis_snapshot:
-            # Compare in background, don't block response
-            asyncio.create_task(compare_and_log(legacy_response, redis_snapshot))
-```
-
-**Endpoints covered for sampling**:
-- `GET /api/dashboard/buildings` (mobile)
-- `POST /api/dashboard/buildings/summary` (mobile)
-- `GET /api/buildings/buildings` (mobile)
-- `GET /api/dashboard/config` (mobile)
-- `GET /api/outagesSchedule/outagesSchedule/{queue}` (mobile)
-
-### 3. Feature Flag
+### 2. Feature Flag
 **Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`)
 
 The back-end feature `BACKEND_REDIS_DASHBOARD_ENABLED` (environment variable
@@ -111,16 +74,14 @@ never directs snapshot-backed clients to fetch data from an older snapshot.
 
 | Value | Behavior |
 |-------|----------|
-| `false` | Legacy calculation serves responses; shadow comparison runs in the background |
+| `false` | Legacy calculation serves responses |
 | `true` | Fresh Redis snapshots serve responses; legacy calculation is the fallback when the snapshot is missing or stale |
 
 **Rollout**: Gradual (10% → 50% → 100% of app-back-end instances)
 
-### 4. Metrics (Additional to Phase 1)
+### 3. Metrics (Additional to Phase 1)
 | Metric | Type | Labels | Target |
 |--------|------|--------|--------|
-| `shadow.parity.mismatch` | Counter | path | < 0.1% of sampled requests |
-| `shadow.parity.latency_delta_ms` | Histogram | endpoint | p99 < 50ms |
 | `redis_snapshot_version_lag` | Gauge | — | ≤ 1 |
 | `redis_snapshot_age_seconds` | Gauge | — | < 300s |
 | `redis_snapshot_reconciliation_total` | Counter | result (ok, stale, error) | — |
@@ -129,7 +90,7 @@ never directs snapshot-backed clients to fetch data from an older snapshot.
 The consumer exposes `GET /health/redis-dashboard`, including local/Redis epoch
 and version, lag, age, subscription state, and the most recent invalidation time.
 
-### 5. Health Check
+### 4. Health Check
 **Endpoint**: `GET /health/redis-dashboard`
 ```json
 {
@@ -151,9 +112,6 @@ and version, lag, age, subscription state, and the most recent invalidation time
 
 | Criterion | Threshold | Measurement Window |
 |-----------|-----------|-------------------|
-| Shadow parity (field-level, sampled) | ≥ 99.9% | 24h production at 100% rollout |
-| p99 latency delta (Redis vs legacy) | < 50ms | 24h production |
-| Freshness delta (snapshot age vs legacy) | < 5s | 24h production |
 | Error rate (Redis path) | < 0.1% | 24h production |
 | Version lag | ≤ 1 for 99.9% of time | 24h production |
 | Restart/reconnect test | Recovers within 2s, no data loss | Staging + 1 production test |
@@ -162,28 +120,27 @@ and version, lag, age, subscription state, and the most recent invalidation time
 ## Rollback Procedure
 
 1. **Immediate**: Set `APP_BACKEND_REDIS_DASHBOARD_ENABLED=false`
-2. **Effect**: All responses served from legacy calculation; shadow comparison continues
+2. **Effect**: Responses use the legacy calculation; no shadow comparison runs
 3. **Verification**: Confirm error rate drops, latency returns to baseline
-4. **Investigation**: Analyze parity mismatches, Redis connectivity, version lag
+4. **Investigation**: Analyze Redis connectivity, reconciliation outcomes, and version lag
 5. **Re-enable**: After fix, gradual rollout again
 
 ## Deployment Steps
 
 1. **Staging**:
    - Deploy with flag `false`
-   - Verify shadow comparison runs, metrics emit, no crashes
+   - Verify snapshot reconciliation metrics emit and no crashes
    - Run restart test: kill app-back-end, restart, verify snapshot loaded
    - Run reconnect test: restart Redis, verify re-subscription works
    - Test epoch change: `FLUSHDB`, verify client accepts new epoch
 
-2. **Production (shadow only)**:
+2. **Production (Redis reads disabled)**:
    - Deploy to all instances with flag `false`
-   - Monitor shadow parity for 24h
-   - Alert on mismatch rate > 0.1%
+   - Verify legacy fallback and snapshot client health
 
 3. **Production (gradual enable)**:
    - Enable flag on 10% of instances
-   - Monitor for 2h: error rate, latency, parity
+   - Monitor for 2h: error rate, latency, and snapshot freshness
    - Increase to 50%, then 100%
    - At each step: verify exit gate thresholds
 
@@ -191,7 +148,6 @@ and version, lag, age, subscription state, and the most recent invalidation time
 - Phase 1 complete (snapshots publishing, epoch/version monotonic)
 - Redis client library with Pub/Sub support
 - Feature flag infrastructure
-- Deep-diff utility (e.g., `deepdiff` package)
 
 ## Risks & Mitigations
 
@@ -202,7 +158,6 @@ and version, lag, age, subscription state, and the most recent invalidation time
 | Version lag during high load | Reconciliation every 60s + notification-driven updates |
 | Mobile app breaks | Contract test suite runs in CI; mobile API shape unchanged |
 | Memory leak in local snapshot | Single snapshot object, replaced atomically; no accumulation |
-| Hot-path deep-diff | Background sampling only; 1% per-request max |
 
 ## Test Checklist
 
@@ -210,10 +165,8 @@ and version, lag, age, subscription state, and the most recent invalidation time
 - [ ] Unit: Cache miss → HTTP refresh request → notification → snapshot loaded
 - [ ] Unit: Reconciliation detects stale local (epoch, version)
 - [ ] Unit: Epoch change handling (accepts lower version when epoch increases)
-- [ ] Integration: Shadow sampling compares correctly, emits metrics
 - [ ] Integration: Feature flag toggles behavior correctly
 - [ ] Load: 1000 concurrent requests, shadow sampling adds negligible overhead
 - [ ] Chaos: Redis down → client serves stale (with warning) or falls back
 - [ ] Chaos: Redis flapping → reconnection works, no duplicate subscriptions
-- [ ] Parity: 24h production shadow run, mismatch rate < 0.1%
 - [ ] Contract: Mobile API test suite passes with flag enabled
