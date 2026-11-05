@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import { setBackendVersion, setVersion } from "../slices/app";
+import { setBackendVersion, setFeatureFlags, setVersion } from "../slices/app";
 
 // Create a separate axios instance for version endpoint (served at root, not /api)
 export const versionClient = axios.create({
@@ -24,12 +24,23 @@ export const fetchAppVersion = createAsyncThunk(
     }
 
     try {
-      const response = await backendVersionClient.get<string>("/version");
+      const response = await backendVersionClient.get<string>("/app/version");
       if (response.status === 200) {
         dispatch(setBackendVersion(response.data.trim()));
       }
     } catch (error) {
       console.warn("Failed to fetch backend version:", error);
     }
-  }
+
+    try {
+      const response = await backendVersionClient.get<{
+        [key: string]: boolean;
+      }>("/app/features");
+      if (response.status === 200) {
+        dispatch(setFeatureFlags(response.data));
+      }
+    } catch (error) {
+      console.warn("Failed to fetch feature flags:", error);
+    }
+  },
 );
