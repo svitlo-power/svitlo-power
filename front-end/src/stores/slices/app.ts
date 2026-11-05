@@ -3,15 +3,19 @@ import { createAction, createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface AppState {
   version: string;
   backendVersion: string;
-  backendRedisDashboardEnabled: boolean;
-  backendFeaturesLoaded: boolean;
+  features: {
+    backendRedisDashboardEnabled: boolean;
+  };
+  featuresLoaded: boolean;
 }
 
 const initialState: AppState = {
   version: "0000.00.00",
   backendVersion: "0000.00.00",
-  backendRedisDashboardEnabled: false,
-  backendFeaturesLoaded: false,
+  features: {
+    backendRedisDashboardEnabled: false,
+  },
+  featuresLoaded: false,
 };
 
 const appSlice = createSlice({
@@ -24,24 +28,17 @@ const appSlice = createSlice({
     setBackendVersion: (state, action: PayloadAction<string>) => {
       state.backendVersion = action.payload;
     },
-    setBackendRedisDashboardEnabled: (
-      state,
-      action: PayloadAction<boolean>,
-    ) => {
-      state.backendRedisDashboardEnabled = action.payload;
-      state.backendFeaturesLoaded = true;
+    setFeatures: (state, action: PayloadAction<AppState["features"]>) => {
+      state.features = action.payload;
+      state.featuresLoaded = true;
     },
-    setBackendFeaturesLoaded: (state) => {
-      state.backendFeaturesLoaded = true;
+    setFeaturesLoaded: (state) => {
+      state.featuresLoaded = true;
     },
   },
 });
 
 export const appStarted = createAction("app/started");
-export const {
-  setVersion,
-  setBackendVersion,
-  setBackendRedisDashboardEnabled,
-  setBackendFeaturesLoaded,
-} = appSlice.actions;
+export const { setVersion, setBackendVersion, setFeatures, setFeaturesLoaded } =
+  appSlice.actions;
 export const appReducer = appSlice.reducer;

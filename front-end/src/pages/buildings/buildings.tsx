@@ -20,8 +20,8 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   authDataSelector,
   createSelectEdittedBuildings,
-  selectBackendFeaturesLoaded,
   selectBackendRedisDashboardEnabled,
+  selectFeaturesLoaded,
 } from "../../stores/selectors";
 import { initGA, trackPageView } from "../../utils/analytics";
 import { useLocalizedEffect, useSubscribeEvents } from "../../hooks";
@@ -64,7 +64,7 @@ export const BuildingsPage: FC = () => {
     useAppSelector(authDataSelector)?.accessToken,
   );
   const dispatch = useAppDispatch();
-  const backendFeaturesLoaded = useAppSelector(selectBackendFeaturesLoaded);
+  const featuresLoaded = useAppSelector(selectFeaturesLoaded);
   const backendRedisDashboardEnabled = useAppSelector(
     selectBackendRedisDashboardEnabled,
   );
@@ -193,15 +193,15 @@ export const BuildingsPage: FC = () => {
         fetchOutages();
         break;
     }
-  }, backendFeaturesLoaded);
+  }, featuresLoaded);
 
-  const previousBackendFeaturesLoaded = useRef(backendFeaturesLoaded);
+  const previousFeaturesLoaded = useRef(featuresLoaded);
   useEffect(() => {
-    if (!previousBackendFeaturesLoaded.current && backendFeaturesLoaded) {
+    if (!previousFeaturesLoaded.current && featuresLoaded) {
       fetchData();
     }
-    previousBackendFeaturesLoaded.current = backendFeaturesLoaded;
-  }, [backendFeaturesLoaded, fetchData]);
+    previousFeaturesLoaded.current = featuresLoaded;
+  }, [featuresLoaded, fetchData]);
 
   useLocalizedEffect(() => {
     fetchData();

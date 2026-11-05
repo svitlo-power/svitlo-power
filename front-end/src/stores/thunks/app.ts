@@ -1,8 +1,8 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import {
-  setBackendFeaturesLoaded,
-  setBackendRedisDashboardEnabled,
+  setFeatures,
+  setFeaturesLoaded,
   setBackendVersion,
   setVersion,
 } from "../slices/app";
@@ -33,16 +33,12 @@ export const fetchAppVersion = createAsyncThunk(
         backendRedisDashboardEnabled: boolean;
       }>("/app/features");
       if (response.status === 200) {
-        dispatch(
-          setBackendRedisDashboardEnabled(
-            response.data.backendRedisDashboardEnabled,
-          ),
-        );
+        dispatch(setFeatures(response.data));
       }
     } catch (error) {
       console.warn("Failed to fetch backend features:", error);
     } finally {
-      dispatch(setBackendFeaturesLoaded());
+      dispatch(setFeaturesLoaded());
     }
 
     try {

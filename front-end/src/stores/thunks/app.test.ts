@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import {
-  setBackendFeaturesLoaded,
-  setBackendRedisDashboardEnabled,
+  setFeatures,
+  setFeaturesLoaded,
   setBackendVersion,
   setVersion,
 } from "../slices/app";
@@ -67,7 +67,7 @@ describe("fetchAppVersion thunk", () => {
     expect(mockBackendGet).toHaveBeenCalledWith("/app/version");
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
     expect(mockDispatch).toHaveBeenCalledWith(
-      setBackendRedisDashboardEnabled(true),
+      setFeatures({ backendRedisDashboardEnabled: true }),
     );
   });
 
@@ -81,7 +81,7 @@ describe("fetchAppVersion thunk", () => {
     );
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
     expect(mockDispatch).toHaveBeenCalledWith(
-      setBackendRedisDashboardEnabled(true),
+      setFeatures({ backendRedisDashboardEnabled: true }),
     );
   });
 
@@ -103,7 +103,7 @@ describe("fetchAppVersion thunk", () => {
     expect(mockDispatch).not.toHaveBeenCalledWith(
       setBackendVersion(expect.anything()),
     );
-    expect(mockDispatch).toHaveBeenCalledWith(setBackendFeaturesLoaded());
+    expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
   });
 
   it("falls back to legacy event mode when feature loading fails", async () => {
@@ -115,9 +115,9 @@ describe("fetchAppVersion thunk", () => {
 
     await fetchAppVersion()(mockDispatch, mockGetState, undefined);
 
-    expect(mockDispatch).toHaveBeenCalledWith(setBackendFeaturesLoaded());
+    expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setBackendRedisDashboardEnabled(expect.anything()),
+      setFeatures(expect.anything()),
     );
   });
 });

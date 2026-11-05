@@ -5,7 +5,7 @@ import { MantineProvider } from "@mantine/core";
 import { vi } from "vitest";
 import { createTestStore } from "../../test/storeTestUtils";
 import { EventItem, EventType } from "../../types";
-import { setBackendFeaturesLoaded } from "../../stores/slices/app";
+import { setFeaturesLoaded } from "../../stores/slices/app";
 import { BuildingsPage } from "./buildings";
 
 const { mockGet, mockSetHeaderButtons, mockSubscribeEvents } = vi.hoisted(
@@ -81,16 +81,20 @@ describe("BuildingsPage outage schedule", () => {
       dsoId: number | string | null;
       queue: string | null;
     } | null,
-    backendFeatures = {
+    featuresState = {
       backendRedisDashboardEnabled: false,
-      backendFeaturesLoaded: false,
+      featuresLoaded: false,
     },
   ) => {
     const store = createTestStore({
       app: {
         version: "0000.00.00",
         backendVersion: "0000.00.00",
-        ...backendFeatures,
+        features: {
+          backendRedisDashboardEnabled:
+            featuresState.backendRedisDashboardEnabled,
+        },
+        featuresLoaded: featuresState.featuresLoaded,
       },
       dashboardConfig: {
         config: {
@@ -168,7 +172,7 @@ describe("BuildingsPage outage schedule", () => {
       ([url]) => url === "/dashboard/config",
     ).length;
 
-    store.dispatch(setBackendFeaturesLoaded());
+    store.dispatch(setFeaturesLoaded());
 
     await waitFor(() => {
       expect(
@@ -181,7 +185,7 @@ describe("BuildingsPage outage schedule", () => {
   it("uses only dashboard_updated in backend snapshot mode", () => {
     renderPage(null, {
       backendRedisDashboardEnabled: true,
-      backendFeaturesLoaded: true,
+      featuresLoaded: true,
     });
 
     const handler = mockSubscribeEvents.mock.calls.at(-1)?.[0] as (
@@ -207,7 +211,7 @@ describe("BuildingsPage outage schedule", () => {
   it("uses legacy dashboard events when backend snapshot mode is disabled", () => {
     renderPage(null, {
       backendRedisDashboardEnabled: false,
-      backendFeaturesLoaded: true,
+      featuresLoaded: true,
     });
 
     const handler = mockSubscribeEvents.mock.calls.at(-1)?.[0] as (

@@ -13,9 +13,9 @@ export const selectBackendVersion = createSelector(
 );
 export const selectBackendRedisDashboardEnabled = createSelector(
   [selectApp],
-  (app) => app.backendRedisDashboardEnabled,
+  (app) => app.features.backendRedisDashboardEnabled,
 );
-export const selectBackendFeaturesLoaded = createSelector(
+export const selectFeaturesLoaded = createSelector(
   [selectApp],
-  (app) => app.backendFeaturesLoaded,
+  (app) => app.featuresLoaded,
 );
