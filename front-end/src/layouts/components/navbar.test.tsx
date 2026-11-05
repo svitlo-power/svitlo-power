@@ -1,4 +1,8 @@
-import { renderWithStore, screen, fireEvent } from "../../test/storeTestUtils.tsx";
+import {
+  renderWithStore,
+  screen,
+  fireEvent,
+} from "../../test/storeTestUtils.tsx";
 import { Navbar } from "./navbar";
 import { MemoryRouter } from "react-router-dom";
 import { TFunction } from "i18next";
@@ -18,7 +22,12 @@ vi.mock("../../components", () => ({
 vi.mock("../../routes", () => ({
   RootRoutes: [
     { path: "/dashboard", name: "dashboard", icon: "home", skipForMenu: false },
-    { path: "/buildings", name: "buildings", icon: "building", skipForMenu: false },
+    {
+      path: "/buildings",
+      name: "buildings",
+      icon: "building",
+      skipForMenu: false,
+    },
     { path: "/stations", name: "stations", icon: "bolt", skipForMenu: false },
     { path: "/settings", name: "settings", icon: "cog", skipForMenu: true },
   ],
@@ -26,7 +35,9 @@ vi.mock("../../routes", () => ({
 }));
 
 vi.mock("@fortawesome/react-fontawesome", () => ({
-  FontAwesomeIcon: ({ icon }: { icon: string }) => <span data-testid={`icon-${icon}`} />,
+  FontAwesomeIcon: ({ icon }: { icon: string }) => (
+    <span data-testid={`icon-${icon}`} />
+  ),
 }));
 
 // Mock the entire slices module with all required exports
@@ -34,7 +45,6 @@ vi.mock("../../stores/slices", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    appStarted: vi.fn(() => ({ type: "app/started" })),
     authReducer: (state: any = {}) => state,
     botsReducer: (state: any = {}) => state,
     chatsReducer: (state: any = {}) => state,
@@ -73,7 +83,7 @@ const renderNavbar = (props = {}) => {
   return renderWithStore(
     <MemoryRouter initialEntries={["/dashboard"]}>
       <Navbar {...defaultProps} />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 };
 
@@ -89,12 +99,16 @@ describe("Navbar", () => {
 
   it("renders app title when not collapsed", () => {
     renderNavbar({ isNavbarCollapsed: false });
-    expect(screen.getByText("Svitlo Power monitoring tool")).toBeInTheDocument();
+    expect(
+      screen.getByText("Svitlo Power monitoring tool"),
+    ).toBeInTheDocument();
   });
 
   it("does not render app title when collapsed", () => {
     renderNavbar({ isNavbarCollapsed: true });
-    expect(screen.queryByText("Svitlo Power monitoring tool")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Svitlo Power monitoring tool"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders nav title with correct translation key", () => {
