@@ -1,7 +1,17 @@
-import { appReducer, setBackendVersion, setVersion } from "./app";
+import {
+  appReducer,
+  setBackendRedisDashboardEnabled,
+  setBackendVersion,
+  setVersion,
+} from "./app";
 
 describe("app slice", () => {
-  const initialState = { version: "0000.00.00", backendVersion: "0000.00.00" };
+  const initialState = {
+    version: "0000.00.00",
+    backendVersion: "0000.00.00",
+    backendRedisDashboardEnabled: false,
+    backendFeaturesLoaded: false,
+  };
 
   it("should return initial state", () => {
     expect(appReducer(undefined, { type: "unknown" })).toEqual(initialState);
@@ -17,6 +27,15 @@ describe("app slice", () => {
   it("should set backend version", () => {
     const state = appReducer(initialState, setBackendVersion("2026.10.02"));
     expect(state.backendVersion).toBe("2026.10.02");
+  });
+
+  it("should store the backend dashboard feature and mark features loaded", () => {
+    const state = appReducer(
+      initialState,
+      setBackendRedisDashboardEnabled(true),
+    );
+    expect(state.backendRedisDashboardEnabled).toBe(true);
+    expect(state.backendFeaturesLoaded).toBe(true);
   });
 
   it("should handle multiple version updates", () => {

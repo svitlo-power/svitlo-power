@@ -215,7 +215,50 @@ class TestBuildSnapshot:
         assert snapshot.outages_schedules["queue1"] is unit_schedule
 
 
+class TestRefreshAndPublish:
+    @pytest.mark.asyncio
+    async def test_broadcasts_dashboard_updated_after_snapshot_is_published(self):
+        order = []
+        events = MagicMock()
+        events.broadcast_public = AsyncMock(
+            side_effect=lambda event: order.append(("broadcast", event))
+        )
+        service = DashboardSnapshotService(
+            events,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = AsyncMock(spec=Redis)
+        service._redis.incr = AsyncMock(return_value=2)
+        snapshot = DashboardSnapshot(
+            epoch=1700000000000,
+            version=2,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[],
+            config=ConfigSnapshot(title={"uk": "Панель", "en": "Dashboard"}),
+            outages_schedules={},
+        )
+        service.build_snapshot = AsyncMock(return_value=snapshot)
 
+        async def publish(_snapshot):
+            order.append(("publish", _snapshot.version))
+            return True
+
+        service.publish_snapshot = AsyncMock(side_effect=publish)
+
+        await service.refresh_and_publish()
+
+        assert order == [
+            ("publish", 2),
+            ("broadcast", "dashboard_updated"),
+        ]
 
 
 class TestPublishSnapshot:
@@ -225,7 +268,6 @@ class TestPublishSnapshot:
     async def test_publish_snapshot_no_lease(self):
 
         mock_events = MagicMock()
-
         mock_dashboard = MagicMock()
 
         mock_dashboard_repo = MagicMock()
@@ -615,6 +657,7 @@ class TestHandleRefreshRequest:
 
 
         mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
 
         mock_dashboard = MagicMock()
 

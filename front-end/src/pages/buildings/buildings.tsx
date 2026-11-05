@@ -20,6 +20,8 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   authDataSelector,
   createSelectEdittedBuildings,
+  selectBackendFeaturesLoaded,
+  selectBackendRedisDashboardEnabled,
 } from "../../stores/selectors";
 import { initGA, trackPageView } from "../../utils/analytics";
 import { useLocalizedEffect, useSubscribeEvents } from "../../hooks";
@@ -62,6 +64,10 @@ export const BuildingsPage: FC = () => {
     useAppSelector(authDataSelector)?.accessToken,
   );
   const dispatch = useAppDispatch();
+  const backendFeaturesLoaded = useAppSelector(selectBackendFeaturesLoaded);
+  const backendRedisDashboardEnabled = useAppSelector(
+    selectBackendRedisDashboardEnabled,
+  );
 
   const t = usePageTranslation("dashboard");
 
@@ -78,10 +84,6 @@ export const BuildingsPage: FC = () => {
       dispatch(saveBuildings());
     }
   }, [configChanged, buildingsChanged, dispatch]);
-
-  useLocalizedEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const fetchSummary = useCallback(
     (force: boolean = false) => {
@@ -167,6 +169,15 @@ export const BuildingsPage: FC = () => {
   }, [dashboardConfig?.title]);
 
   useSubscribeEvents((event: EventItem) => {
+    if (backendRedisDashboardEnabled) {
+      if (event.type === EventType.DashboardUpdated) {
+        fetchData();
+        fetchSummary(true);
+        fetchOutages();
+      }
+      return;
+    }
+
     switch (event.type) {
       case EventType.BuildingsUpdated:
       case EventType.DashboardConfigUpdated:
@@ -182,7 +193,19 @@ export const BuildingsPage: FC = () => {
         fetchOutages();
         break;
     }
-  });
+  }, backendFeaturesLoaded);
+
+  const previousBackendFeaturesLoaded = useRef(backendFeaturesLoaded);
+  useEffect(() => {
+    if (!previousBackendFeaturesLoaded.current && backendFeaturesLoaded) {
+      fetchData();
+    }
+    previousBackendFeaturesLoaded.current = backendFeaturesLoaded;
+  }, [backendFeaturesLoaded, fetchData]);
+
+  useLocalizedEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const visibility = useDocumentVisibility();
   const prevVisibility = useRef(visibility);

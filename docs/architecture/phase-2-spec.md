@@ -101,6 +101,14 @@ async def shadow_compare_sample(request: Request, legacy_response):
 ### 3. Feature Flag
 **Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`)
 
+The back-end feature `BACKEND_REDIS_DASHBOARD_ENABLED` (environment variable
+`FEATURE_BACKEND_REDIS_DASHBOARD_ENABLED`) is exposed through
+`GET /api/app/features`. The public dashboard waits for this feature response
+before subscribing to refresh events: it uses `dashboard_updated` when enabled
+and the legacy dashboard event set otherwise. The producer emits
+`dashboard_updated` only after a snapshot write succeeds, so a refresh event
+never directs snapshot-backed clients to fetch data from an older snapshot.
+
 | Value | Behavior |
 |-------|----------|
 | `false` | Legacy calculation serves responses; shadow comparison runs in the background |

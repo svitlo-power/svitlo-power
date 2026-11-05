@@ -270,12 +270,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (field_path) (increase(dashboard_parity_mismatches_total[1h]))",
+          "expr": "sum by (field_path) (increase(dashboard_parity_mismatches_total[1h])) or on() vector(0)",
           "legendFormat": "{{field_path}}",
           "refId": "A"
         },
         {
-          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total[1h]))",
+          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total[1h])) or on() vector(0)",
           "legendFormat": "write error: {{error_type}}",
           "refId": "B"
         }

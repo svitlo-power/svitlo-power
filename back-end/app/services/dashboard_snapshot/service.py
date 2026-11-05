@@ -440,8 +440,10 @@ class DashboardSnapshotService:
         # Allocate version via INCR on the version allocator key
         version = await self._redis.incr(VERSION_NEXT_KEY)
         snapshot = await self.build_snapshot(version=version)
-        await self.publish_snapshot(snapshot)
+        published = await self.publish_snapshot(snapshot)
         self._last_snapshot = snapshot
+        if published and self.is_publish_enabled:
+            await self._events.broadcast_public("dashboard_updated")
         return snapshot
 
     async def handle_refresh_request(

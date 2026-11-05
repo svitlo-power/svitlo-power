@@ -1,5 +1,10 @@
 import { vi } from "vitest";
-import { setBackendVersion, setVersion } from "../slices/app";
+import {
+  setBackendFeaturesLoaded,
+  setBackendRedisDashboardEnabled,
+  setBackendVersion,
+  setVersion,
+} from "../slices/app";
 
 const { mockGet, mockBackendGet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -23,7 +28,15 @@ describe("fetchAppVersion thunk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGet.mockResolvedValue({ data: "2026.10.01", status: 200 });
-    mockBackendGet.mockResolvedValue({ data: "2026.10.02", status: 200 });
+    mockBackendGet.mockImplementation((path: string) => {
+      if (path === "/app/features") {
+        return Promise.resolve({
+          data: { backendRedisDashboardEnabled: true },
+          status: 200,
+        });
+      }
+      return Promise.resolve({ data: "2026.10.02", status: 200 });
+    });
   });
 
   const createThunkAPI = () => ({
@@ -50,8 +63,12 @@ describe("fetchAppVersion thunk", () => {
 
     expect(mockGet).toHaveBeenCalledWith("/version");
     expect(mockDispatch).toHaveBeenCalledWith(setVersion("2026.10.01"));
-    expect(mockBackendGet).toHaveBeenCalledWith("/version");
+    expect(mockBackendGet).toHaveBeenCalledWith("/app/features");
+    expect(mockBackendGet).toHaveBeenCalledWith("/app/version");
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
+    expect(mockDispatch).toHaveBeenCalledWith(
+      setBackendRedisDashboardEnabled(true),
+    );
   });
 
   it("should not dispatch setVersion on failed fetch", async () => {
@@ -60,9 +77,12 @@ describe("fetchAppVersion thunk", () => {
     await fetchAppVersion()(mockDispatch, mockGetState, undefined);
 
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setVersion(expect.anything())
+      setVersion(expect.anything()),
     );
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
+    expect(mockDispatch).toHaveBeenCalledWith(
+      setBackendRedisDashboardEnabled(true),
+    );
   });
 
   it("should not dispatch a version on non-200 status", async () => {
@@ -78,10 +98,26 @@ describe("fetchAppVersion thunk", () => {
     await fetchAppVersion()(mockDispatch, mockGetState, undefined);
 
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setVersion(expect.anything())
+      setVersion(expect.anything()),
     );
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setBackendVersion(expect.anything())
+      setBackendVersion(expect.anything()),
+    );
+    expect(mockDispatch).toHaveBeenCalledWith(setBackendFeaturesLoaded());
+  });
+
+  it("falls back to legacy event mode when feature loading fails", async () => {
+    mockBackendGet.mockImplementation((path: string) =>
+      path === "/app/features"
+        ? Promise.reject(new Error("Network error"))
+        : Promise.resolve({ data: "2026.10.02", status: 200 }),
+    );
+
+    await fetchAppVersion()(mockDispatch, mockGetState, undefined);
+
+    expect(mockDispatch).toHaveBeenCalledWith(setBackendFeaturesLoaded());
+    expect(mockDispatch).not.toHaveBeenCalledWith(
+      setBackendRedisDashboardEnabled(expect.anything()),
     );
   });
 });
