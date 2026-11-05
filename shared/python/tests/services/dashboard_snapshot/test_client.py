@@ -100,8 +100,8 @@ async def test_subscribes_before_loading_and_exposes_snapshot():
     try:
         assert redis.pubsubs[0].channels == [INVALIDATION_CHANNEL]
         assert client.get_snapshot() is not None
-        assert client.get_building("507f1f77bcf86cd799439011").name["en"] == "Building"
-        assert client.get_config().title["uk"] == "Панель"
+        assert client.get_building("507f1f77bcf86cd799439011").name.root["en"] == "Building"
+        assert client.get_config().title.root["uk"] == "Панель"
         assert client.get_outages_schedule("queue") is None
         assert (client.epoch, client.version) == (1, 1)
         assert client.is_subscribed

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from shared.services.outages_schedule.models import SchedulesResponse
+    from shared.models.outages_schedule import SchedulesResponse
 
 
 class IOutagesScheduleRepository(ABC):

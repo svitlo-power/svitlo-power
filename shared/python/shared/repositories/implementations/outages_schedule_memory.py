@@ -1,7 +1,7 @@
 from typing import Optional
 
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
-from shared.services.outages_schedule.models import SchedulesResponse
+from shared.models.outages_schedule import SchedulesResponse
 
 
 class InMemoryOutagesScheduleRepository(IOutagesScheduleRepository):

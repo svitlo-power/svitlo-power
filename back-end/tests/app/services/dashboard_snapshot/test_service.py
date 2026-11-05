@@ -38,14 +38,8 @@ from app.services.dashboard_snapshot.service import (
 
 )
 
-from app.services.dashboard_snapshot.models import (
-
-    DashboardSnapshot,
-
-    ConfigSnapshot,
-
-)
-
+from app.services.dashboard_snapshot.models import DashboardSnapshot, ConfigSnapshot
+from shared.models.outages_schedule import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 
 
@@ -142,7 +136,10 @@ class TestBuildSnapshot:
 
         }
 
-        mock_dashboard.get_config.return_value.outages_schedule = None
+        mock_dashboard.get_config.return_value.outages_schedule = MagicMock(
+            enable=True,
+            queue="queue1",
+        )
 
         mock_dashboard.get_buildings_with_summary = AsyncMock(return_value=[])
 
@@ -160,10 +157,12 @@ class TestBuildSnapshot:
 
         mock_outages_repo = MagicMock()
 
+        unit_schedule = UnitSchedule(
+            days=[],
+            updatedOn=datetime(2026, 10, 31, tzinfo=timezone.utc),
+        )
         mock_outages_repo.get_all_schedules = AsyncMock(
-
-            return_value=MagicMock(root={})
-
+            return_value=MagicMock(root={"queue1": unit_schedule})
         )
 
         mock_settings = _MockSettings()
@@ -212,9 +211,8 @@ class TestBuildSnapshot:
 
         assert snapshot.buildings == []
 
-        assert snapshot.config.title == {"uk": "Панел", "en": "Dashboard"}
-
-        assert snapshot.outages_schedules == {}
+        assert snapshot.config.title.root == {"uk": "Панел", "en": "Dashboard"}
+        assert snapshot.outages_schedules["queue1"] is unit_schedule
 
 
 
@@ -699,4 +697,3 @@ class TestHandleRefreshRequest:
         assert result["version"] == 1
 
         assert result["coalesced"] is False
-

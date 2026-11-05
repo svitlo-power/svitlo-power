@@ -43,10 +43,6 @@ from app.services.dashboard_snapshot.models import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitScheduleSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
-    LocalizableValue,
 )
 
 logger = logging.getLogger(__name__)
@@ -350,38 +346,10 @@ class DashboardSnapshotService:
             configured_queue = (
                 outages_schedule.queue if outages_schedule and outages_schedule.enable else None
             )
-            if configured_queue is None:
-                # Outages disabled: no schedules to include
-                pass
-            else:
-                for queue, unit_schedule in all_schedules.root.items():
-                    if queue != configured_queue:
-                        continue
-                days = []
-                for day in unit_schedule.days:
-                    slots = [
-                        SlotSnapshot(
-                            start=slot.start,
-                            end=slot.end,
-                            type=slot.type.value
-                            if hasattr(slot.type, "value")
-                            else str(slot.type),
-                        )
-                        for slot in day.slots
-                    ]
-                    days.append(
-                        DayScheduleSnapshot(
-                            slots=slots,
-                            date=day.date,
-                            status=day.status.value
-                            if hasattr(day.status, "value")
-                            else str(day.status),
-                        )
-                    )
-                outages_schedules[queue] = UnitScheduleSnapshot(
-                    days=days,
-                    updatedOn=unit_schedule.updatedOn,
-                )
+            if configured_queue is not None:
+                unit_schedule = all_schedules.root.get(configured_queue)
+                if unit_schedule is not None:
+                    outages_schedules[configured_queue] = unit_schedule
 
             snapshot = DashboardSnapshot(
                 epoch=self._epoch or int(time.time() * 1000),

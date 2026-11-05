@@ -1,21 +1,19 @@
-"""Backward-compatible imports for the shared DashboardSnapshot v1 schema."""
+"""Reexports for the shared DashboardSnapshot v1 models."""
 
 from shared.models.dashboard_snapshot import (
     BuildingSnapshot,
     ConfigSnapshot,
     DashboardSnapshot,
-    DayScheduleSnapshot,
-    LocalizableValue,
-    SlotSnapshot,
-    UnitScheduleSnapshot,
 )
+from shared.models.localizable_value import LocalizableValue
+from shared.models.outages_schedule import DaySchedule, Slot, UnitSchedule
 
 __all__ = [
     "BuildingSnapshot",
     "ConfigSnapshot",
     "DashboardSnapshot",
-    "DayScheduleSnapshot",
+    "DaySchedule",
     "LocalizableValue",
-    "SlotSnapshot",
-    "UnitScheduleSnapshot",
+    "Slot",
+    "UnitSchedule",
 ]

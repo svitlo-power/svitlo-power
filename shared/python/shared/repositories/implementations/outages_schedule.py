@@ -3,7 +3,7 @@ import redis.asyncio as redis
 from typing import Optional
 
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
-from shared.services.outages_schedule.models import SchedulesResponse
+from shared.models.outages_schedule import SchedulesResponse
 
 
 class RedisOutagesScheduleRepository(IOutagesScheduleRepository):
@@ -20,7 +20,7 @@ class RedisOutagesScheduleRepository(IOutagesScheduleRepository):
         if data is None:
             return None
         # Each hash field stores a single UnitSchedule JSON, wrap it in a dict for SchedulesResponse
-        from shared.services.outages_schedule.models import UnitSchedule
+        from shared.models.outages_schedule import UnitSchedule
         unit_schedule = UnitSchedule.model_validate_json(data)
         return SchedulesResponse({queue: unit_schedule})
 

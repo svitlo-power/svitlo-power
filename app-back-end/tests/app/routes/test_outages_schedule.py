@@ -7,9 +7,15 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.settings import Settings
 from shared.services.outages_schedule.service import OutagesScheduleService
-from shared.services.outages_schedule.models import SchedulesResponse, UnitSchedule, DaySchedule, Slot, SlotType, DayStatus
+from shared.models.outages_schedule import (
+    SchedulesResponse,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
+    SlotType,
+    DayStatus,
+)
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
-from shared.models.dashboard_snapshot import UnitScheduleSnapshot
 from app.services import DashboardShadowComparison
 
 
@@ -101,7 +107,7 @@ class TestOutagesScheduleRoutes:
     ):
         mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
         mock_snapshot_client.is_stale = False
-        mock_snapshot_client.get_outages_schedule.return_value = UnitScheduleSnapshot(
+        mock_snapshot_client.get_outages_schedule.return_value = UnitSchedule(
             days=[
                 {
                     "slots": [{"start": 0, "end": 24, "type": "Definite"}],

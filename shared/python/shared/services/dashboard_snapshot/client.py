@@ -21,8 +21,8 @@ from shared.models.dashboard_snapshot import (
     BuildingSnapshot,
     ConfigSnapshot,
     DashboardSnapshot,
-    UnitScheduleSnapshot,
 )
+from shared.models.outages_schedule import UnitSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class DashboardSnapshotClient:
     def get_config(self) -> ConfigSnapshot | None:
         return self._snapshot.config if self._snapshot else None
 
-    def get_outages_schedule(self, queue: str) -> UnitScheduleSnapshot | None:
+    def get_outages_schedule(self, queue: str) -> UnitSchedule | None:
         if self._snapshot is None:
             return None
         return self._snapshot.outages_schedules.get(queue)

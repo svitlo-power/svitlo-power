@@ -8,7 +8,7 @@ import aiohttp
 
 from shared.services.events.service import EventsService
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
-from .models import SchedulesResponse, DayStatus
+from shared.models.outages_schedule import SchedulesResponse, DayStatus
 
 
 logger = logging.getLogger(__name__)

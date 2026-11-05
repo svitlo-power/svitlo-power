@@ -10,9 +10,13 @@ from .dashboard_snapshot import (
     BuildingSnapshot,
     ConfigSnapshot,
     DashboardSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
-    UnitScheduleSnapshot,
+)
+from .outages_schedule import (
+    DaySchedule,
+    DayStatus,
+    Slot,
+    SlotType,
+    UnitSchedule,
 )
 from .station_connection import StationConnection
 from .ext_data import ExtData
@@ -51,9 +55,11 @@ __all__ = [
     BuildingSnapshot,
     ConfigSnapshot,
     DashboardSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
-    UnitScheduleSnapshot,
+    DaySchedule,
+    DayStatus,
+    Slot,
+    SlotType,
+    UnitSchedule,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue, LoginHistory, PushDevice, PushPlatform, PushTopic,
     BuildingResponse,
