@@ -3,6 +3,7 @@ from .translation import TranslationService
 from .deye_api import BaseDeyeClient, DeyeCredentials
 from .outages_schedule import OutagesScheduleService, SchedulesResponse, UnitSchedule, DaySchedule, Slot, SlotType, DayStatus
 from .dashboard import ReadOnlyDashboardService
+from .dashboard_snapshot import DashboardSnapshotClient
 from .push import PushDevicesService
 from .settings import SettingsService
 
@@ -12,5 +13,5 @@ __all__ = [
     OutagesScheduleService, SchedulesResponse, UnitSchedule,
     DaySchedule, Slot, SlotType, DayStatus,
     ReadOnlyDashboardService, PushDevicesService,
-    SettingsService
+    SettingsService, DashboardSnapshotClient
 ]

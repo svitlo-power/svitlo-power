@@ -1,4 +1,4 @@
-"""Local, reconnecting Redis consumer for dashboard snapshots."""
+"""Reusable local Redis consumer for dashboard snapshots."""
 
 import asyncio
 import json
@@ -39,10 +39,12 @@ class DashboardSnapshotClient:
         stale_threshold_seconds: int = 300,
         reconciliation_interval_seconds: int = 60,
         refresh_wait_seconds: float = 5,
+        requested_by: str = "shared-consumer",
     ):
         self._redis = redis
         self._session = session
         self._refresh_url = refresh_url
+        self._requested_by = requested_by
         self._stale_threshold_seconds = stale_threshold_seconds
         self._reconciliation_interval_seconds = reconciliation_interval_seconds
         self._refresh_wait_seconds = refresh_wait_seconds
@@ -54,6 +56,7 @@ class DashboardSnapshotClient:
         self._stopped = False
         self._subscriber_task: asyncio.Task | None = None
         self._reconciliation_task: asyncio.Task | None = None
+        self._age_metrics_task: asyncio.Task | None = None
         self._pubsub: Any = None
         self._connected = asyncio.Event()
         self._initial_reconcile_complete = asyncio.Event()
@@ -69,6 +72,7 @@ class DashboardSnapshotClient:
         self._stopped = False
         self._subscriber_task = asyncio.create_task(self._subscriber_loop())
         self._reconciliation_task = asyncio.create_task(self._reconciliation_loop())
+        self._age_metrics_task = asyncio.create_task(self._age_metrics_loop())
         try:
             await asyncio.wait_for(self._connected.wait(), timeout=5)
             await asyncio.wait_for(self._initial_reconcile_complete.wait(), timeout=5)
@@ -84,7 +88,11 @@ class DashboardSnapshotClient:
         self._connected.clear()
 
         tasks = [
-            task for task in (self._subscriber_task, self._reconciliation_task)
+            task for task in (
+                self._subscriber_task,
+                self._reconciliation_task,
+                self._age_metrics_task,
+            )
             if task is not None
         ]
         for task in tasks:
@@ -94,6 +102,7 @@ class DashboardSnapshotClient:
 
         self._subscriber_task = None
         self._reconciliation_task = None
+        self._age_metrics_task = None
         self._pubsub = None
 
     def get_snapshot(self) -> DashboardSnapshot | None:
@@ -150,7 +159,7 @@ class DashboardSnapshotClient:
     @property
     def version_lag(self) -> int:
         if self._redis_epoch != self.epoch:
-            return max(0, self._redis_version - self.version)
+            return 0
         return max(0, self._redis_version - self.version)
 
     @property
@@ -209,7 +218,12 @@ class DashboardSnapshotClient:
             snapshot = DashboardSnapshot.model_validate_json(raw_snapshot)
             self._redis_epoch = snapshot.epoch
             self._redis_version = snapshot.version
-            REDIS_SNAPSHOT_VERSION_LAG.set(self.version_lag)
+            lag = self.version_lag
+            REDIS_SNAPSHOT_VERSION_LAG.set(lag)
+            if lag > 1 and self._version_lag_since is None:
+                self._version_lag_since = asyncio.get_running_loop().time()
+            elif lag <= 1:
+                self._version_lag_since = None
 
             if (snapshot.epoch, snapshot.version) > (self.epoch, self.version):
                 self._snapshot = snapshot
@@ -302,6 +316,16 @@ class DashboardSnapshotClient:
             except Exception:
                 logger.exception("Dashboard snapshot reconciliation loop failed")
 
+    async def _age_metrics_loop(self) -> None:
+        while not self._stopped:
+            try:
+                await asyncio.sleep(15)
+                REDIS_SNAPSHOT_AGE_SECONDS.set(self.age_seconds)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Dashboard snapshot age metric update failed")
+
     async def _refresh_on_cache_miss(self) -> None:
         async with self._refresh_lock:
             if self._snapshot is not None:
@@ -310,7 +334,7 @@ class DashboardSnapshotClient:
             try:
                 async with self._session.post(
                     self._refresh_url,
-                    json={"reason": "cache-miss", "requestedBy": "app-back-end"},
+                    json={"reason": "cache-miss", "requestedBy": self._requested_by},
                     timeout=aiohttp.ClientTimeout(total=5),
                 ) as response:
                     response.raise_for_status()

@@ -6,6 +6,14 @@ from .chat_request import ChatRequest
 from .bot import Bot
 from .building import Building
 from .dashboard_config import DashboardConfig, OutagesScheduleConfig
+from .dashboard_snapshot import (
+    BuildingSnapshot,
+    ConfigSnapshot,
+    DashboardSnapshot,
+    DayScheduleSnapshot,
+    SlotSnapshot,
+    UnitScheduleSnapshot,
+)
 from .station_connection import StationConnection
 from .ext_data import ExtData
 from .ext_device import ExtDevice
@@ -40,6 +48,12 @@ __all__ = [
     User, ReportMode, Message, Station, Building,
     StationData, ExtData, ExtDevice, DashboardConfig,
     OutagesScheduleConfig,
+    BuildingSnapshot,
+    ConfigSnapshot,
+    DashboardSnapshot,
+    DayScheduleSnapshot,
+    SlotSnapshot,
+    UnitScheduleSnapshot,
     StationConnection, VisitCounter, DailyVisitCounter, LookupValue,
     LocalizableValue, LoginHistory, PushDevice, PushPlatform, PushTopic,
     BuildingResponse,

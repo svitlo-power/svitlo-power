@@ -3,11 +3,12 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from redis.exceptions import ConnectionError
 
-from app.clients.dashboard_snapshot_client import (
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from shared.services.dashboard_snapshot.client import (
     INVALIDATION_CHANNEL,
     SNAPSHOT_KEY,
-    DashboardSnapshotClient,
 )
 
 
@@ -32,15 +33,18 @@ def snapshot_json(epoch=1, version=1, generated_at=None):
 
 
 class FakePubSub:
-    def __init__(self):
+    def __init__(self, fail_on_listen=False):
         self.messages = asyncio.Queue()
         self.channels = []
         self.closed = False
+        self.fail_on_listen = fail_on_listen
 
     async def subscribe(self, channel):
         self.channels.append(channel)
 
     async def listen(self):
+        if self.fail_on_listen:
+            raise ConnectionError("simulated disconnect")
         yield {"type": "subscribe"}
         while True:
             yield await self.messages.get()
@@ -50,12 +54,15 @@ class FakePubSub:
 
 
 class FakeRedis:
-    def __init__(self, value):
+    def __init__(self, value, fail_first_subscriber=False):
         self.value = value
         self.pubsubs = []
+        self.fail_first_subscriber = fail_first_subscriber
 
     def pubsub(self):
-        pubsub = FakePubSub()
+        pubsub = FakePubSub(
+            fail_on_listen=self.fail_first_subscriber and not self.pubsubs
+        )
         self.pubsubs.append(pubsub)
         return pubsub
 
@@ -98,6 +105,7 @@ async def test_subscribes_before_loading_and_exposes_snapshot():
         assert client.get_outages_schedule("queue") is None
         assert (client.epoch, client.version) == (1, 1)
         assert client.is_subscribed
+        assert client.health()["status"] == "healthy"
     finally:
         await client.stop()
     assert redis.pubsubs[0].closed
@@ -124,6 +132,20 @@ async def test_notification_loads_only_newer_snapshot():
 
 
 @pytest.mark.asyncio
+async def test_reconnect_resubscribes_and_reloads_snapshot():
+    redis = FakeRedis(snapshot_json(epoch=1, version=1), fail_first_subscriber=True)
+    client = DashboardSnapshotClient(redis, FakeSession(), "http://refresh")
+    await client.start()
+    try:
+        redis.value = snapshot_json(epoch=2, version=1)
+        await asyncio.wait_for(_wait_for_version(client, 2, 1), timeout=3)
+        assert len(redis.pubsubs) >= 2
+        assert client.is_subscribed
+    finally:
+        await client.stop()
+
+
+@pytest.mark.asyncio
 async def test_cache_miss_requests_refresh_and_stays_empty_without_snapshot():
     session = FakeSession()
     client = DashboardSnapshotClient(
@@ -140,7 +162,7 @@ async def test_cache_miss_requests_refresh_and_stays_empty_without_snapshot():
         assert url == "http://refresh"
         assert request["json"] == {
             "reason": "cache-miss",
-            "requestedBy": "app-back-end",
+            "requestedBy": "shared-consumer",
         }
         assert request["timeout"].total == 5
         assert client.get_snapshot() is None
