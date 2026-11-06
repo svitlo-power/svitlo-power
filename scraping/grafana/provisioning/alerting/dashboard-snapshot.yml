@@ -1,0 +1,38 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: dashboard-snapshot
+    folder: Svitlo Power
+    interval: 1m
+    rules:
+      - uid: dashboard-snapshot-write-errors
+        title: Dashboard snapshot write failures
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: sum(rate(dashboard_snapshot_write_errors_total[5m])) > 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        dashboardUid: svitlo-application-metrics
+        panelId: 7
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: Dashboard snapshot publishes are failing
+          description: Snapshot write failures occurred during the last five minutes.
+        labels:
+          severity: warning
