@@ -171,7 +171,9 @@ export const BuildingsPage: FC = () => {
   useSubscribeEvents((event: EventItem) => {
     if (backendRedisDashboardEnabled) {
       if (event.type === EventType.DashboardUpdated) {
-        fetchData();
+        if (!configChanged && !buildingsChanged) {
+          fetchData();
+        }
         fetchSummary(true);
         fetchOutages();
       }

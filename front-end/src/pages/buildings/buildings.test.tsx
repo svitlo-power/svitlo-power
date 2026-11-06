@@ -85,6 +85,7 @@ describe("BuildingsPage outage schedule", () => {
       backendRedisDashboardEnabled: false,
       featuresLoaded: false,
     },
+    hasUnsavedChanges = false,
   ) => {
     const store = createTestStore({
       app: {
@@ -103,7 +104,16 @@ describe("BuildingsPage outage schedule", () => {
         },
         loading: false,
         error: null,
-        changed: false,
+        changed: hasUnsavedChanges,
+      },
+      buildings: {
+        items: [],
+        edittedItems: [],
+        deletedItems: [],
+        loading: false,
+        error: null,
+        changed: hasUnsavedChanges,
+        globalId: 0,
       },
     });
 
@@ -206,6 +216,38 @@ describe("BuildingsPage outage schedule", () => {
       private: false,
     });
     expect(mockGet.mock.calls.length).toBeGreaterThan(previousCalls);
+  });
+
+  it("preserves unsaved dashboard edits when a snapshot update arrives", () => {
+    const store = renderPage(
+      { enable: true, regionId: 25, dsoId: 902, queue: "1.1" },
+      { backendRedisDashboardEnabled: true, featuresLoaded: true },
+      true,
+    );
+    const configRequests = mockGet.mock.calls.filter(
+      ([url]) => url === "/dashboard/config",
+    ).length;
+    const buildingRequests = mockGet.mock.calls.filter(
+      ([url]) => url === "/dashboard/buildings",
+    ).length;
+    const handler = mockSubscribeEvents.mock.calls.at(-1)?.[0] as (
+      event: EventItem,
+    ) => void;
+
+    handler({
+      type: EventType.DashboardUpdated,
+      data: {},
+      private: false,
+    });
+
+    expect(store.getState().dashboardConfig.changed).toBe(true);
+    expect(store.getState().buildings.changed).toBe(true);
+    expect(
+      mockGet.mock.calls.filter(([url]) => url === "/dashboard/config"),
+    ).toHaveLength(configRequests);
+    expect(
+      mockGet.mock.calls.filter(([url]) => url === "/dashboard/buildings"),
+    ).toHaveLength(buildingRequests);
   });
 
   it("uses legacy dashboard events when backend snapshot mode is disabled", () => {
