@@ -16,6 +16,31 @@ const backendAppClient = axios.create({
   baseURL: "/api",
 });
 
+const loadAppFeatures = async (
+  dispatch: (
+    action:
+      ReturnType<typeof setFeatures> | ReturnType<typeof setFeaturesLoaded>,
+  ) => unknown,
+) => {
+  try {
+    const response = await backendAppClient.get<{
+      dashboardUpdatedEventEnabled: boolean;
+    }>("/app/features");
+    if (response.status === 200) {
+      dispatch(setFeatures(response.data));
+    }
+  } catch (error) {
+    console.warn("Failed to fetch backend features:", error);
+  } finally {
+    dispatch(setFeaturesLoaded());
+  }
+};
+
+export const refreshAppFeatures = createAsyncThunk(
+  "app/refreshAppFeatures",
+  async (_, { dispatch }) => loadAppFeatures(dispatch),
+);
+
 export const fetchAppVersion = createAsyncThunk(
   "app/fetchAppVersion",
   async (_, { dispatch }) => {
@@ -28,18 +53,7 @@ export const fetchAppVersion = createAsyncThunk(
       console.warn("Failed to fetch app version:", error);
     }
 
-    try {
-      const response = await backendAppClient.get<{
-        dashboardUpdatedEventEnabled: boolean;
-      }>("/app/features");
-      if (response.status === 200) {
-        dispatch(setFeatures(response.data));
-      }
-    } catch (error) {
-      console.warn("Failed to fetch backend features:", error);
-    } finally {
-      dispatch(setFeaturesLoaded());
-    }
+    await loadAppFeatures(dispatch);
 
     try {
       const response = await backendAppClient.get<string>("/app/version");

@@ -19,7 +19,7 @@ vi.mock("axios", () => ({
   },
 }));
 
-import { fetchAppVersion } from "./app";
+import { fetchAppVersion, refreshAppFeatures } from "./app";
 
 describe("fetchAppVersion thunk", () => {
   const mockDispatch = vi.fn();
@@ -33,6 +33,41 @@ describe("fetchAppVersion thunk", () => {
         return Promise.resolve({
           data: { dashboardUpdatedEventEnabled: true },
           status: 200,
+        });
+
+        describe("refreshAppFeatures thunk", () => {
+          const mockDispatch = vi.fn();
+          const mockGetState = vi.fn();
+
+          beforeEach(() => {
+            vi.clearAllMocks();
+          });
+
+          it("updates backend features and marks them loaded", async () => {
+            mockBackendGet.mockResolvedValue({
+              data: { dashboardUpdatedEventEnabled: true },
+              status: 200,
+            });
+
+            await refreshAppFeatures()(mockDispatch, mockGetState, undefined);
+
+            expect(mockBackendGet).toHaveBeenCalledWith("/app/features");
+            expect(mockDispatch).toHaveBeenCalledWith(
+              setFeatures({ dashboardUpdatedEventEnabled: true }),
+            );
+            expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+          });
+
+          it("marks features loaded when the refresh fails", async () => {
+            mockBackendGet.mockRejectedValue(new Error("Network error"));
+
+            await refreshAppFeatures()(mockDispatch, mockGetState, undefined);
+
+            expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+            expect(mockDispatch).not.toHaveBeenCalledWith(
+              setFeatures(expect.anything()),
+            );
+          });
         });
       }
       return Promise.resolve({ data: "2026.10.02", status: 200 });
