@@ -44,6 +44,7 @@ from shared.models.dashboard_snapshot import (
     BuildingSnapshot,
     ConfigSnapshot,
 )
+from shared.models.outages_schedule import UnitSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +295,7 @@ class DashboardSnapshotService:
             all_schedules = await self._outages_repo.get_all_schedules()
 
             # Build building snapshots
-            building_snapshots = []
+            building_snapshots: list[BuildingSnapshot] = []
             for building in buildings_with_summary:
                 building_snapshots.append(
                     BuildingSnapshot(
@@ -342,7 +343,7 @@ class DashboardSnapshotService:
 
             # Build outages schedules snapshot — only include the configured queue
             # when outages are enabled, to avoid duplicating all queues in Redis
-            outages_schedules = {}
+            outages_schedules: dict[str, UnitSchedule] = {}
             configured_queue = (
                 outages_schedule.queue if outages_schedule and outages_schedule.enable else None
             )
