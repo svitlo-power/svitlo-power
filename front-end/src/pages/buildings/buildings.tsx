@@ -213,7 +213,9 @@ export const BuildingsPage: FC = () => {
         return;
       }
 
-      fetchData();
+      if (!configChanged && !buildingsChanged) {
+        fetchData();
+      }
       fetchSummary(true);
       fetchOutages();
       lastSnapshotUpdateRef.current = Date.now();
@@ -222,6 +224,8 @@ export const BuildingsPage: FC = () => {
     return () => clearInterval(timer);
   }, [
     dashboardUpdatedEventEnabled,
+    configChanged,
+    buildingsChanged,
     featuresLoaded,
     fetchData,
     fetchOutages,

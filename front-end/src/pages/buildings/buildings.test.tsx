@@ -298,4 +298,36 @@ describe("BuildingsPage outage schedule", () => {
       vi.useRealTimers();
     }
   });
+
+  it("preserves unsaved dashboard edits when the snapshot fallback timer fires", () => {
+    vi.useFakeTimers();
+    try {
+      const store = renderPage(
+        null,
+        { dashboardUpdatedEventEnabled: true, featuresLoaded: true },
+        true,
+      );
+      const configRequests = mockGet.mock.calls.filter(
+        ([url]) => url === "/dashboard/config",
+      ).length;
+      const buildingRequests = mockGet.mock.calls.filter(
+        ([url]) => url === "/dashboard/buildings",
+      ).length;
+
+      act(() => {
+        vi.advanceTimersByTime(5 * 60 * 1000);
+      });
+
+      expect(store.getState().dashboardConfig.changed).toBe(true);
+      expect(store.getState().buildings.changed).toBe(true);
+      expect(
+        mockGet.mock.calls.filter(([url]) => url === "/dashboard/config"),
+      ).toHaveLength(configRequests);
+      expect(
+        mockGet.mock.calls.filter(([url]) => url === "/dashboard/buildings"),
+      ).toHaveLength(buildingRequests);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
