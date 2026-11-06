@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 SNAPSHOT_KEY = "cache:dashboard:v1:global"
 INVALIDATION_CHANNEL = "cache:dashboard:v1:invalidations"
+CACHE_MISS_REFRESH_COOLDOWN_SECONDS = 60
 
 
 class DashboardSnapshotClient:
@@ -62,6 +63,7 @@ class DashboardSnapshotClient:
         self._initial_reconcile_complete = asyncio.Event()
         self._notification_received = asyncio.Event()
         self._refresh_lock = asyncio.Lock()
+        self._last_refresh_request_at: float | None = None
         self._version_lag_since: float | None = None
 
     async def start(self) -> None:
@@ -205,15 +207,15 @@ class DashboardSnapshotClient:
             ),
         }
 
-    async def reconcile(self) -> None:
+    async def reconcile(self) -> bool:
         """Read Redis and adopt only snapshots newer than the local version."""
         try:
             raw_snapshot = await self._redis.get(SNAPSHOT_KEY)
             if raw_snapshot is None:
                 REDIS_SNAPSHOT_CACHE_MISS_TOTAL.inc()
-                REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="stale").inc()
+                REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="miss").inc()
                 REDIS_SNAPSHOT_AGE_SECONDS.set(self.age_seconds)
-                return
+                return True
 
             snapshot = DashboardSnapshot.model_validate_json(raw_snapshot)
             self._redis_epoch = snapshot.epoch
@@ -230,17 +232,20 @@ class DashboardSnapshotClient:
             elif (snapshot.epoch, snapshot.version) < (self.epoch, self.version):
                 REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="stale").inc()
                 REDIS_SNAPSHOT_VERSION_LAG.set(self.version_lag)
-                return
+                return False
 
             REDIS_SNAPSHOT_VERSION_LAG.set(self.version_lag)
             REDIS_SNAPSHOT_AGE_SECONDS.set(self.age_seconds)
             REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="ok").inc()
+            return False
         except (ConnectionError, TimeoutError, ValidationError, ValueError):
             REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="error").inc()
             logger.exception("Could not reconcile dashboard snapshot from Redis")
+            return False
         except Exception:
             REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="error").inc()
             logger.exception("Unexpected dashboard snapshot reconciliation failure")
+            return False
 
     async def _subscriber_loop(self) -> None:
         backoff = 1.0
@@ -311,7 +316,9 @@ class DashboardSnapshotClient:
         while not self._stopped:
             try:
                 await asyncio.sleep(self._reconciliation_interval_seconds)
-                await self.reconcile()
+                cache_miss = await self.reconcile()
+                if cache_miss:
+                    await self._refresh_on_cache_miss()
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -329,8 +336,14 @@ class DashboardSnapshotClient:
 
     async def _refresh_on_cache_miss(self) -> None:
         async with self._refresh_lock:
-            if self._snapshot is not None:
+            now = asyncio.get_running_loop().time()
+            if (
+                self._last_refresh_request_at is not None
+                and now - self._last_refresh_request_at
+                < CACHE_MISS_REFRESH_COOLDOWN_SECONDS
+            ):
                 return
+            self._last_refresh_request_at = now
             self._notification_received.clear()
             try:
                 async with self._session.post(

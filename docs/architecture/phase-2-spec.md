@@ -88,7 +88,7 @@ calculations.
 |--------|------|--------|--------|
 | `redis_snapshot_version_lag` | Gauge | — | ≤ 1 |
 | `redis_snapshot_age_seconds` | Gauge | — | < 300s |
-| `redis_snapshot_reconciliation_total` | Counter | result (ok, stale, error) | — |
+| `redis_snapshot_reconciliation_total` | Counter | result (ok, stale, miss, error) | — |
 | `redis_snapshot_cache_miss_total` | Counter | — | 0 after warmup |
 
 The consumer exposes `GET /health/redis-dashboard`, including local/Redis epoch

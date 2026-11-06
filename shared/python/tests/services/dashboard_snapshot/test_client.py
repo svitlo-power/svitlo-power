@@ -5,7 +5,10 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from redis.exceptions import ConnectionError
 
-from shared.metrics import REDIS_SNAPSHOT_VERSION_LAG
+from shared.metrics import (
+    REDIS_SNAPSHOT_RECONCILIATION_TOTAL,
+    REDIS_SNAPSHOT_VERSION_LAG,
+)
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
 from shared.services.dashboard_snapshot.client import (
     INVALIDATION_CHANNEL,
@@ -203,6 +206,39 @@ async def test_stale_snapshot_reports_age():
     try:
         assert client.is_stale
         assert client.age_seconds >= 10
+    finally:
+        await client.stop()
+
+
+@pytest.mark.asyncio
+async def test_later_cache_misses_request_rate_limited_refresh(monkeypatch):
+    monkeypatch.setattr(
+        "shared.services.dashboard_snapshot.client.CACHE_MISS_REFRESH_COOLDOWN_SECONDS",
+        0.02,
+    )
+    redis = FakeRedis(snapshot_json())
+    session = FakeSession()
+    client = DashboardSnapshotClient(
+        redis,
+        session,
+        "http://refresh",
+        reconciliation_interval_seconds=0.005,
+        refresh_wait_seconds=0,
+    )
+    miss_count = REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(
+        result="miss"
+    )._value.get()
+
+    await client.start()
+    try:
+        redis.value = None
+        await asyncio.sleep(0.06)
+
+        assert 2 <= len(session.requests) < 5
+        assert (
+            REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="miss")._value.get()
+            > miss_count
+        )
     finally:
         await client.stop()
 
