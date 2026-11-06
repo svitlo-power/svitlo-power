@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi_injector import Injected
 from shared.services import OutagesScheduleService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
-from app.snapshot_mode import dashboard_snapshot_reads_enabled
+from app.snapshot_mode import active_dashboard_snapshot
 
 
 def register(app: FastAPI):
@@ -14,13 +14,14 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ):
         """Outage schedule for a queue - Android endpoint"""
-        snapshot_schedule = snapshot_client.get_outages_schedule(queue)
+        snapshot = active_dashboard_snapshot(request, snapshot_client)
+        snapshot_schedule = (
+            snapshot_client.get_outages_schedule(queue)
+            if snapshot is not None
+            else None
+        )
         if snapshot_schedule is not None:
-            if (
-                dashboard_snapshot_reads_enabled(request.app.state.settings)
-                and not snapshot_client.is_stale
-            ):
-                return snapshot_schedule.model_dump(by_alias=True)
+            return snapshot_schedule.model_dump(by_alias=True)
 
         sched = await outages_schedule.get_schedule_async(queue)
         if sched is None or queue not in sched.root:

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from shared.services import ReadOnlyDashboardService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
-from app.snapshot_mode import dashboard_snapshot_reads_enabled
+from app.snapshot_mode import active_dashboard_snapshot
 from app.snapshot_responses import (
     snapshot_building_response,
     snapshot_building_summary_response,
@@ -44,13 +44,9 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ) -> List[BuildingResponse]:
         """Get list of buildings (basic info) - Android endpoint"""
-        snapshot = snapshot_client.get_snapshot()
+        snapshot = active_dashboard_snapshot(request, snapshot_client)
         if snapshot is not None:
-            if (
-                dashboard_snapshot_reads_enabled(request.app.state.settings)
-                and not snapshot_client.is_stale
-            ):
-                return [snapshot_building_response(b) for b in snapshot.buildings]
+            return [snapshot_building_response(b) for b in snapshot.buildings]
         return await dashboard.get_buildings(all=False)
 
     @app.post("/api/dashboard/buildings/summary")
@@ -61,21 +57,17 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ) -> List[BuildingSummaryResponse]:
         """Get building summaries (battery, grid status, etc.) - Android endpoint"""
-        snapshot = snapshot_client.get_snapshot()
+        snapshot = active_dashboard_snapshot(request, snapshot_client)
         if snapshot is not None:
             by_id = {building.id: building for building in snapshot.buildings}
             requested_ids = [str(building_id) for building_id in body.building_ids]
             if all(building_id in by_id for building_id in requested_ids):
                 requested_ids_set = set(requested_ids)
-                if (
-                    dashboard_snapshot_reads_enabled(request.app.state.settings)
-                    and not snapshot_client.is_stale
-                ):
-                    return [
-                        snapshot_building_summary_response(building)
-                        for building in snapshot.buildings
-                        if building.id in requested_ids_set
-                    ]
+                return [
+                    snapshot_building_summary_response(building)
+                    for building in snapshot.buildings
+                    if building.id in requested_ids_set
+                ]
         return await dashboard.get_buildings_summary(body.building_ids)
 
     @app.get("/api/buildings/buildings")
@@ -85,16 +77,12 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ) -> List[BuildingWithSummaryResponse]:
         """Buildings with summary combined - Android endpoint (alias)"""
-        snapshot = snapshot_client.get_snapshot()
+        snapshot = active_dashboard_snapshot(request, snapshot_client)
         if snapshot is not None:
-            if (
-                dashboard_snapshot_reads_enabled(request.app.state.settings)
-                and not snapshot_client.is_stale
-            ):
-                return [
-                    snapshot_building_with_summary_response(building)
-                    for building in snapshot.buildings
-                ]
+            return [
+                snapshot_building_with_summary_response(building)
+                for building in snapshot.buildings
+            ]
         return await dashboard.get_buildings_with_summary()
 
     @app.get("/api/dashboard/config")
@@ -106,19 +94,9 @@ def register(app: FastAPI):
     ) -> AppDashboardConfigResponse:
         """Dashboard configuration (title, outages schedule) - Android endpoint"""
 
-        snapshot = snapshot_client.get_snapshot()
-
-        def snapshot_response():
-            config = snapshot.config if snapshot else None
-            schedule = config.outages_schedule if config else None
-            return AppDashboardConfigResponse(
-                title=config.title if config else {},
-                enable_outages_schedule=bool(schedule and schedule.enable),
-                outages_schedule_queue=schedule.queue if schedule else None,
-            )
-
-        async def legacy_response():
-            config = await dashboard.get_config()
+        snapshot = active_dashboard_snapshot(request, snapshot_client)
+        if snapshot is not None:
+            config = snapshot.config
             schedule = config.outages_schedule
             return AppDashboardConfigResponse(
                 title=config.title,
@@ -126,13 +104,13 @@ def register(app: FastAPI):
                 outages_schedule_queue=schedule.queue if schedule else None,
             )
 
-        if snapshot is not None:
-            if (
-                dashboard_snapshot_reads_enabled(request.app.state.settings)
-                and not snapshot_client.is_stale
-            ):
-                return snapshot_response()
-        return await legacy_response()
+        config = await dashboard.get_config()
+        schedule = config.outages_schedule
+        return AppDashboardConfigResponse(
+            title=config.title,
+            enable_outages_schedule=bool(schedule and schedule.enable),
+            outages_schedule_queue=schedule.queue if schedule else None,
+        )
 
     @app.post("/api/dashboard/buildings/{building_id}/power-logs")
     @app.post("/api/buildings/{building_id}/power-logs")

@@ -1,7 +1,11 @@
 import pytest
+from types import SimpleNamespace
 
 from app.settings import Settings
-from app.snapshot_mode import dashboard_snapshot_reads_enabled
+from app.snapshot_mode import (
+    active_dashboard_snapshot,
+    dashboard_snapshot_reads_enabled,
+)
 from shared.features import FeatureFlag, feature_flags
 
 
@@ -40,3 +44,42 @@ def test_dashboard_snapshot_reads_require_compatible_modes(
     finally:
         for flag, enabled in flags.items():
             feature_flags.set_enabled(flag, enabled)
+
+
+def test_active_snapshot_returns_fresh_snapshot(monkeypatch):
+    monkeypatch.setattr("app.snapshot_mode.dashboard_snapshot_reads_enabled", lambda _: True)
+    snapshot = object()
+    snapshot_client = SimpleNamespace(
+        get_snapshot=lambda: snapshot,
+        is_stale=False,
+    )
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(settings=Settings()))
+    )
+
+    assert active_dashboard_snapshot(request, snapshot_client) is snapshot
+
+
+def test_active_snapshot_rejects_stale_snapshot(monkeypatch):
+    monkeypatch.setattr("app.snapshot_mode.dashboard_snapshot_reads_enabled", lambda _: True)
+    snapshot_client = SimpleNamespace(get_snapshot=lambda: object(), is_stale=True)
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(settings=Settings()))
+    )
+
+    assert active_dashboard_snapshot(request, snapshot_client) is None
+
+
+def test_active_snapshot_does_not_read_when_feature_is_disabled(monkeypatch):
+    monkeypatch.setattr(
+        "app.snapshot_mode.dashboard_snapshot_reads_enabled", lambda _: False
+    )
+    snapshot_client = SimpleNamespace(
+        get_snapshot=lambda: pytest.fail("snapshot should not be read"),
+        is_stale=False,
+    )
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(settings=Settings()))
+    )
+
+    assert active_dashboard_snapshot(request, snapshot_client) is None
