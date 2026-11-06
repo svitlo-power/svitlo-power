@@ -62,15 +62,19 @@ class DashboardSnapshotClient:
 - On cache miss (local snapshot is None): call HTTP refresh endpoint on producer, wait for notification (max 5s), then `GET`
 
 ### 2. Feature Flag
-**Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`)
+**Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`), together
+with `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH=true`.
 
 The back-end feature `BACKEND_REDIS_DASHBOARD_ENABLED` (environment variable
-`FEATURE_BACKEND_REDIS_DASHBOARD_ENABLED`) is exposed through
-`GET /api/app/features`. The public dashboard waits for this feature response
-before subscribing to refresh events: it uses `dashboard_updated` when enabled
-and the legacy dashboard event set otherwise. The producer emits
-`dashboard_updated` only after a snapshot write succeeds, so a refresh event
-never directs snapshot-backed clients to fetch data from an older snapshot.
+`FEATURE_BACKEND_REDIS_DASHBOARD_ENABLED`) controls whether the public UI uses
+post-publish `dashboard_updated` events; it does not switch admin back-end
+routes to Redis. `GET /api/app/features` exposes this as
+`dashboardUpdatedEventEnabled`, which is true only when snapshot publishing is
+enabled and `FEATURE_DEYE_POLLING_PROCESSING` is disabled. The UI otherwise
+uses the legacy event set. The producer emits `dashboard_updated` only after a
+snapshot write succeeds. If such events stop, the UI retries data reads every
+five minutes; after the snapshot becomes stale, API routes fall back to legacy
+calculations.
 
 | Value | Behavior |
 |-------|----------|

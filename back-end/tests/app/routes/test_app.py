@@ -22,15 +22,37 @@ def test_get_backend_version(monkeypatch):
 
 
 def test_get_backend_features_only_exposes_dashboard_read_mode():
-    flag = FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED
-    was_enabled = feature_flags.is_enabled(flag)
+    flags = (
+        FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED,
+        FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH,
+        FeatureFlag.DEYE_POLLING_PROCESSING,
+    )
+    previous_values = {flag: feature_flags.is_enabled(flag) for flag in flags}
     try:
-        for enabled in (False, True):
-            feature_flags.set_enabled(flag, enabled)
+        combinations = (
+            (False, True, False, False),
+            (True, False, False, False),
+            (True, True, True, False),
+            (True, True, False, True),
+        )
+        for dashboard_enabled, publishing_enabled, deye_processing, expected in combinations:
+            feature_flags.set_enabled(
+                FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED,
+                dashboard_enabled,
+            )
+            feature_flags.set_enabled(
+                FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH,
+                publishing_enabled,
+            )
+            feature_flags.set_enabled(
+                FeatureFlag.DEYE_POLLING_PROCESSING,
+                deye_processing,
+            )
             response = TestClient(create_app()).get("/api/app/features")
             assert response.status_code == 200
             assert response.json() == {
-                "backendRedisDashboardEnabled": enabled,
+                "dashboardUpdatedEventEnabled": expected,
             }
     finally:
-        feature_flags.set_enabled(flag, was_enabled)
+        for flag, enabled in previous_values.items():
+            feature_flags.set_enabled(flag, enabled)

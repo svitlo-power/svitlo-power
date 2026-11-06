@@ -30,7 +30,7 @@ export const fetchAppVersion = createAsyncThunk(
 
     try {
       const response = await backendAppClient.get<{
-        backendRedisDashboardEnabled: boolean;
+        dashboardUpdatedEventEnabled: boolean;
       }>("/app/features");
       if (response.status === 200) {
         dispatch(setFeatures(response.data));

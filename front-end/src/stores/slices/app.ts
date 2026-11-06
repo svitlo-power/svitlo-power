@@ -4,7 +4,7 @@ interface AppState {
   version: string;
   backendVersion: string;
   features: {
-    backendRedisDashboardEnabled: boolean;
+    dashboardUpdatedEventEnabled: boolean;
   };
   featuresLoaded: boolean;
 }
@@ -13,7 +13,7 @@ const initialState: AppState = {
   version: "0000.00.00",
   backendVersion: "0000.00.00",
   features: {
-    backendRedisDashboardEnabled: false,
+    dashboardUpdatedEventEnabled: false,
   },
   featuresLoaded: false,
 };

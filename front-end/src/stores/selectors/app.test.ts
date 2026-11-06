@@ -1,6 +1,6 @@
 import {
   selectAppVersion,
-  selectBackendRedisDashboardEnabled,
+  selectDashboardUpdatedEventEnabled,
   selectFeaturesLoaded,
   selectBackendVersion,
 } from "./app";
@@ -10,7 +10,7 @@ describe("app selectors", () => {
     app: {
       version: "2026.10.01",
       backendVersion: "2026.10.02",
-      features: { backendRedisDashboardEnabled: true },
+      features: { dashboardUpdatedEventEnabled: true },
       featuresLoaded: true,
     },
   } as any;
@@ -37,13 +37,13 @@ describe("app selectors", () => {
       app: {
         version: "2026.10.01",
         backendVersion: "2026.10.02",
-        features: { backendRedisDashboardEnabled: true },
+        features: { dashboardUpdatedEventEnabled: true },
         featuresLoaded: true,
       },
     } as any;
 
     expect(selectBackendVersion(state)).toBe("2026.10.02");
-    expect(selectBackendRedisDashboardEnabled(state)).toBe(true);
+    expect(selectDashboardUpdatedEventEnabled(state)).toBe(true);
     expect(selectFeaturesLoaded(state)).toBe(true);
   });
 });

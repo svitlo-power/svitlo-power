@@ -31,7 +31,7 @@ describe("fetchAppVersion thunk", () => {
     mockBackendGet.mockImplementation((path: string) => {
       if (path === "/app/features") {
         return Promise.resolve({
-          data: { backendRedisDashboardEnabled: true },
+          data: { dashboardUpdatedEventEnabled: true },
           status: 200,
         });
       }
@@ -67,7 +67,7 @@ describe("fetchAppVersion thunk", () => {
     expect(mockBackendGet).toHaveBeenCalledWith("/app/version");
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
     expect(mockDispatch).toHaveBeenCalledWith(
-      setFeatures({ backendRedisDashboardEnabled: true }),
+      setFeatures({ dashboardUpdatedEventEnabled: true }),
     );
   });
 
@@ -81,7 +81,7 @@ describe("fetchAppVersion thunk", () => {
     );
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
     expect(mockDispatch).toHaveBeenCalledWith(
-      setFeatures({ backendRedisDashboardEnabled: true }),
+      setFeatures({ dashboardUpdatedEventEnabled: true }),
     );
   });
 

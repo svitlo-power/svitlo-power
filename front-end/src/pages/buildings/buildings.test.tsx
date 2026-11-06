@@ -1,6 +1,6 @@
 import { createElement, useEffect } from "react";
 import { Provider } from "react-redux";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { vi } from "vitest";
 import { createTestStore } from "../../test/storeTestUtils";
@@ -82,7 +82,7 @@ describe("BuildingsPage outage schedule", () => {
       queue: string | null;
     } | null,
     featuresState = {
-      backendRedisDashboardEnabled: false,
+      dashboardUpdatedEventEnabled: false,
       featuresLoaded: false,
     },
     hasUnsavedChanges = false,
@@ -92,8 +92,8 @@ describe("BuildingsPage outage schedule", () => {
         version: "0000.00.00",
         backendVersion: "0000.00.00",
         features: {
-          backendRedisDashboardEnabled:
-            featuresState.backendRedisDashboardEnabled,
+          dashboardUpdatedEventEnabled:
+            featuresState.dashboardUpdatedEventEnabled,
         },
         featuresLoaded: featuresState.featuresLoaded,
       },
@@ -194,7 +194,7 @@ describe("BuildingsPage outage schedule", () => {
 
   it("uses only dashboard_updated in backend snapshot mode", () => {
     renderPage(null, {
-      backendRedisDashboardEnabled: true,
+      dashboardUpdatedEventEnabled: true,
       featuresLoaded: true,
     });
 
@@ -221,7 +221,7 @@ describe("BuildingsPage outage schedule", () => {
   it("preserves unsaved dashboard edits when a snapshot update arrives", () => {
     const store = renderPage(
       { enable: true, regionId: 25, dsoId: 902, queue: "1.1" },
-      { backendRedisDashboardEnabled: true, featuresLoaded: true },
+      { dashboardUpdatedEventEnabled: true, featuresLoaded: true },
       true,
     );
     const configRequests = mockGet.mock.calls.filter(
@@ -252,7 +252,7 @@ describe("BuildingsPage outage schedule", () => {
 
   it("uses legacy dashboard events when backend snapshot mode is disabled", () => {
     renderPage(null, {
-      backendRedisDashboardEnabled: false,
+      dashboardUpdatedEventEnabled: false,
       featuresLoaded: true,
     });
 
@@ -274,5 +274,28 @@ describe("BuildingsPage outage schedule", () => {
       private: false,
     });
     expect(mockGet.mock.calls.length).toBeGreaterThan(previousCalls);
+  });
+
+  it("refreshes from the API if snapshot update events stop arriving", () => {
+    vi.useFakeTimers();
+    try {
+      renderPage(null, {
+        dashboardUpdatedEventEnabled: true,
+        featuresLoaded: true,
+      });
+      const configRequests = mockGet.mock.calls.filter(
+        ([url]) => url === "/dashboard/config",
+      ).length;
+
+      act(() => {
+        vi.advanceTimersByTime(5 * 60 * 1000);
+      });
+
+      expect(
+        mockGet.mock.calls.filter(([url]) => url === "/dashboard/config"),
+      ).toHaveLength(configRequests + 1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

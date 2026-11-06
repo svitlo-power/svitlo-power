@@ -10,7 +10,7 @@ class FeatureFlag(str, Enum):
     # Phase 1: Dashboard snapshot publishing
     DASHBOARD_SNAPSHOT_PUBLISH = "dashboard_snapshot_publish"
 
-    # Back-end dashboard Redis snapshot reads
+    # Public dashboard switches to post-publish dashboard_updated events
     BACKEND_REDIS_DASHBOARD_ENABLED = "backend_redis_dashboard_enabled"
     
     # Phase 2: App back-end Redis reads

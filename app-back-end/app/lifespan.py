@@ -7,6 +7,7 @@ from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.server import metrics_server_lifespan
 from shared.utils import get_version
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
 
     snapshot_client = app.state.injector.get(DashboardSnapshotClient)
     app.state.dashboard_snapshot_client = snapshot_client
-    if app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED:
+    if dashboard_snapshot_reads_enabled(app.state.settings):
         await snapshot_client.start()
 
     # Register service version metric

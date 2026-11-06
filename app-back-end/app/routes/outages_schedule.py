@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi_injector import Injected
 from shared.services import OutagesScheduleService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 
 
 def register(app: FastAPI):
@@ -16,7 +17,7 @@ def register(app: FastAPI):
         snapshot_schedule = snapshot_client.get_outages_schedule(queue)
         if snapshot_schedule is not None:
             if (
-                request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
+                dashboard_snapshot_reads_enabled(request.app.state.settings)
                 and not snapshot_client.is_stale
             ):
                 return snapshot_schedule.model_dump(by_alias=True)

@@ -9,6 +9,7 @@ from shared.metrics import (
     DASHBOARD_SNAPSHOT_AGE_SECONDS,
 )
 from shared.services.dashboard import ReadOnlyDashboardService
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 import time
 
 
@@ -144,7 +145,7 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ):
         """Report Redis snapshot consumer health and version state."""
-        if not request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED:
+        if not dashboard_snapshot_reads_enabled(request.app.state.settings):
             return {"status": "disabled"}
 
         result = snapshot_client.health()

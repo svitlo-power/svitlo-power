@@ -5,7 +5,7 @@ describe("app slice", () => {
     version: "0000.00.00",
     backendVersion: "0000.00.00",
     features: {
-      backendRedisDashboardEnabled: false,
+      dashboardUpdatedEventEnabled: false,
     },
     featuresLoaded: false,
   };
@@ -27,7 +27,7 @@ describe("app slice", () => {
   });
 
   it("should store features and mark them loaded", () => {
-    const features = { backendRedisDashboardEnabled: true };
+    const features = { dashboardUpdatedEventEnabled: true };
     const state = appReducer(initialState, setFeatures(features));
     expect(state.features).toEqual(features);
     expect(state.featuresLoaded).toBe(true);

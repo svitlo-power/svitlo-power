@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from shared.services import ReadOnlyDashboardService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 from app.snapshot_responses import (
     snapshot_building_response,
     snapshot_building_summary_response,
@@ -46,7 +47,7 @@ def register(app: FastAPI):
         snapshot = snapshot_client.get_snapshot()
         if snapshot is not None:
             if (
-                request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
+                dashboard_snapshot_reads_enabled(request.app.state.settings)
                 and not snapshot_client.is_stale
             ):
                 return [snapshot_building_response(b) for b in snapshot.buildings]
@@ -72,7 +73,7 @@ def register(app: FastAPI):
                     if building.id in requested_ids_set
                 ]
                 if (
-                    request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
+                    dashboard_snapshot_reads_enabled(request.app.state.settings)
                     and not snapshot_client.is_stale
                 ):
                     return snapshot_response()
@@ -92,7 +93,7 @@ def register(app: FastAPI):
                 for b in snapshot.buildings
             ]
             if (
-                request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
+                dashboard_snapshot_reads_enabled(request.app.state.settings)
                 and not snapshot_client.is_stale
             ):
                 return snapshot_response()
@@ -129,7 +130,7 @@ def register(app: FastAPI):
 
         if snapshot is not None:
             if (
-                request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED
+                dashboard_snapshot_reads_enabled(request.app.state.settings)
                 and not snapshot_client.is_stale
             ):
                 return snapshot_response()

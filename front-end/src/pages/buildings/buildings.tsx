@@ -20,7 +20,7 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   authDataSelector,
   createSelectEdittedBuildings,
-  selectBackendRedisDashboardEnabled,
+  selectDashboardUpdatedEventEnabled,
   selectFeaturesLoaded,
 } from "../../stores/selectors";
 import { initGA, trackPageView } from "../../utils/analytics";
@@ -28,6 +28,8 @@ import { useLocalizedEffect, useSubscribeEvents } from "../../hooks";
 import { usePageTranslation } from "../../utils";
 import i18n from "../../i18n";
 import { EventItem, EventType } from "../../types";
+
+const SNAPSHOT_REFRESH_FALLBACK_MS = 5 * 60 * 1000;
 
 export const BuildingsPage: FC = () => {
   const loadingConfig = useAppSelector(
@@ -65,9 +67,10 @@ export const BuildingsPage: FC = () => {
   );
   const dispatch = useAppDispatch();
   const featuresLoaded = useAppSelector(selectFeaturesLoaded);
-  const backendRedisDashboardEnabled = useAppSelector(
-    selectBackendRedisDashboardEnabled,
+  const dashboardUpdatedEventEnabled = useAppSelector(
+    selectDashboardUpdatedEventEnabled,
   );
+  const lastSnapshotUpdateRef = useRef(0);
 
   const t = usePageTranslation("dashboard");
 
@@ -169,8 +172,9 @@ export const BuildingsPage: FC = () => {
   }, [dashboardConfig?.title]);
 
   useSubscribeEvents((event: EventItem) => {
-    if (backendRedisDashboardEnabled) {
+    if (dashboardUpdatedEventEnabled) {
       if (event.type === EventType.DashboardUpdated) {
+        lastSnapshotUpdateRef.current = Date.now();
         if (!configChanged && !buildingsChanged) {
           fetchData();
         }
@@ -196,6 +200,33 @@ export const BuildingsPage: FC = () => {
         break;
     }
   }, featuresLoaded);
+
+  useEffect(() => {
+    if (!featuresLoaded || !dashboardUpdatedEventEnabled) return;
+
+    lastSnapshotUpdateRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (
+        Date.now() - lastSnapshotUpdateRef.current <
+        SNAPSHOT_REFRESH_FALLBACK_MS
+      ) {
+        return;
+      }
+
+      fetchData();
+      fetchSummary(true);
+      fetchOutages();
+      lastSnapshotUpdateRef.current = Date.now();
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [
+    dashboardUpdatedEventEnabled,
+    featuresLoaded,
+    fetchData,
+    fetchOutages,
+    fetchSummary,
+  ]);
 
   const previousFeaturesLoaded = useRef(featuresLoaded);
   useEffect(() => {
