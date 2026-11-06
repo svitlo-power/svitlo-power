@@ -115,8 +115,8 @@ def register(app: FastAPI):
             schedule = config.outages_schedule if config else None
             return AppDashboardConfigResponse(
                 title=config.title if config else {},
-                enable_outages_schedule=bool(schedule and schedule.get("enable")),
-                outages_schedule_queue=schedule.get("queue") if schedule else None,
+                enable_outages_schedule=bool(schedule and schedule.enable),
+                outages_schedule_queue=schedule.queue if schedule else None,
             )
 
         async def legacy_response():
