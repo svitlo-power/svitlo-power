@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from redis.exceptions import ConnectionError
 
+from shared.metrics import REDIS_SNAPSHOT_VERSION_LAG
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
 from shared.services.dashboard_snapshot.client import (
     INVALIDATION_CHANNEL,
@@ -109,6 +110,23 @@ async def test_subscribes_before_loading_and_exposes_snapshot():
     finally:
         await client.stop()
     assert redis.pubsubs[0].closed
+
+
+@pytest.mark.asyncio
+async def test_version_lag_metric_reflects_adopted_snapshot():
+    client = DashboardSnapshotClient(
+        FakeRedis(snapshot_json(epoch=3, version=7)),
+        FakeSession(),
+        "http://refresh",
+    )
+
+    await client.start()
+    try:
+        assert (client.redis_epoch, client.redis_version) == (3, 7)
+        assert (client.epoch, client.version) == (3, 7)
+        assert REDIS_SNAPSHOT_VERSION_LAG._value.get() == 0
+    finally:
+        await client.stop()
 
 
 @pytest.mark.asyncio

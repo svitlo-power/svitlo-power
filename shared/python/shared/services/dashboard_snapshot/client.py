@@ -219,7 +219,6 @@ class DashboardSnapshotClient:
             self._redis_epoch = snapshot.epoch
             self._redis_version = snapshot.version
             lag = self.version_lag
-            REDIS_SNAPSHOT_VERSION_LAG.set(lag)
             if lag > 1 and self._version_lag_since is None:
                 self._version_lag_since = asyncio.get_running_loop().time()
             elif lag <= 1:
@@ -230,8 +229,10 @@ class DashboardSnapshotClient:
                 self._version_lag_since = None
             elif (snapshot.epoch, snapshot.version) < (self.epoch, self.version):
                 REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="stale").inc()
+                REDIS_SNAPSHOT_VERSION_LAG.set(self.version_lag)
                 return
 
+            REDIS_SNAPSHOT_VERSION_LAG.set(self.version_lag)
             REDIS_SNAPSHOT_AGE_SECONDS.set(self.age_seconds)
             REDIS_SNAPSHOT_RECONCILIATION_TOTAL.labels(result="ok").inc()
         except (ConnectionError, TimeoutError, ValidationError, ValueError):
