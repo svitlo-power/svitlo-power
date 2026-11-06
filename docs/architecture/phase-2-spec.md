@@ -59,7 +59,9 @@ class DashboardSnapshotClient:
 - On notification: if `(epoch, version) > local`, `GET` snapshot key, update local
 - On reconnect: re-subscribe, `GET` snapshot key, update if newer
 - Periodic reconciliation: every 60s `GET` snapshot key, compare (epoch, version)
-- On cache miss (local snapshot is None): call HTTP refresh endpoint on producer, wait for notification (max 5s), then `GET`
+- On cache miss: record the miss separately from stale Redis data and request
+  producer refresh at most once per 60 seconds; wait for notification (max 5s),
+  then `GET`
 
 ### 2. Feature Flag
 **Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`), together
@@ -110,7 +112,8 @@ and version, lag, age, subscription state, and the most recent invalidation time
   "lastNotificationAt": "2026-10-27T18:05:00Z"
 }
 ```
-- **Unhealthy if**: version lag > 1 for > 60s, not subscribed, snapshot age > 600s, epoch mismatch
+- **Unhealthy if**: version lag > 1 for > 60s, not subscribed, no snapshot or
+  snapshot age exceeds the configured stale threshold (300s by default), epoch mismatch
 
 ## Exit Gate (Measurable Thresholds)
 
@@ -170,7 +173,7 @@ and version, lag, age, subscription state, and the most recent invalidation time
 - [ ] Unit: Reconciliation detects stale local (epoch, version)
 - [ ] Unit: Epoch change handling (accepts lower version when epoch increases)
 - [ ] Integration: Feature flag toggles behavior correctly
-- [ ] Load: 1000 concurrent requests, shadow sampling adds negligible overhead
+- [ ] Load: 1000 concurrent requests, snapshot reads do not regress latency
 - [ ] Chaos: Redis down → client serves stale (with warning) or falls back
 - [ ] Chaos: Redis flapping → reconnection works, no duplicate subscriptions
 - [ ] Contract: Mobile API test suite passes with flag enabled
