@@ -15,6 +15,8 @@ class TestSettings:
             "JWT_SECRET_KEY": "",
             "SECRET_KEY": "",
             "REDIS_URI": "redis://localhost:6379/0",
+            "FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS": "False",
+            "APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS": "300",
             "MONGO_URI": "mongodb://localhost:27017/?directConnection=true",
             "MONGO_DB": "svitlo-power",
             "DEYE_BASE_URL": "https://eu1-developer.deyecloud.com/v1.0",
@@ -39,6 +41,11 @@ class TestSettings:
             assert settings.MONGO_URI == "mongodb://localhost:27017/?directConnection=true"
             assert settings.MONGO_DB == "svitlo-power"
             assert settings.REDIS_URI == "redis://localhost:6379/0"
+            assert settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS is False
+            assert settings.APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS == 300
+            assert settings.APP_BACKEND_SNAPSHOT_REFRESH_URL == (
+                "http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh"
+            )
 
     def test_settings_from_env(self):
         with patch.dict(os.environ, {
@@ -52,6 +59,9 @@ class TestSettings:
             "MONGO_URI": "mongodb://test:27017",
             "MONGO_DB": "test-db",
             "REDIS_URI": "redis://test:6379/1",
+            "FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS": "true",
+            "APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS": "120",
+            "APP_BACKEND_SNAPSHOT_REFRESH_URL": "http://backend/internal/refresh",
         }, clear=True):
             settings = Settings()
             assert settings.HOST == "127.0.0.1"
@@ -64,6 +74,9 @@ class TestSettings:
             assert settings.MONGO_URI == "mongodb://test:27017"
             assert settings.MONGO_DB == "test-db"
             assert settings.REDIS_URI == "redis://test:6379/1"
+            assert settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS is True
+            assert settings.APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS == 120
+            assert settings.APP_BACKEND_SNAPSHOT_REFRESH_URL == "http://backend/internal/refresh"
 
     def test_production_settings(self):
             with patch.dict(os.environ, {

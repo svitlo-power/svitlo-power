@@ -39,15 +39,12 @@ from app.repositories import (
     IOutagesScheduleRepository,
 )
 from app.settings import Settings
-from app.services.dashboard_snapshot.models import (
+from shared.models.dashboard_snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
-    UnitScheduleSnapshot,
-    DayScheduleSnapshot,
-    SlotSnapshot,
-    LocalizableValue,
 )
+from shared.models.outages_schedule import UnitSchedule
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +88,7 @@ end
 
 -- 3. Write snapshot atomically
 redis.call('SET', KEYS[1], snapshot_json, 'EX', ttl)
+redis.call('SET', KEYS[4], expected_epoch)
 
 -- 4. Update committed version (epoch is set once at producer start)
 redis.call('SET', KEYS[5], expected_version)
@@ -270,10 +268,20 @@ class DashboardSnapshotService:
 
     async def _init_version_keys(self) -> None:
         """Initialize epoch and version allocator keys if not present."""
-        # Set epoch if not already set (survives Redis flush)
+        # Keep the epoch monotonic across restarts, including hosts with a slow clock.
         existing_epoch = await self._redis.get(EPOCH_KEY)
-        if existing_epoch is None:
-            await self._redis.set(EPOCH_KEY, self._epoch)
+        snapshot_json = await self._redis.get(SNAPSHOT_KEY)
+        snapshot_epoch = (
+            DashboardSnapshot.model_validate_json(snapshot_json).epoch
+            if snapshot_json is not None
+            else 0
+        )
+        self._epoch = max(
+            self._epoch or 0,
+            int(existing_epoch or 0),
+            snapshot_epoch,
+        )
+        await self._redis.set(EPOCH_KEY, self._epoch)
 
         # Initialize version allocator to 1 if not present
         existing_next = await self._redis.get(VERSION_NEXT_KEY)
@@ -298,7 +306,7 @@ class DashboardSnapshotService:
             all_schedules = await self._outages_repo.get_all_schedules()
 
             # Build building snapshots
-            building_snapshots = []
+            building_snapshots: list[BuildingSnapshot] = []
             for building in buildings_with_summary:
                 building_snapshots.append(
                     BuildingSnapshot(
@@ -317,9 +325,7 @@ class DashboardSnapshotService:
                         consumption_power=building.consumption_power,
                         battery_discharge_time=building.battery_discharge_time,
                         battery_charge_time=building.battery_charge_time,
-                        charge_source=building.charge_source.value
-                        if hasattr(building.charge_source, "value")
-                        else str(building.charge_source),
+                        charge_source=building.charge_source,
                         charge_power=building.charge_power,
                     )
                 )
@@ -327,61 +333,20 @@ class DashboardSnapshotService:
             # Build config snapshot
             outages_schedule = config.outages_schedule
             config_snapshot = ConfigSnapshot(
-                title=(
-                    config.title.root
-                    if hasattr(config.title, "root")
-                    else config.title
-                ),
-                outages_schedule=(
-                    {
-                        "enable": outages_schedule.enable,
-                        "regionId": outages_schedule.region_id,
-                        "dsoId": outages_schedule.dso_id,
-                        "queue": outages_schedule.queue,
-                    }
-                    if outages_schedule
-                    else None
-                ),
+                title=config.title,
+                outages_schedule=outages_schedule,
             )
 
             # Build outages schedules snapshot — only include the configured queue
             # when outages are enabled, to avoid duplicating all queues in Redis
-            outages_schedules = {}
+            outages_schedules: dict[str, UnitSchedule] = {}
             configured_queue = (
                 outages_schedule.queue if outages_schedule and outages_schedule.enable else None
             )
-            if configured_queue is None:
-                # Outages disabled: no schedules to include
-                pass
-            else:
-                for queue, unit_schedule in all_schedules.root.items():
-                    if queue != configured_queue:
-                        continue
-                days = []
-                for day in unit_schedule.days:
-                    slots = [
-                        SlotSnapshot(
-                            start=slot.start,
-                            end=slot.end,
-                            type=slot.type.value
-                            if hasattr(slot.type, "value")
-                            else str(slot.type),
-                        )
-                        for slot in day.slots
-                    ]
-                    days.append(
-                        DayScheduleSnapshot(
-                            slots=slots,
-                            date=day.date,
-                            status=day.status.value
-                            if hasattr(day.status, "value")
-                            else str(day.status),
-                        )
-                    )
-                outages_schedules[queue] = UnitScheduleSnapshot(
-                    days=days,
-                    updatedOn=unit_schedule.updatedOn,
-                )
+            if configured_queue is not None:
+                unit_schedule = all_schedules.root.get(configured_queue)
+                if unit_schedule is not None:
+                    outages_schedules[configured_queue] = unit_schedule
 
             snapshot = DashboardSnapshot(
                 epoch=self._epoch or int(time.time() * 1000),
@@ -472,9 +437,52 @@ class DashboardSnapshotService:
         # Allocate version via INCR on the version allocator key
         version = await self._redis.incr(VERSION_NEXT_KEY)
         snapshot = await self.build_snapshot(version=version)
-        await self.publish_snapshot(snapshot)
-        self._last_snapshot = snapshot
+        changed = self._changed_sections(self._last_snapshot, snapshot)
+        published = await self.publish_snapshot(snapshot)
+        if published:
+            self._last_snapshot = snapshot
+            if self.is_publish_enabled:
+                await self._events.broadcast_public(
+                    "dashboard_updated", {"changed": changed}
+                )
         return snapshot
+
+    @staticmethod
+    def _changed_sections(
+        previous: DashboardSnapshot | None,
+        current: DashboardSnapshot,
+    ) -> list[str]:
+        if previous is None:
+            return ["buildings", "summary", "config", "outages"]
+
+        static_fields = {"id", "name", "color", "order", "has_bound_station"}
+        previous_buildings = [
+            building.model_dump(include=static_fields, mode="json")
+            for building in previous.buildings
+        ]
+        current_buildings = [
+            building.model_dump(include=static_fields, mode="json")
+            for building in current.buildings
+        ]
+        changes = []
+        if previous_buildings != current_buildings:
+            changes.append("buildings")
+
+        previous_summaries = {
+            building.id: building.model_dump(exclude=static_fields, mode="json")
+            for building in previous.buildings
+        }
+        current_summaries = {
+            building.id: building.model_dump(exclude=static_fields, mode="json")
+            for building in current.buildings
+        }
+        if previous_summaries != current_summaries:
+            changes.append("summary")
+        if previous.config != current.config:
+            changes.append("config")
+        if previous.outages_schedules != current.outages_schedules:
+            changes.append("outages")
+        return changes
 
     async def handle_refresh_request(
         self, reason: str, requested_by: str

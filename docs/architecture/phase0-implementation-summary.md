@@ -9,7 +9,7 @@ This document summarizes the implementation of Phase 0: Establish migration base
 ### 1. Shared Infrastructure
 
 #### Metrics (`shared/python/shared/metrics/`)
-- **dashboard.py**: Dashboard snapshot build/publish duration, epoch, version, age, write errors, refresh requests, parity mismatches
+- **dashboard.py**: Dashboard snapshot build/publish duration, epoch, version, age, write errors, and refresh requests
 - **redis.py**: Redis connection status, pub/sub latency, lease status, operation duration/errors
 - **sse.py**: SSE connections (total/active), event delivery latency, reconnects, disconnects, events published
 - **jobs.py**: Job execution duration, success/failure, ownership changes, next run timestamp

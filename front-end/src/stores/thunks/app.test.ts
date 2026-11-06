@@ -1,5 +1,10 @@
 import { vi } from "vitest";
-import { setBackendVersion, setVersion } from "../slices/app";
+import {
+  setFeatures,
+  setFeaturesLoaded,
+  setBackendVersion,
+  setVersion,
+} from "../slices/app";
 
 const { mockGet, mockBackendGet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -14,7 +19,7 @@ vi.mock("axios", () => ({
   },
 }));
 
-import { fetchAppVersion } from "./app";
+import { fetchAppVersion, refreshAppFeatures } from "./app";
 
 describe("fetchAppVersion thunk", () => {
   const mockDispatch = vi.fn();
@@ -23,7 +28,50 @@ describe("fetchAppVersion thunk", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGet.mockResolvedValue({ data: "2026.10.01", status: 200 });
-    mockBackendGet.mockResolvedValue({ data: "2026.10.02", status: 200 });
+    mockBackendGet.mockImplementation((path: string) => {
+      if (path === "/app/features") {
+        return Promise.resolve({
+          data: { dashboardUpdatedEventEnabled: true },
+          status: 200,
+        });
+
+        describe("refreshAppFeatures thunk", () => {
+          const mockDispatch = vi.fn();
+          const mockGetState = vi.fn();
+
+          beforeEach(() => {
+            vi.clearAllMocks();
+          });
+
+          it("updates backend features and marks them loaded", async () => {
+            mockBackendGet.mockResolvedValue({
+              data: { dashboardUpdatedEventEnabled: true },
+              status: 200,
+            });
+
+            await refreshAppFeatures()(mockDispatch, mockGetState, undefined);
+
+            expect(mockBackendGet).toHaveBeenCalledWith("/app/features");
+            expect(mockDispatch).toHaveBeenCalledWith(
+              setFeatures({ dashboardUpdatedEventEnabled: true }),
+            );
+            expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+          });
+
+          it("marks features loaded when the refresh fails", async () => {
+            mockBackendGet.mockRejectedValue(new Error("Network error"));
+
+            await refreshAppFeatures()(mockDispatch, mockGetState, undefined);
+
+            expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+            expect(mockDispatch).not.toHaveBeenCalledWith(
+              setFeatures(expect.anything()),
+            );
+          });
+        });
+      }
+      return Promise.resolve({ data: "2026.10.02", status: 200 });
+    });
   });
 
   const createThunkAPI = () => ({
@@ -50,8 +98,12 @@ describe("fetchAppVersion thunk", () => {
 
     expect(mockGet).toHaveBeenCalledWith("/version");
     expect(mockDispatch).toHaveBeenCalledWith(setVersion("2026.10.01"));
-    expect(mockBackendGet).toHaveBeenCalledWith("/version");
+    expect(mockBackendGet).toHaveBeenCalledWith("/app/features");
+    expect(mockBackendGet).toHaveBeenCalledWith("/app/version");
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
+    expect(mockDispatch).toHaveBeenCalledWith(
+      setFeatures({ dashboardUpdatedEventEnabled: true }),
+    );
   });
 
   it("should not dispatch setVersion on failed fetch", async () => {
@@ -60,9 +112,12 @@ describe("fetchAppVersion thunk", () => {
     await fetchAppVersion()(mockDispatch, mockGetState, undefined);
 
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setVersion(expect.anything())
+      setVersion(expect.anything()),
     );
     expect(mockDispatch).toHaveBeenCalledWith(setBackendVersion("2026.10.02"));
+    expect(mockDispatch).toHaveBeenCalledWith(
+      setFeatures({ dashboardUpdatedEventEnabled: true }),
+    );
   });
 
   it("should not dispatch a version on non-200 status", async () => {
@@ -78,10 +133,26 @@ describe("fetchAppVersion thunk", () => {
     await fetchAppVersion()(mockDispatch, mockGetState, undefined);
 
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setVersion(expect.anything())
+      setVersion(expect.anything()),
     );
     expect(mockDispatch).not.toHaveBeenCalledWith(
-      setBackendVersion(expect.anything())
+      setBackendVersion(expect.anything()),
+    );
+    expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+  });
+
+  it("falls back to legacy event mode when feature loading fails", async () => {
+    mockBackendGet.mockImplementation((path: string) =>
+      path === "/app/features"
+        ? Promise.reject(new Error("Network error"))
+        : Promise.resolve({ data: "2026.10.02", status: 200 }),
+    );
+
+    await fetchAppVersion()(mockDispatch, mockGetState, undefined);
+
+    expect(mockDispatch).toHaveBeenCalledWith(setFeaturesLoaded());
+    expect(mockDispatch).not.toHaveBeenCalledWith(
+      setFeatures(expect.anything()),
     );
   });
 });

@@ -8,7 +8,14 @@ from pydantic import ValidationError
 import asyncio
 
 from shared.services.outages_schedule.service import OutagesScheduleService
-from shared.services.outages_schedule.models import SchedulesResponse, DayStatus, SlotType, Slot, DaySchedule, UnitSchedule
+from shared.models.outages_schedule import (
+    SchedulesResponse,
+    DayStatus,
+    SlotType,
+    Slot,
+    DaySchedule,
+    UnitSchedule,
+)
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
 
 

@@ -23,7 +23,14 @@ from shared.repositories.interfaces import (
     IUsersReadRepository,
     IOutagesScheduleRepository,
 )
-from shared.services.outages_schedule.models import SchedulesResponse, UnitSchedule, DaySchedule, Slot, SlotType, DayStatus
+from shared.models.outages_schedule import (
+    SchedulesResponse,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
+    SlotType,
+    DayStatus,
+)
 
 
 @pytest.fixture

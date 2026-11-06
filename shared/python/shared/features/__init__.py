@@ -9,9 +9,12 @@ class FeatureFlag(str, Enum):
     """Feature flags for migration phases."""
     # Phase 1: Dashboard snapshot publishing
     DASHBOARD_SNAPSHOT_PUBLISH = "dashboard_snapshot_publish"
-    
-    # Phase 2: App back-end Redis reads
-    APP_BACKEND_REDIS_READS = "app_backend_redis_reads"
+
+    # Public dashboard switches to post-publish dashboard_updated events
+    DASHBOARD_UPDATED_EVENT = "dashboard_updated_event"
+
+    # App-backend reads from the Redis dashboard snapshot
+    APP_BACKEND_DASHBOARD_SNAPSHOT_READS = "app_backend_dashboard_snapshot_reads"
     
     # Phase 3: SSE migration
     BACKEND_SSE_REDIS = "backend_sse_redis"

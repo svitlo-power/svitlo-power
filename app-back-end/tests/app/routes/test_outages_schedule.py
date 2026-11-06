@@ -7,7 +7,27 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.settings import Settings
 from shared.services.outages_schedule.service import OutagesScheduleService
-from shared.services.outages_schedule.models import SchedulesResponse, UnitSchedule, DaySchedule, Slot, SlotType, DayStatus
+from shared.models.outages_schedule import (
+    SchedulesResponse,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
+    SlotType,
+    DayStatus,
+)
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from shared.features import FeatureFlag, feature_flags
+
+
+@pytest.fixture(autouse=True)
+def restore_snapshot_read_flag():
+    original = feature_flags.is_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+    )
+    yield
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, original
+    )
 
 
 @pytest.fixture
@@ -15,6 +35,8 @@ def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
     settings.APP_ACCESS_TOKEN = None
+    settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+    feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
     return settings
 
 
@@ -24,7 +46,15 @@ def mock_outages_service():
 
 
 @pytest.fixture
-def app(mock_settings, mock_outages_service):
+def mock_snapshot_client():
+    client = MagicMock(spec=DashboardSnapshotClient)
+    client.get_outages_schedule.return_value = None
+    client.is_stale = True
+    return client
+
+
+@pytest.fixture
+def app(mock_settings, mock_outages_service, mock_snapshot_client):
     """Create test app with mocked dependencies."""
     from fastapi_injector import InjectorMiddleware, attach_injector
     from injector import Injector, Module, provider
@@ -35,7 +65,11 @@ def app(mock_settings, mock_outages_service):
         @provider
         def provide_outages_schedule_service(self) -> OutagesScheduleService:
             return mock_outages_service
-    
+
+        @provider
+        def provide_dashboard_snapshot_client(self) -> DashboardSnapshotClient:
+            return mock_snapshot_client
+
     injector = Injector([AppModule(), TestModule()])
     app = create_app(mock_settings)
     app.add_middleware(InjectorMiddleware, injector=injector)
@@ -67,6 +101,35 @@ def sample_schedule():
 
 
 class TestOutagesScheduleRoutes:
+    def test_redis_enabled_schedule_keeps_mobile_response_contract(
+        self,
+        client,
+        mock_settings,
+        mock_outages_service,
+        mock_snapshot_client,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(
+            FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True
+        )
+        mock_snapshot_client.is_stale = False
+        mock_snapshot_client.get_outages_schedule.return_value = UnitSchedule(
+            days=[
+                {
+                    "slots": [{"start": 0, "end": 24, "type": "Definite"}],
+                    "date": datetime(2026, 11, 5, tzinfo=timezone.utc),
+                    "status": "ScheduleApplies",
+                }
+            ],
+            updatedOn=datetime(2026, 11, 5, tzinfo=timezone.utc),
+        )
+
+        response = client.get("/api/outagesSchedule/outagesSchedule/queue_1")
+
+        assert response.status_code == 200
+        assert response.json()["days"][0]["status"] == "ScheduleApplies"
+        mock_outages_service.get_schedule_async.assert_not_awaited()
+
     @pytest.mark.asyncio
     async def test_get_outages_schedule_success(self, client, mock_outages_service, sample_schedule):
         mock_outages_service.get_schedule_async.return_value = sample_schedule

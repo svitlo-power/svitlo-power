@@ -118,8 +118,8 @@
     },
     "LocalizableValue": {
       "type": "object",
-      "required": ["uk", "en"],
-      "additionalProperties": true,
+      "propertyNames": { "enum": ["uk", "en"] },
+      "additionalProperties": false,
       "properties": {
         "uk": { "type": "string" },
         "en": { "type": "string" }

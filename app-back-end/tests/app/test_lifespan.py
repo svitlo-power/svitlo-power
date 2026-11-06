@@ -5,7 +5,19 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.lifespan import lifespan
+from shared.features import FeatureFlag, feature_flags
 from shared.services.settings.service import SettingsService
+
+
+@pytest.fixture(autouse=True)
+def restore_snapshot_read_flag():
+    original = feature_flags.is_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+    )
+    yield
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, original
+    )
 
 
 class TestLifespan:
@@ -14,11 +26,13 @@ class TestLifespan:
         """Test lifespan startup and shutdown."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = AsyncMock()
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
 
         # Configure the injector.get to return different mocks based on what's requested
         def injector_get_side_effect(cls):
@@ -30,6 +44,8 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -47,17 +63,20 @@ class TestLifespan:
                 # Settings service should be retrieved and set
                 mock_app.state.injector.get.assert_any_call(SettingsService)
                 mock_set_settings.assert_called_once_with(mock_settings_service)
+                mock_snapshot_client.start.assert_awaited_once()
 
             # After exiting context, shutdown should close resources
             mock_aiohttp_session.close.assert_called_once()
             mock_redis_client.close.assert_called_once()
             mock_beanie_initializer._client.close.assert_called_once()
+            mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_lifespan_with_exception(self):
         """Test lifespan handles exceptions during startup."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer.init.side_effect = Exception("Connection failed")
         mock_app.state.injector.get.return_value = mock_beanie_initializer
@@ -73,11 +92,13 @@ class TestLifespan:
         """Test lifespan shutdown handles missing resources gracefully."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = AsyncMock()
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -88,6 +109,8 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -100,17 +123,20 @@ class TestLifespan:
             mock_aiohttp_session.close.assert_called_once()
             mock_redis_client.close.assert_called_once()
             mock_beanie_initializer._client.close.assert_called_once()
+            mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_lifespan_shutdown_handles_none_resources(self):
         """Test lifespan shutdown handles None resources gracefully."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = None
         mock_aiohttp_session = None
         mock_redis_client = None
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -121,6 +147,8 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -134,6 +162,7 @@ class TestLifespan:
             mock_aiohttp_session.close.assert_not_called() if mock_aiohttp_session else None
             mock_redis_client.close.assert_not_called() if mock_redis_client else None
             mock_beanie_initializer._client.close.assert_not_called() if mock_beanie_initializer._client else None
+            mock_snapshot_client.stop.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_lifespan_starts_metrics_server(self):
@@ -145,6 +174,7 @@ class TestLifespan:
         mock_aiohttp_session = AsyncMock()
         mock_redis_client = AsyncMock()
         mock_settings_service = AsyncMock()
+        mock_snapshot_client = AsyncMock()
 
         def injector_get_side_effect(cls):
             if cls.__name__ == 'BeanieInitializer':
@@ -155,6 +185,8 @@ class TestLifespan:
                 return mock_redis_client
             elif cls.__name__ == 'SettingsService':
                 return mock_settings_service
+            elif cls.__name__ == 'DashboardSnapshotClient':
+                return mock_snapshot_client
             return MagicMock()
 
         mock_app.state.injector.get.side_effect = injector_get_side_effect
@@ -174,6 +206,7 @@ class TestLifespan:
             mock_metrics_lifespan.assert_called_once_with(host="0.0.0.0", port=9097)
             mock_metrics_cm.__aenter__.assert_called_once()
             mock_metrics_cm.__aexit__.assert_called_once()
+            mock_snapshot_client.stop.assert_awaited_once()
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import asyncio
 import json
 
 from datetime import datetime, timezone
-
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 
@@ -38,14 +38,15 @@ from app.services.dashboard_snapshot.service import (
 
 )
 
-from app.services.dashboard_snapshot.models import (
-
-    DashboardSnapshot,
-
+from shared.models.dashboard_snapshot import (
+    BuildingSnapshot,
     ConfigSnapshot,
-
+    DashboardSnapshot,
 )
-
+from shared.models.api.dashboard import ChargeSource
+from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.localizable_value import LocalizableValue
+from shared.models.outages_schedule import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 
 
@@ -123,28 +124,81 @@ class TestDashboardSnapshotServiceInit:
 
 
 class TestBuildSnapshot:
+    @pytest.mark.asyncio
+    async def test_init_version_keys_preserves_newer_epoch_after_clock_rollback(self):
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._epoch = 100
+        previous_snapshot = DashboardSnapshot(
+            epoch=300,
+            version=8,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[],
+            config=ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"}),
+            outages_schedules={},
+        )
+        redis_values = {
+            EPOCH_KEY: "200",
+            SNAPSHOT_KEY: previous_snapshot.model_dump_json(by_alias=True),
+        }
+        service._redis = AsyncMock(spec=Redis)
+        service._redis.get = AsyncMock(side_effect=lambda key: redis_values.get(key))
+        service._redis.set = AsyncMock()
+
+        await service._init_version_keys()
+
+        assert service._epoch == 300
+        service._redis.set.assert_any_await(EPOCH_KEY, 300)
 
     @pytest.mark.asyncio
-
     async def test_build_snapshot_returns_valid_model(self):
 
         mock_events = MagicMock()
-
         mock_dashboard = MagicMock()
-
         mock_dashboard.get_config = AsyncMock()
-
-        mock_dashboard.get_config.return_value.title = {
-
-            "uk": "\u041f\u0430\u043d\u0435\u043b",
-
-            "en": "Dashboard",
-
-        }
-
-        mock_dashboard.get_config.return_value.outages_schedule = None
-
-        mock_dashboard.get_buildings_with_summary = AsyncMock(return_value=[])
+        title = LocalizableValue(
+            {"uk": "\u041f\u0430\u043d\u0435\u043b", "en": "Dashboard"}
+        )
+        configured_schedule = OutagesScheduleConfig(
+            enable=True,
+            region_id=25,
+            dso_id=902,
+            queue="queue1",
+        )
+        mock_dashboard.get_config.return_value = SimpleNamespace(
+            title=title,
+            outages_schedule=configured_schedule,
+        )
+        building = SimpleNamespace(
+            id="507f1f77bcf86cd799439011",
+            name=LocalizableValue({"en": "Building", "uk": "Будинок"}),
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            is_grid_available=True,
+            grid_availability_pct=100,
+            has_mixed_reporter_states=False,
+            is_charging=True,
+            is_discharging=False,
+            is_offline=False,
+            battery_percent=25,
+            consumption_power="1.00",
+            battery_discharge_time=None,
+            battery_charge_time=None,
+            charge_source=ChargeSource.GRID,
+            charge_power=500,
+        )
+        mock_dashboard.get_buildings_with_summary = AsyncMock(return_value=[building])
 
         mock_dashboard_repo = MagicMock()
 
@@ -160,10 +214,12 @@ class TestBuildSnapshot:
 
         mock_outages_repo = MagicMock()
 
+        unit_schedule = UnitSchedule(
+            days=[],
+            updatedOn=datetime(2026, 10, 31, tzinfo=timezone.utc),
+        )
         mock_outages_repo.get_all_schedules = AsyncMock(
-
-            return_value=MagicMock(root={})
-
+            return_value=MagicMock(root={"queue1": unit_schedule})
         )
 
         mock_settings = _MockSettings()
@@ -205,19 +261,120 @@ class TestBuildSnapshot:
 
 
         assert isinstance(snapshot, DashboardSnapshot)
-
         assert snapshot.epoch == 1700000000000
-
         assert snapshot.version == 1
-
-        assert snapshot.buildings == []
-
-        assert snapshot.config.title == {"uk": "Панел", "en": "Dashboard"}
-
-        assert snapshot.outages_schedules == {}
+        assert snapshot.buildings[0].charge_source == "Grid"
+        assert snapshot.config.title is title
+        assert snapshot.config.outages_schedule is configured_schedule
+        assert snapshot.outages_schedules["queue1"] is unit_schedule
 
 
+class TestRefreshAndPublish:
+    @pytest.mark.asyncio
+    async def test_broadcasts_dashboard_updated_after_snapshot_is_published(self):
+        order = []
+        events = MagicMock()
+        events.broadcast_public = AsyncMock(
+            side_effect=lambda event, data: order.append(("broadcast", event, data))
+        )
+        service = DashboardSnapshotService(
+            events,
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = AsyncMock(spec=Redis)
+        service._redis.incr = AsyncMock(return_value=2)
+        snapshot = DashboardSnapshot(
+            epoch=1700000000000,
+            version=2,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[],
+            config=ConfigSnapshot(title={"uk": "Панель", "en": "Dashboard"}),
+            outages_schedules={},
+        )
+        service.build_snapshot = AsyncMock(return_value=snapshot)
 
+        async def publish(_snapshot):
+            order.append(("publish", _snapshot.version))
+            return True
+
+        service.publish_snapshot = AsyncMock(side_effect=publish)
+
+        await service.refresh_and_publish()
+
+        assert order == [
+            ("publish", 2),
+            (
+                "broadcast",
+                "dashboard_updated",
+                {"changed": ["buildings", "summary", "config", "outages"]},
+            ),
+        ]
+
+    def test_changed_sections_reports_only_changed_building_summary(self):
+        building = BuildingSnapshot(
+            id="507f1f77bcf86cd799439011",
+            name={"en": "Building", "uk": "Будинок"},
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            battery_percent=25,
+            charge_source="Grid",
+        )
+        updated_building = building.model_copy(update={"battery_percent": 30})
+        config = ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"})
+        previous = DashboardSnapshot(
+            epoch=1,
+            version=1,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[building],
+            config=config,
+            outages_schedules={},
+        )
+        current = previous.model_copy(
+            update={"version": 2, "buildings": [updated_building]}
+        )
+
+        assert DashboardSnapshotService._changed_sections(previous, current) == [
+            "summary"
+        ]
+
+    def test_changed_sections_reports_building_order_and_config_changes(self):
+        building = BuildingSnapshot(
+            id="507f1f77bcf86cd799439011",
+            name={"en": "Building", "uk": "Будинок"},
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            charge_source="None",
+        )
+        previous = DashboardSnapshot(
+            epoch=1,
+            version=1,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[building],
+            config=ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"}),
+            outages_schedules={},
+        )
+        current = previous.model_copy(
+            update={
+                "version": 2,
+                "buildings": [building.model_copy(update={"order": 2})],
+                "config": ConfigSnapshot(title={"en": "New", "uk": "Нова"}),
+            }
+        )
+
+        assert DashboardSnapshotService._changed_sections(previous, current) == [
+            "buildings",
+            "config",
+        ]
 
 
 class TestPublishSnapshot:
@@ -227,7 +384,6 @@ class TestPublishSnapshot:
     async def test_publish_snapshot_no_lease(self):
 
         mock_events = MagicMock()
-
         mock_dashboard = MagicMock()
 
         mock_dashboard_repo = MagicMock()
@@ -617,6 +773,7 @@ class TestHandleRefreshRequest:
 
 
         mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
 
         mock_dashboard = MagicMock()
 
@@ -699,4 +856,3 @@ class TestHandleRefreshRequest:
         assert result["version"] == 1
 
         assert result["coalesced"] is False
-

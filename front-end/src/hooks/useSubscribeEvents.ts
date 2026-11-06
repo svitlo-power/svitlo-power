@@ -2,19 +2,32 @@ import { useEffect, useRef } from "react";
 import { eventsService } from "../services";
 import { EventItem } from "../types";
 
-export function useSubscribeEvents(callback: (event: EventItem) => void) {
+export function useSubscribeEvents(
+  callback: (event: EventItem) => void,
+  enabled = true,
+) {
+  const callbackRef = useRef(callback);
+
   useEffect(() => {
-    const unsubscribe = eventsService.subscribe(callback);
+    callbackRef.current = callback;
+  }, [callback]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const unsubscribe = eventsService.subscribe((event) =>
+      callbackRef.current(event),
+    );
 
     return () => {
       unsubscribe();
     };
-  }, [callback]);
-};
+  }, [enabled]);
+}
 
 export function useSubscribeEvent<T extends EventItem["type"]>(
   type: T,
-  handler: (event: EventItem & { type: T }) => void
+  handler: (event: EventItem & { type: T }) => void,
 ) {
   const handlerRef = useRef(handler);
 

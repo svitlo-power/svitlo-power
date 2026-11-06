@@ -20,12 +20,16 @@ import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   authDataSelector,
   createSelectEdittedBuildings,
+  selectDashboardUpdatedEventEnabled,
+  selectFeaturesLoaded,
 } from "../../stores/selectors";
 import { initGA, trackPageView } from "../../utils/analytics";
 import { useLocalizedEffect, useSubscribeEvents } from "../../hooks";
 import { usePageTranslation } from "../../utils";
 import i18n from "../../i18n";
 import { EventItem, EventType } from "../../types";
+
+const SNAPSHOT_REFRESH_FALLBACK_MS = 5 * 60 * 1000;
 
 export const BuildingsPage: FC = () => {
   const loadingConfig = useAppSelector(
@@ -46,6 +50,7 @@ export const BuildingsPage: FC = () => {
   );
   const buildingsChanged = useAppSelector((state) => state.buildings.changed);
   const buildings = useAppSelector(createSelectEdittedBuildings);
+  const persistedBuildings = useAppSelector((state) => state.buildings.items);
   const buildingsSummary = useAppSelector(
     (state) => state.buildingsSummary.items,
   );
@@ -62,6 +67,11 @@ export const BuildingsPage: FC = () => {
     useAppSelector(authDataSelector)?.accessToken,
   );
   const dispatch = useAppDispatch();
+  const featuresLoaded = useAppSelector(selectFeaturesLoaded);
+  const dashboardUpdatedEventEnabled = useAppSelector(
+    selectDashboardUpdatedEventEnabled,
+  );
+  const lastSnapshotUpdateRef = useRef(0);
 
   const t = usePageTranslation("dashboard");
 
@@ -79,10 +89,6 @@ export const BuildingsPage: FC = () => {
     }
   }, [configChanged, buildingsChanged, dispatch]);
 
-  useLocalizedEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const fetchSummary = useCallback(
     (force: boolean = false) => {
       if (
@@ -99,16 +105,28 @@ export const BuildingsPage: FC = () => {
     [buildings, buildingsSummary.length, buildngsSummaryError, dispatch],
   );
 
+  const fetchSummaryForBuildings = useCallback(
+    (buildingIds: string[]) => {
+      if (buildingIds.length > 0) {
+        dispatch(fetchBuildingsSummary(buildingIds));
+      }
+    },
+    [dispatch],
+  );
+
   useLocalizedEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
 
-  const fetchOutages = useCallback(() => {
-    const schedule = dashboardConfig?.outagesSchedule;
-    if (schedule?.enable && schedule.queue) {
-      dispatch(fetchOutagesSchedule(schedule.queue));
-    }
-  }, [dashboardConfig, dispatch]);
+  const fetchOutages = useCallback(
+    (config = dashboardConfig) => {
+      const schedule = config?.outagesSchedule;
+      if (schedule?.enable && schedule.queue) {
+        dispatch(fetchOutagesSchedule(schedule.queue));
+      }
+    },
+    [dashboardConfig, dispatch],
+  );
 
   useLocalizedEffect(() => {
     fetchOutages();
@@ -166,23 +184,127 @@ export const BuildingsPage: FC = () => {
     );
   }, [dashboardConfig?.title]);
 
-  useSubscribeEvents((event: EventItem) => {
-    switch (event.type) {
-      case EventType.BuildingsUpdated:
-      case EventType.DashboardConfigUpdated:
-        fetchData();
-        fetchSummary(true);
-        fetchOutages();
-        break;
-      case EventType.ExtDataUpdated:
-      case EventType.StationDataUpdated:
-        fetchSummary(true);
-        break;
-      case EventType.OutagesUpdated:
-        fetchOutages();
-        break;
-    }
-  });
+  const refreshSnapshotSections = useCallback(
+    async (changedSections: string[]) => {
+      const refreshBuildings = changedSections.includes("buildings");
+      const refreshConfig = changedSections.includes("config");
+      let buildingsForSummary = buildingsChanged
+        ? persistedBuildings
+        : buildings;
+      let configForOutages = dashboardConfig;
+
+      const buildingsResultPromise =
+        refreshBuildings && !buildingsChanged
+          ? dispatch(fetchBuildings())
+          : Promise.resolve(undefined);
+      const configResultPromise =
+        refreshConfig && !configChanged
+          ? dispatch(fetchDashboardConfig())
+          : Promise.resolve(undefined);
+      const [buildingsResult, configResult] = await Promise.all([
+        buildingsResultPromise,
+        configResultPromise,
+      ]);
+      if (buildingsResult && fetchBuildings.fulfilled.match(buildingsResult)) {
+        buildingsForSummary = buildingsResult.payload;
+      }
+      if (configResult && fetchDashboardConfig.fulfilled.match(configResult)) {
+        configForOutages = configResult.payload;
+      }
+
+      if (changedSections.includes("summary") || refreshBuildings) {
+        fetchSummaryForBuildings(
+          buildingsForSummary.flatMap((building) =>
+            building.id ? [building.id] : [],
+          ),
+        );
+      }
+      if (changedSections.includes("outages") || refreshConfig) {
+        fetchOutages(configForOutages);
+      }
+    },
+    [
+      buildings,
+      buildingsChanged,
+      configChanged,
+      dashboardConfig,
+      dispatch,
+      fetchOutages,
+      fetchSummaryForBuildings,
+      persistedBuildings,
+    ],
+  );
+
+  const handleEvent = useCallback(
+    (event: EventItem) => {
+      if (dashboardUpdatedEventEnabled) {
+        if (event.type === EventType.DashboardUpdated) {
+          lastSnapshotUpdateRef.current = Date.now();
+          const changed = event.data?.changed;
+          const changedSections = Array.isArray(changed)
+            ? changed.filter(
+                (section): section is string => typeof section === "string",
+              )
+            : ["buildings", "summary", "config", "outages"];
+          void refreshSnapshotSections(changedSections);
+        }
+        return;
+      }
+
+      switch (event.type) {
+        case EventType.BuildingsUpdated:
+        case EventType.DashboardConfigUpdated:
+          fetchData();
+          fetchSummary(true);
+          fetchOutages();
+          break;
+        case EventType.ExtDataUpdated:
+        case EventType.StationDataUpdated:
+          fetchSummary(true);
+          break;
+        case EventType.OutagesUpdated:
+          fetchOutages();
+          break;
+      }
+    },
+    [
+      dashboardUpdatedEventEnabled,
+      fetchData,
+      fetchOutages,
+      fetchSummary,
+      refreshSnapshotSections,
+    ],
+  );
+
+  useSubscribeEvents(handleEvent, featuresLoaded);
+
+  useEffect(() => {
+    if (!featuresLoaded || !dashboardUpdatedEventEnabled) return;
+
+    lastSnapshotUpdateRef.current = Date.now();
+    const timer = setInterval(() => {
+      if (
+        Date.now() - lastSnapshotUpdateRef.current <
+        SNAPSHOT_REFRESH_FALLBACK_MS
+      ) {
+        return;
+      }
+
+      void refreshSnapshotSections([
+        "buildings",
+        "summary",
+        "config",
+        "outages",
+      ]);
+      lastSnapshotUpdateRef.current = Date.now();
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [dashboardUpdatedEventEnabled, featuresLoaded, refreshSnapshotSections]);
+
+  useLocalizedEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const visibility = useDocumentVisibility();
   const prevVisibility = useRef(visibility);

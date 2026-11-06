@@ -1,5 +1,5 @@
 from .service import OutagesScheduleService
-from .models import (
+from shared.models.outages_schedule import (
     SchedulesResponse,
     UnitSchedule,
     DaySchedule,

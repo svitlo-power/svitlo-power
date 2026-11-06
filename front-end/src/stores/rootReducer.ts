@@ -53,8 +53,10 @@ const combinedReducers = combineReducers({
 type RootState = ReturnType<typeof combinedReducers>;
 
 export const rootReducer = (state: RootState | undefined, action: Action) => {
-  if (action.type === logout.type) {
-    state = undefined;
+  if (action.type === logout.type && state) {
+    const appState = state.app;
+    const resetState = combinedReducers(undefined, action);
+    return { ...resetState, app: appState };
   }
   return combinedReducers(state, action);
 };

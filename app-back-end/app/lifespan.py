@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from shared.features import FeatureFlag, feature_flags
 from prometheus_client import ProcessCollector, REGISTRY
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
 from shared.metrics import SERVICE_VERSION_INFO
 from shared.metrics.server import metrics_server_lifespan
 from shared.utils import get_version
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 
 # Register process metrics (CPU, RAM, FDs) - guard against duplicate registration
 try:
@@ -38,6 +41,15 @@ async def lifespan(app: FastAPI):
     settings_service = app.state.injector.get(SettingsService)
     set_settings_service(settings_service)
 
+    snapshot_client = app.state.injector.get(DashboardSnapshotClient)
+    app.state.dashboard_snapshot_client = snapshot_client
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS,
+        app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS,
+    )
+    if dashboard_snapshot_reads_enabled():
+        await snapshot_client.start()
+
     # Register service version metric
     version = get_version()
     SERVICE_VERSION_INFO.labels(service="app-back-end", version=version).set(1)
@@ -49,6 +61,10 @@ async def lifespan(app: FastAPI):
     # Shutdown - close resources in reverse order
     import logging
     logging.info("Shutting down app-back-end...")
+
+    snapshot_client = getattr(app.state, "dashboard_snapshot_client", None)
+    if snapshot_client is not None:
+        await snapshot_client.stop()
 
     # Close aiohttp session
     if hasattr(app.state, 'aiohttp_session') and app.state.aiohttp_session:

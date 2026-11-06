@@ -7,7 +7,14 @@ import aiohttp
 from shared.services.outages_schedule.service import OutagesScheduleService
 from shared.services.events.service import EventsService
 from shared.repositories.interfaces.outages_schedule import IOutagesScheduleRepository
-from shared.services.outages_schedule.models import SchedulesResponse, UnitSchedule, DaySchedule, Slot, SlotType, DayStatus
+from shared.models.outages_schedule import (
+    SchedulesResponse,
+    UnitSchedule,
+    DaySchedule,
+    Slot,
+    SlotType,
+    DayStatus,
+)
 
 
 @pytest.fixture

@@ -1,6 +1,7 @@
 export enum EventType {
   VisitsUpdated = "visits_updated",
   DashboardConfigUpdated = "dashboard_config_updated",
+  DashboardUpdated = "dashboard_updated",
   StationDataUpdated = "station_data_updated",
   BuildingsUpdated = "buildings_updated",
   ExtDataUpdated = "ext_data_updated",
@@ -10,11 +11,11 @@ export enum EventType {
   ChatsUpdated = "chats_updated",
   Ping = "ping",
   Shutdown = "shutdown",
-};
+}
 
 export type EventItem = {
   type: EventType;
-  data: Record<string, string>;
+  data: Record<string, unknown>;
   private: boolean;
   user?: string;
 };

@@ -8,6 +8,13 @@ from beanie import PydanticObjectId
 from app.main import create_app
 from app.settings import Settings
 from shared.services.dashboard import ReadOnlyDashboardService
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from shared.features import FeatureFlag, feature_flags
+from shared.models.dashboard_snapshot import (
+    BuildingSnapshot as DashboardBuildingSnapshot,
+    ConfigSnapshot as DashboardConfigSnapshot,
+    DashboardSnapshot,
+)
 from shared.models.api.dashboard import (
     BuildingResponse,
     BuildingSummaryResponse,
@@ -18,11 +25,24 @@ from shared.models.api.dashboard import (
 )
 
 
+@pytest.fixture(autouse=True)
+def restore_snapshot_read_flag():
+    original = feature_flags.is_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+    )
+    yield
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, original
+    )
+
+
 @pytest.fixture
 def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
     settings.APP_ACCESS_TOKEN = None
+    settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+    feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
     return settings
 
 
@@ -32,7 +52,20 @@ def mock_dashboard_service():
 
 
 @pytest.fixture
-def app(mock_settings, mock_dashboard_service):
+def mock_snapshot_client():
+    client = MagicMock(spec=DashboardSnapshotClient)
+    client.get_snapshot.return_value = None
+    client.is_stale = True
+    client.get_outages_schedule.return_value = None
+    return client
+
+
+@pytest.fixture
+def app(
+    mock_settings,
+    mock_dashboard_service,
+    mock_snapshot_client,
+):
     """Create test app with mocked dependencies."""
     from fastapi_injector import InjectorMiddleware, attach_injector
     from injector import Injector, Module, provider
@@ -43,7 +76,11 @@ def app(mock_settings, mock_dashboard_service):
         @provider
         def provide_dashboard_service(self) -> ReadOnlyDashboardService:
             return mock_dashboard_service
-    
+
+        @provider
+        def provide_dashboard_snapshot_client(self) -> DashboardSnapshotClient:
+            return mock_snapshot_client
+
     injector = Injector([AppModule(), TestModule()])
     app = create_app(mock_settings)
     app.add_middleware(InjectorMiddleware, injector=injector)
@@ -106,6 +143,218 @@ def sample_station_data():
 
 
 class TestDashboardRoutes:
+    @pytest.fixture
+    def dashboard_snapshot(self):
+        return DashboardSnapshot(
+            epoch=1,
+            version=2,
+            generatedAt=datetime.now(timezone.utc),
+            buildings=[
+                DashboardBuildingSnapshot(
+                    id="507f1f77bcf86cd799439011",
+                    name={"en": "Cached Building", "uk": "Кешована будівля"},
+                    color="#00FF00",
+                    order=1,
+                    hasBoundStation=True,
+                    isGridAvailable=True,
+                    batteryPercent=80,
+                    isCharging=False,
+                    isDischarging=True,
+                    isOffline=False,
+                    chargeSource="None",
+                )
+            ],
+            config=DashboardConfigSnapshot(
+                title={"en": "Cached Dashboard", "uk": "Кешована панель"},
+                outagesSchedule={
+                    "enable": True,
+                    "regionId": 1,
+                    "dsoId": 1,
+                    "queue": "queue_1",
+                },
+            ),
+            outagesSchedules={},
+        )
+
+    def test_redis_enabled_buildings_keeps_mobile_response_contract(
+        self,
+        client,
+        app,
+        mock_settings,
+        mock_dashboard_service,
+        mock_snapshot_client,
+        dashboard_snapshot,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
+        mock_snapshot_client.is_stale = False
+
+        response = client.get("/api/dashboard/buildings")
+
+        assert response.status_code == 200
+        assert response.json() == [{
+            "id": "507f1f77bcf86cd799439011",
+            "name": {"en": "Cached Building", "uk": "Кешована будівля"},
+            "color": "#00FF00",
+            "hasBoundStation": True,
+            "order": 1,
+        }]
+        mock_dashboard_service.get_buildings.assert_not_awaited()
+
+    def test_redis_enabled_summary_keeps_requested_building_order(
+        self,
+        client,
+        mock_settings,
+        mock_dashboard_service,
+        mock_snapshot_client,
+        dashboard_snapshot,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
+        mock_snapshot_client.is_stale = False
+
+        response = client.post(
+            "/api/dashboard/buildings/summary",
+            json={"buildingIds": ["507f1f77bcf86cd799439011"]},
+        )
+
+        assert response.status_code == 200
+        assert response.json()[0]["id"] == "507f1f77bcf86cd799439011"
+        assert response.json()[0]["batteryPercent"] == 80
+        mock_dashboard_service.get_buildings_summary.assert_not_awaited()
+
+    def test_redis_enabled_combined_endpoint_keeps_mobile_response_contract(
+        self,
+        client,
+        mock_settings,
+        mock_dashboard_service,
+        mock_snapshot_client,
+        dashboard_snapshot,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
+        mock_snapshot_client.is_stale = False
+
+        response = client.get("/api/buildings/buildings")
+
+        assert response.status_code == 200
+        data = response.json()[0]
+        assert data["id"] == "507f1f77bcf86cd799439011"
+        assert data["name"]["en"] == "Cached Building"
+        assert data["batteryPercent"] == 80
+        assert data["chargeSource"] == "None"
+        mock_dashboard_service.get_buildings_with_summary.assert_not_awaited()
+
+    def test_redis_enabled_stale_snapshot_falls_back_to_legacy(
+        self,
+        client,
+        mock_settings,
+        mock_dashboard_service,
+        mock_snapshot_client,
+        dashboard_snapshot,
+        sample_building,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
+        mock_snapshot_client.is_stale = True
+        mock_dashboard_service.get_buildings.return_value = [
+            BuildingResponse(
+                id=sample_building.id,
+                name={"en": "Legacy Building"},
+                color="#FF0000",
+                hasBoundStation=True,
+                order=1,
+            )
+        ]
+
+        response = client.get("/api/dashboard/buildings")
+
+        assert response.status_code == 200
+        assert response.json()[0]["name"]["en"] == "Legacy Building"
+        mock_dashboard_service.get_buildings.assert_awaited_once_with(all=False)
+
+    def test_redis_enabled_config_keeps_flat_mobile_response(
+        self,
+        client,
+        mock_settings,
+        mock_dashboard_service,
+        mock_snapshot_client,
+        dashboard_snapshot,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
+        mock_snapshot_client.is_stale = False
+
+        response = client.get("/api/dashboard/config")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "title": {"en": "Cached Dashboard", "uk": "Кешована панель"},
+            "enableOutagesSchedule": True,
+            "outagesScheduleQueue": "queue_1",
+        }
+        mock_dashboard_service.get_config.assert_not_awaited()
+
+    def test_redis_dashboard_health_returns_consumer_state(
+        self,
+        client,
+        mock_settings,
+        mock_snapshot_client,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.health.return_value = {
+            "status": "healthy",
+            "localEpoch": 1,
+            "localVersion": 2,
+            "redisEpoch": 1,
+            "redisVersion": 2,
+            "versionLag": 0,
+            "snapshotAgeSeconds": 10,
+            "isStale": False,
+            "subscribed": True,
+            "lastNotificationAt": None,
+        }
+
+        response = client.get("/health/redis-dashboard")
+
+        assert response.status_code == 200
+        assert response.json()["versionLag"] == 0
+
+    def test_redis_dashboard_health_is_disabled_when_feature_is_off(
+        self,
+        client,
+        mock_settings,
+        mock_snapshot_client,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
+
+        response = client.get("/health/redis-dashboard")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "disabled"}
+        mock_snapshot_client.health.assert_not_called()
+
+    def test_redis_dashboard_health_returns_503_when_unhealthy(
+        self,
+        client,
+        mock_settings,
+        mock_snapshot_client,
+    ):
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
+        mock_snapshot_client.health.return_value = {"status": "unhealthy"}
+
+        response = client.get("/health/redis-dashboard")
+
+        assert response.status_code == 503
+
     @pytest.mark.asyncio
     async def test_get_buildings(self, client, mock_dashboard_service, sample_building):
         mock_dashboard_service.get_buildings.return_value = [

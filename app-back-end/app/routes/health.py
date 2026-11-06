@@ -1,5 +1,7 @@
 """Health check routes for app-back-end."""
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+from fastapi_injector import Injected
+from shared.services.dashboard_snapshot import DashboardSnapshotClient
 from shared.health import health_registry, HealthCheckResult, HealthStatus
 from shared.metrics import (
     DASHBOARD_SNAPSHOT_EPOCH,
@@ -7,6 +9,7 @@ from shared.metrics import (
     DASHBOARD_SNAPSHOT_AGE_SECONDS,
 )
 from shared.services.dashboard import ReadOnlyDashboardService
+from app.snapshot_mode import dashboard_snapshot_reads_enabled
 import time
 
 
@@ -134,3 +137,18 @@ def register(app: FastAPI):
             "details": snapshot_check.get("details", {}),
             "timestamp": time.time(),
         }
+
+    @app.get("/health/redis-dashboard")
+    async def redis_dashboard_health(
+        request: Request,
+        response: Response,
+        snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
+    ):
+        """Report Redis snapshot consumer health and version state."""
+        if not dashboard_snapshot_reads_enabled():
+            return {"status": "disabled"}
+
+        result = snapshot_client.health()
+        if result["status"] != "healthy":
+            response.status_code = 503
+        return result
