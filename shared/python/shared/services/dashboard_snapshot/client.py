@@ -179,7 +179,7 @@ class DashboardSnapshotClient:
 
         unhealthy = (
             not self._subscribed
-            or self.is_stale and self.age_seconds > 600
+            or self.is_stale
             or self._snapshot is None
             or self._redis_epoch not in (0, self.epoch)
             or (

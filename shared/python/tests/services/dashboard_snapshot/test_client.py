@@ -211,6 +211,24 @@ async def test_stale_snapshot_reports_age():
 
 
 @pytest.mark.asyncio
+async def test_health_is_unhealthy_at_configured_stale_threshold():
+    generated_at = datetime.now(timezone.utc) - timedelta(seconds=2)
+    client = DashboardSnapshotClient(
+        FakeRedis(snapshot_json(generated_at=generated_at)),
+        FakeSession(),
+        "http://refresh",
+        stale_threshold_seconds=1,
+    )
+
+    await client.start()
+    try:
+        assert client.health()["isStale"] is True
+        assert client.health()["status"] == "unhealthy"
+    finally:
+        await client.stop()
+
+
+@pytest.mark.asyncio
 async def test_later_cache_misses_request_rate_limited_refresh(monkeypatch):
     monkeypatch.setattr(
         "shared.services.dashboard_snapshot.client.CACHE_MISS_REFRESH_COOLDOWN_SECONDS",
