@@ -133,6 +133,23 @@ async def test_version_lag_metric_reflects_adopted_snapshot():
 
 
 @pytest.mark.asyncio
+async def test_health_does_not_mutate_reconciliation_lag_state():
+    client = DashboardSnapshotClient(
+        FakeRedis(snapshot_json(epoch=3, version=7)),
+        FakeSession(),
+        "http://refresh",
+    )
+
+    await client.start()
+    try:
+        client._version_lag_since = 123.0
+        assert client.health()["versionLag"] == 0
+        assert client._version_lag_since == 123.0
+    finally:
+        await client.stop()
+
+
+@pytest.mark.asyncio
 async def test_notification_loads_only_newer_snapshot():
     redis = FakeRedis(snapshot_json(epoch=1, version=1))
     client = DashboardSnapshotClient(redis, FakeSession(), "http://refresh")

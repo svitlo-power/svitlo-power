@@ -171,12 +171,6 @@ class DashboardSnapshotClient:
     def health(self) -> dict[str, Any]:
         lag = self.version_lag
         now = asyncio.get_running_loop().time()
-        if lag > 1:
-            if self._version_lag_since is None:
-                self._version_lag_since = now
-        else:
-            self._version_lag_since = None
-
         unhealthy = (
             not self._subscribed
             or self.is_stale
