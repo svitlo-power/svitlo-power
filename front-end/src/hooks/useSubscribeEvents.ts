@@ -6,15 +6,23 @@ export function useSubscribeEvents(
   callback: (event: EventItem) => void,
   enabled = true,
 ) {
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
   useEffect(() => {
     if (!enabled) return;
 
-    const unsubscribe = eventsService.subscribe(callback);
+    const unsubscribe = eventsService.subscribe((event) =>
+      callbackRef.current(event),
+    );
 
     return () => {
       unsubscribe();
     };
-  }, [callback, enabled]);
+  }, [enabled]);
 }
 
 export function useSubscribeEvent<T extends EventItem["type"]>(
