@@ -263,6 +263,47 @@ describe("BuildingsPage outage schedule", () => {
     ).toHaveLength(buildingRequests);
   });
 
+  it("uses newly fetched building IDs for a snapshot summary refresh", async () => {
+    let responseBuildings: BuildingListItem[] = [];
+    mockGet.mockImplementation((url: string) =>
+      url === "/dashboard/buildings"
+        ? Promise.resolve({ data: responseBuildings })
+        : new Promise(() => {}),
+    );
+    renderPage(null, {
+      dashboardUpdatedEventEnabled: true,
+      featuresLoaded: true,
+    });
+    await waitFor(() =>
+      expect(mockGet).toHaveBeenCalledWith("/dashboard/buildings"),
+    );
+    responseBuildings = [
+      {
+        id: "507f1f77bcf86cd799439011",
+        name: { en: "New building", uk: "Новий будинок" },
+        color: "blue",
+        hasBoundStation: true,
+        order: 1,
+      },
+    ];
+    mockPost.mockClear();
+    const handler = mockSubscribeEvents.mock.calls.at(-1)?.[0] as (
+      event: EventItem,
+    ) => void;
+
+    handler({
+      type: EventType.DashboardUpdated,
+      data: { changed: ["buildings", "summary"] },
+      private: false,
+    });
+
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith("/dashboard/buildings/summary", {
+        buildingIds: ["507f1f77bcf86cd799439011"],
+      }),
+    );
+  });
+
   it("preserves unsaved dashboard edits when a snapshot update arrives", () => {
     const store = renderPage(
       { enable: true, regionId: 25, dsoId: 902, queue: "1.1" },
