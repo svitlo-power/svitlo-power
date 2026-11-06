@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 import pytest
 
-from app.services.dashboard_snapshot.models import (
+from shared.models.dashboard_snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,

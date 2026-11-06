@@ -38,7 +38,7 @@ from app.services.dashboard_snapshot.service import (
 
 )
 
-from app.services.dashboard_snapshot.models import DashboardSnapshot, ConfigSnapshot
+from shared.models.dashboard_snapshot import DashboardSnapshot, ConfigSnapshot
 from shared.models.outages_schedule import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 

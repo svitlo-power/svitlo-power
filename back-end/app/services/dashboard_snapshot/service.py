@@ -39,7 +39,7 @@ from app.repositories import (
     IOutagesScheduleRepository,
 )
 from app.settings import Settings
-from app.services.dashboard_snapshot.models import (
+from shared.models.dashboard_snapshot import (
     DashboardSnapshot,
     BuildingSnapshot,
     ConfigSnapshot,
