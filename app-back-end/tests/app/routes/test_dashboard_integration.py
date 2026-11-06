@@ -285,8 +285,10 @@ class TestDashboardRoutes:
     def test_redis_dashboard_health_returns_consumer_state(
         self,
         client,
+        mock_settings,
         mock_snapshot_client,
     ):
+        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
         mock_snapshot_client.health.return_value = {
             "status": "healthy",
             "localEpoch": 1,
@@ -304,6 +306,33 @@ class TestDashboardRoutes:
 
         assert response.status_code == 200
         assert response.json()["versionLag"] == 0
+
+    def test_redis_dashboard_health_is_disabled_when_feature_is_off(
+        self,
+        client,
+        mock_settings,
+        mock_snapshot_client,
+    ):
+        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
+
+        response = client.get("/health/redis-dashboard")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "disabled"}
+        mock_snapshot_client.health.assert_not_called()
+
+    def test_redis_dashboard_health_returns_503_when_unhealthy(
+        self,
+        client,
+        mock_settings,
+        mock_snapshot_client,
+    ):
+        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_snapshot_client.health.return_value = {"status": "unhealthy"}
+
+        response = client.get("/health/redis-dashboard")
+
+        assert response.status_code == 503
 
     @pytest.mark.asyncio
     async def test_get_buildings(self, client, mock_dashboard_service, sample_building):

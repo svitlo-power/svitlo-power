@@ -1,5 +1,5 @@
 """Health check routes for app-back-end."""
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi_injector import Injected
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
 from shared.health import health_registry, HealthCheckResult, HealthStatus
@@ -139,10 +139,14 @@ def register(app: FastAPI):
 
     @app.get("/health/redis-dashboard")
     async def redis_dashboard_health(
+        request: Request,
         response: Response,
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ):
         """Report Redis snapshot consumer health and version state."""
+        if not request.app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED:
+            return {"status": "disabled"}
+
         result = snapshot_client.health()
         if result["status"] != "healthy":
             response.status_code = 503

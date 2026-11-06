@@ -40,8 +40,9 @@ async def lifespan(app: FastAPI):
     set_settings_service(settings_service)
 
     snapshot_client = app.state.injector.get(DashboardSnapshotClient)
-    await snapshot_client.start()
     app.state.dashboard_snapshot_client = snapshot_client
+    if app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED:
+        await snapshot_client.start()
 
     # Register service version metric
     version = get_version()
@@ -55,7 +56,9 @@ async def lifespan(app: FastAPI):
     import logging
     logging.info("Shutting down app-back-end...")
 
-    await app.state.dashboard_snapshot_client.stop()
+    snapshot_client = getattr(app.state, "dashboard_snapshot_client", None)
+    if snapshot_client is not None:
+        await snapshot_client.stop()
 
     # Close aiohttp session
     if hasattr(app.state, 'aiohttp_session') and app.state.aiohttp_session:

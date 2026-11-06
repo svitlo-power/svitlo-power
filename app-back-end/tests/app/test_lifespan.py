@@ -14,6 +14,7 @@ class TestLifespan:
         """Test lifespan startup and shutdown."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = AsyncMock()
         mock_aiohttp_session = AsyncMock()
@@ -63,6 +64,7 @@ class TestLifespan:
         """Test lifespan handles exceptions during startup."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer.init.side_effect = Exception("Connection failed")
         mock_app.state.injector.get.return_value = mock_beanie_initializer
@@ -78,6 +80,7 @@ class TestLifespan:
         """Test lifespan shutdown handles missing resources gracefully."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = AsyncMock()
         mock_aiohttp_session = AsyncMock()
@@ -115,6 +118,7 @@ class TestLifespan:
         """Test lifespan shutdown handles None resources gracefully."""
         mock_app = MagicMock(spec=FastAPI)
         mock_app.state = MagicMock()
+        mock_app.state.settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
         mock_beanie_initializer = AsyncMock()
         mock_beanie_initializer._client = None
         mock_aiohttp_session = None
