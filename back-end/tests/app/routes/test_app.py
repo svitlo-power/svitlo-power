@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
 from app.routes.app import register
 from shared.features import FeatureFlag, feature_flags
@@ -11,11 +12,12 @@ def create_app() -> FastAPI:
     return app
 
 
-def test_get_backend_version(monkeypatch):
+@pytest.mark.parametrize("path", ["/api/app/version", "/api/version"])
+def test_get_backend_version(monkeypatch, path):
     app = create_app()
     monkeypatch.setattr("app.routes.app.get_version", lambda: "2026.10.02")
 
-    response = TestClient(app).get("/api/app/version")
+    response = TestClient(app).get(path)
 
     assert response.status_code == 200
     assert response.json() == "2026.10.02"
