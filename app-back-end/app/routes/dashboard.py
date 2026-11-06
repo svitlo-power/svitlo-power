@@ -67,16 +67,15 @@ def register(app: FastAPI):
             requested_ids = [str(building_id) for building_id in body.building_ids]
             if all(building_id in by_id for building_id in requested_ids):
                 requested_ids_set = set(requested_ids)
-                snapshot_response = lambda: [
-                    snapshot_building_summary_response(building)
-                    for building in snapshot.buildings
-                    if building.id in requested_ids_set
-                ]
                 if (
                     dashboard_snapshot_reads_enabled(request.app.state.settings)
                     and not snapshot_client.is_stale
                 ):
-                    return snapshot_response()
+                    return [
+                        snapshot_building_summary_response(building)
+                        for building in snapshot.buildings
+                        if building.id in requested_ids_set
+                    ]
         return await dashboard.get_buildings_summary(body.building_ids)
 
     @app.get("/api/buildings/buildings")
@@ -88,15 +87,14 @@ def register(app: FastAPI):
         """Buildings with summary combined - Android endpoint (alias)"""
         snapshot = snapshot_client.get_snapshot()
         if snapshot is not None:
-            snapshot_response = lambda: [
-                snapshot_building_with_summary_response(b)
-                for b in snapshot.buildings
-            ]
             if (
                 dashboard_snapshot_reads_enabled(request.app.state.settings)
                 and not snapshot_client.is_stale
             ):
-                return snapshot_response()
+                return [
+                    snapshot_building_with_summary_response(building)
+                    for building in snapshot.buildings
+                ]
         return await dashboard.get_buildings_with_summary()
 
     @app.get("/api/dashboard/config")
