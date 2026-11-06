@@ -124,9 +124,43 @@ class TestDashboardSnapshotServiceInit:
 
 
 class TestBuildSnapshot:
+    @pytest.mark.asyncio
+    async def test_init_version_keys_preserves_newer_epoch_after_clock_rollback(self):
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._epoch = 100
+        previous_snapshot = DashboardSnapshot(
+            epoch=300,
+            version=8,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[],
+            config=ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"}),
+            outages_schedules={},
+        )
+        redis_values = {
+            EPOCH_KEY: "200",
+            SNAPSHOT_KEY: previous_snapshot.model_dump_json(by_alias=True),
+        }
+        service._redis = AsyncMock(spec=Redis)
+        service._redis.get = AsyncMock(side_effect=lambda key: redis_values.get(key))
+        service._redis.set = AsyncMock()
+
+        await service._init_version_keys()
+
+        assert service._epoch == 300
+        service._redis.set.assert_any_await(EPOCH_KEY, 300)
 
     @pytest.mark.asyncio
-
     async def test_build_snapshot_returns_valid_model(self):
 
         mock_events = MagicMock()

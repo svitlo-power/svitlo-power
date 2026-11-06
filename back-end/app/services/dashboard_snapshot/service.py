@@ -88,6 +88,7 @@ end
 
 -- 3. Write snapshot atomically
 redis.call('SET', KEYS[1], snapshot_json, 'EX', ttl)
+redis.call('SET', KEYS[4], expected_epoch)
 
 -- 4. Update committed version (epoch is set once at producer start)
 redis.call('SET', KEYS[5], expected_version)
@@ -267,10 +268,20 @@ class DashboardSnapshotService:
 
     async def _init_version_keys(self) -> None:
         """Initialize epoch and version allocator keys if not present."""
-        # Set epoch if not already set (survives Redis flush)
+        # Keep the epoch monotonic across restarts, including hosts with a slow clock.
         existing_epoch = await self._redis.get(EPOCH_KEY)
-        if existing_epoch is None:
-            await self._redis.set(EPOCH_KEY, self._epoch)
+        snapshot_json = await self._redis.get(SNAPSHOT_KEY)
+        snapshot_epoch = (
+            DashboardSnapshot.model_validate_json(snapshot_json).epoch
+            if snapshot_json is not None
+            else 0
+        )
+        self._epoch = max(
+            self._epoch or 0,
+            int(existing_epoch or 0),
+            snapshot_epoch,
+        )
+        await self._redis.set(EPOCH_KEY, self._epoch)
 
         # Initialize version allocator to 1 if not present
         existing_next = await self._redis.get(VERSION_NEXT_KEY)
