@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from shared.models.dashboard_config import OutagesScheduleConfig
 from shared.models.localizable_value import LocalizableValue
 from shared.models.outages_schedule import UnitSchedule
 
@@ -37,7 +38,9 @@ class BuildingSnapshot(BaseModel):
 
 class ConfigSnapshot(BaseModel):
     title: LocalizableValue
-    outages_schedule: Optional[dict] = Field(None, alias="outagesSchedule")
+    outages_schedule: Optional[OutagesScheduleConfig] = Field(
+        None, alias="outagesSchedule"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -67,7 +67,8 @@ class TestConfigSnapshot:
             },
         )
         assert config.title.root == {"uk": "Панель", "en": "Dashboard"}
-        assert config.outages_schedule["enable"] is True
+        assert config.outages_schedule.enable is True
+        assert config.model_dump(by_alias=True)["outagesSchedule"]["regionId"] == 25
 
     def test_config_without_schedule(self):
         config = ConfigSnapshot(
