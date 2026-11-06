@@ -13,9 +13,6 @@ class FeatureFlag(str, Enum):
     # Public dashboard switches to post-publish dashboard_updated events
     BACKEND_REDIS_DASHBOARD_ENABLED = "backend_redis_dashboard_enabled"
     
-    # Phase 2: App back-end Redis reads
-    APP_BACKEND_REDIS_READS = "app_backend_redis_reads"
-    
     # Phase 3: SSE migration
     BACKEND_SSE_REDIS = "backend_sse_redis"
     APP_BACKEND_SSE_REDIS = "app_backend_sse_redis"
