@@ -176,7 +176,7 @@ describe("BuildingsPage outage schedule", () => {
     );
   });
 
-  it("refreshes dashboard data after backend features finish loading", async () => {
+  it("does not refetch dashboard data when backend features finish loading", async () => {
     const store = renderPage(null);
     await waitFor(() =>
       expect(mockGet).toHaveBeenCalledWith("/dashboard/config"),
@@ -185,14 +185,11 @@ describe("BuildingsPage outage schedule", () => {
       ([url]) => url === "/dashboard/config",
     ).length;
 
-    store.dispatch(setFeaturesLoaded());
+    act(() => store.dispatch(setFeaturesLoaded()));
 
-    await waitFor(() => {
-      expect(
-        mockGet.mock.calls.filter(([url]) => url === "/dashboard/config")
-          .length,
-      ).toBeGreaterThan(initialRequestCount);
-    });
+    expect(
+      mockGet.mock.calls.filter(([url]) => url === "/dashboard/config").length,
+    ).toBe(initialRequestCount);
   });
 
   it("uses only dashboard_updated in backend snapshot mode", () => {

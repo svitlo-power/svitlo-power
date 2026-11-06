@@ -302,14 +302,6 @@ export const BuildingsPage: FC = () => {
     return () => clearInterval(timer);
   }, [dashboardUpdatedEventEnabled, featuresLoaded, refreshSnapshotSections]);
 
-  const previousFeaturesLoaded = useRef(featuresLoaded);
-  useEffect(() => {
-    if (!previousFeaturesLoaded.current && featuresLoaded) {
-      fetchData();
-    }
-    previousFeaturesLoaded.current = featuresLoaded;
-  }, [featuresLoaded, fetchData]);
-
   useLocalizedEffect(() => {
     fetchData();
   }, [fetchData]);
