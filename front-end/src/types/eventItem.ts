@@ -15,7 +15,7 @@ export enum EventType {
 
 export type EventItem = {
   type: EventType;
-  data: Record<string, string>;
+  data: Record<string, unknown>;
   private: boolean;
   user?: string;
 };

@@ -441,11 +441,52 @@ class DashboardSnapshotService:
         # Allocate version via INCR on the version allocator key
         version = await self._redis.incr(VERSION_NEXT_KEY)
         snapshot = await self.build_snapshot(version=version)
+        changed = self._changed_sections(self._last_snapshot, snapshot)
         published = await self.publish_snapshot(snapshot)
-        self._last_snapshot = snapshot
-        if published and self.is_publish_enabled:
-            await self._events.broadcast_public("dashboard_updated")
+        if published:
+            self._last_snapshot = snapshot
+            if self.is_publish_enabled:
+                await self._events.broadcast_public(
+                    "dashboard_updated", {"changed": changed}
+                )
         return snapshot
+
+    @staticmethod
+    def _changed_sections(
+        previous: DashboardSnapshot | None,
+        current: DashboardSnapshot,
+    ) -> list[str]:
+        if previous is None:
+            return ["buildings", "summary", "config", "outages"]
+
+        static_fields = {"id", "name", "color", "order", "has_bound_station"}
+        previous_buildings = [
+            building.model_dump(include=static_fields, mode="json")
+            for building in previous.buildings
+        ]
+        current_buildings = [
+            building.model_dump(include=static_fields, mode="json")
+            for building in current.buildings
+        ]
+        changes = []
+        if previous_buildings != current_buildings:
+            changes.append("buildings")
+
+        previous_summaries = {
+            building.id: building.model_dump(exclude=static_fields, mode="json")
+            for building in previous.buildings
+        }
+        current_summaries = {
+            building.id: building.model_dump(exclude=static_fields, mode="json")
+            for building in current.buildings
+        }
+        if previous_summaries != current_summaries:
+            changes.append("summary")
+        if previous.config != current.config:
+            changes.append("config")
+        if previous.outages_schedules != current.outages_schedules:
+            changes.append("outages")
+        return changes
 
     async def handle_refresh_request(
         self, reason: str, requested_by: str

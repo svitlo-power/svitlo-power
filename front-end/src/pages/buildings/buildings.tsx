@@ -50,6 +50,7 @@ export const BuildingsPage: FC = () => {
   );
   const buildingsChanged = useAppSelector((state) => state.buildings.changed);
   const buildings = useAppSelector(createSelectEdittedBuildings);
+  const persistedBuildings = useAppSelector((state) => state.buildings.items);
   const buildingsSummary = useAppSelector(
     (state) => state.buildingsSummary.items,
   );
@@ -104,16 +105,28 @@ export const BuildingsPage: FC = () => {
     [buildings, buildingsSummary.length, buildngsSummaryError, dispatch],
   );
 
+  const fetchSummaryForBuildings = useCallback(
+    (buildingIds: string[]) => {
+      if (buildingIds.length > 0) {
+        dispatch(fetchBuildingsSummary(buildingIds));
+      }
+    },
+    [dispatch],
+  );
+
   useLocalizedEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
 
-  const fetchOutages = useCallback(() => {
-    const schedule = dashboardConfig?.outagesSchedule;
-    if (schedule?.enable && schedule.queue) {
-      dispatch(fetchOutagesSchedule(schedule.queue));
-    }
-  }, [dashboardConfig, dispatch]);
+  const fetchOutages = useCallback(
+    (config = dashboardConfig) => {
+      const schedule = config?.outagesSchedule;
+      if (schedule?.enable && schedule.queue) {
+        dispatch(fetchOutagesSchedule(schedule.queue));
+      }
+    },
+    [dashboardConfig, dispatch],
+  );
 
   useLocalizedEffect(() => {
     fetchOutages();
@@ -171,35 +184,99 @@ export const BuildingsPage: FC = () => {
     );
   }, [dashboardConfig?.title]);
 
-  useSubscribeEvents((event: EventItem) => {
-    if (dashboardUpdatedEventEnabled) {
-      if (event.type === EventType.DashboardUpdated) {
-        lastSnapshotUpdateRef.current = Date.now();
-        if (!configChanged && !buildingsChanged) {
-          fetchData();
-        }
-        fetchSummary(true);
-        fetchOutages();
-      }
-      return;
-    }
+  const refreshSnapshotSections = useCallback(
+    async (changedSections: string[]) => {
+      const refreshBuildings = changedSections.includes("buildings");
+      const refreshConfig = changedSections.includes("config");
+      let buildingsForSummary = buildingsChanged
+        ? persistedBuildings
+        : buildings;
+      let configForOutages = dashboardConfig;
 
-    switch (event.type) {
-      case EventType.BuildingsUpdated:
-      case EventType.DashboardConfigUpdated:
-        fetchData();
-        fetchSummary(true);
-        fetchOutages();
-        break;
-      case EventType.ExtDataUpdated:
-      case EventType.StationDataUpdated:
-        fetchSummary(true);
-        break;
-      case EventType.OutagesUpdated:
-        fetchOutages();
-        break;
-    }
-  }, featuresLoaded);
+      const buildingsResultPromise =
+        refreshBuildings && !buildingsChanged
+          ? dispatch(fetchBuildings())
+          : Promise.resolve(undefined);
+      const configResultPromise =
+        refreshConfig && !configChanged
+          ? dispatch(fetchDashboardConfig())
+          : Promise.resolve(undefined);
+      const [buildingsResult, configResult] = await Promise.all([
+        buildingsResultPromise,
+        configResultPromise,
+      ]);
+      if (buildingsResult && fetchBuildings.fulfilled.match(buildingsResult)) {
+        buildingsForSummary = buildingsResult.payload;
+      }
+      if (configResult && fetchDashboardConfig.fulfilled.match(configResult)) {
+        configForOutages = configResult.payload;
+      }
+
+      if (changedSections.includes("summary") || refreshBuildings) {
+        fetchSummaryForBuildings(
+          buildingsForSummary.flatMap((building) =>
+            building.id ? [building.id] : [],
+          ),
+        );
+      }
+      if (changedSections.includes("outages") || refreshConfig) {
+        fetchOutages(configForOutages);
+      }
+    },
+    [
+      buildings,
+      buildingsChanged,
+      configChanged,
+      dashboardConfig,
+      dispatch,
+      fetchOutages,
+      fetchSummaryForBuildings,
+      persistedBuildings,
+    ],
+  );
+
+  const handleEvent = useCallback(
+    (event: EventItem) => {
+      if (dashboardUpdatedEventEnabled) {
+        if (event.type === EventType.DashboardUpdated) {
+          lastSnapshotUpdateRef.current = Date.now();
+          const changed = event.data?.changed;
+          const changedSections = Array.isArray(changed)
+            ? changed.filter(
+                (section): section is string => typeof section === "string",
+              )
+            : ["buildings", "summary", "config", "outages"];
+          void refreshSnapshotSections(changedSections);
+        }
+        return;
+      }
+
+      switch (event.type) {
+        case EventType.BuildingsUpdated:
+        case EventType.DashboardConfigUpdated:
+          fetchData();
+          fetchSummary(true);
+          fetchOutages();
+          break;
+        case EventType.ExtDataUpdated:
+        case EventType.StationDataUpdated:
+          fetchSummary(true);
+          break;
+        case EventType.OutagesUpdated:
+          fetchOutages();
+          break;
+      }
+    },
+    [
+      dashboardUpdatedEventEnabled,
+      fetchData,
+      fetchOutages,
+      fetchSummary,
+      refreshSnapshotSections,
+    ],
+  );
+
+  useSubscribeEvents(handleEvent, featuresLoaded);
 
   useEffect(() => {
     if (!featuresLoaded || !dashboardUpdatedEventEnabled) return;
@@ -213,24 +290,17 @@ export const BuildingsPage: FC = () => {
         return;
       }
 
-      if (!configChanged && !buildingsChanged) {
-        fetchData();
-      }
-      fetchSummary(true);
-      fetchOutages();
+      void refreshSnapshotSections([
+        "buildings",
+        "summary",
+        "config",
+        "outages",
+      ]);
       lastSnapshotUpdateRef.current = Date.now();
     }, 60_000);
 
     return () => clearInterval(timer);
-  }, [
-    dashboardUpdatedEventEnabled,
-    configChanged,
-    buildingsChanged,
-    featuresLoaded,
-    fetchData,
-    fetchOutages,
-    fetchSummary,
-  ]);
+  }, [dashboardUpdatedEventEnabled, featuresLoaded, refreshSnapshotSections]);
 
   const previousFeaturesLoaded = useRef(featuresLoaded);
   useEffect(() => {

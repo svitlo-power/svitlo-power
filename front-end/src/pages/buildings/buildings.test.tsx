@@ -6,15 +6,16 @@ import { vi } from "vitest";
 import { createTestStore } from "../../test/storeTestUtils";
 import { EventItem, EventType } from "../../types";
 import { setFeaturesLoaded } from "../../stores/slices/app";
+import { BuildingListItem } from "../../stores/types/buildings";
 import { BuildingsPage } from "./buildings";
 
-const { mockGet, mockSetHeaderButtons, mockSubscribeEvents } = vi.hoisted(
-  () => ({
+const { mockGet, mockPost, mockSetHeaderButtons, mockSubscribeEvents } =
+  vi.hoisted(() => ({
     mockGet: vi.fn(),
+    mockPost: vi.fn(),
     mockSetHeaderButtons: vi.fn(),
     mockSubscribeEvents: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("../../stores/store", async () => {
   const { useDispatch, useSelector } =
@@ -23,7 +24,7 @@ vi.mock("../../stores/store", async () => {
 });
 
 vi.mock("../../utils/apiClient", () => ({
-  default: { get: mockGet },
+  default: { get: mockGet, post: mockPost },
 }));
 
 vi.mock("../../hooks", () => ({
@@ -67,6 +68,7 @@ vi.mock("./components", () => ({
 describe("BuildingsPage outage schedule", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPost.mockResolvedValue({ data: [] });
     mockGet.mockImplementation((url: string) =>
       url.startsWith("/outagesSchedule/outagesSchedule/")
         ? Promise.resolve({ data: {} })
@@ -86,6 +88,7 @@ describe("BuildingsPage outage schedule", () => {
       featuresLoaded: false,
     },
     hasUnsavedChanges = false,
+    buildingItems: BuildingListItem[] = [],
   ) => {
     const store = createTestStore({
       app: {
@@ -107,7 +110,7 @@ describe("BuildingsPage outage schedule", () => {
         changed: hasUnsavedChanges,
       },
       buildings: {
-        items: [],
+        items: buildingItems,
         edittedItems: [],
         deletedItems: [],
         loading: false,
@@ -216,6 +219,48 @@ describe("BuildingsPage outage schedule", () => {
       private: false,
     });
     expect(mockGet.mock.calls.length).toBeGreaterThan(previousCalls);
+  });
+
+  it("refreshes only the summary for summary-only snapshot updates", () => {
+    renderPage(
+      null,
+      { dashboardUpdatedEventEnabled: true, featuresLoaded: true },
+      false,
+      [
+        {
+          id: "507f1f77bcf86cd799439011",
+          name: { en: "Building", uk: "Будинок" },
+          color: "blue",
+          hasBoundStation: true,
+          order: 1,
+        },
+      ],
+    );
+    const configRequests = mockGet.mock.calls.filter(
+      ([url]) => url === "/dashboard/config",
+    ).length;
+    const buildingRequests = mockGet.mock.calls.filter(
+      ([url]) => url === "/dashboard/buildings",
+    ).length;
+    const handler = mockSubscribeEvents.mock.calls.at(-1)?.[0] as (
+      event: EventItem,
+    ) => void;
+
+    handler({
+      type: EventType.DashboardUpdated,
+      data: { changed: ["summary"] },
+      private: false,
+    });
+
+    expect(mockPost).toHaveBeenCalledWith("/dashboard/buildings/summary", {
+      buildingIds: ["507f1f77bcf86cd799439011"],
+    });
+    expect(
+      mockGet.mock.calls.filter(([url]) => url === "/dashboard/config"),
+    ).toHaveLength(configRequests);
+    expect(
+      mockGet.mock.calls.filter(([url]) => url === "/dashboard/buildings"),
+    ).toHaveLength(buildingRequests);
   });
 
   it("preserves unsaved dashboard edits when a snapshot update arrives", () => {

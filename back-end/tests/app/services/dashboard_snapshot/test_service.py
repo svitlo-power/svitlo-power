@@ -38,7 +38,11 @@ from app.services.dashboard_snapshot.service import (
 
 )
 
-from shared.models.dashboard_snapshot import DashboardSnapshot, ConfigSnapshot
+from shared.models.dashboard_snapshot import (
+    BuildingSnapshot,
+    ConfigSnapshot,
+    DashboardSnapshot,
+)
 from shared.models.outages_schedule import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 
@@ -221,7 +225,7 @@ class TestRefreshAndPublish:
         order = []
         events = MagicMock()
         events.broadcast_public = AsyncMock(
-            side_effect=lambda event: order.append(("broadcast", event))
+            side_effect=lambda event, data: order.append(("broadcast", event, data))
         )
         service = DashboardSnapshotService(
             events,
@@ -257,7 +261,69 @@ class TestRefreshAndPublish:
 
         assert order == [
             ("publish", 2),
-            ("broadcast", "dashboard_updated"),
+            (
+                "broadcast",
+                "dashboard_updated",
+                {"changed": ["buildings", "summary", "config", "outages"]},
+            ),
+        ]
+
+    def test_changed_sections_reports_only_changed_building_summary(self):
+        building = BuildingSnapshot(
+            id="507f1f77bcf86cd799439011",
+            name={"en": "Building", "uk": "Будинок"},
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            battery_percent=25,
+            charge_source="Grid",
+        )
+        updated_building = building.model_copy(update={"battery_percent": 30})
+        config = ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"})
+        previous = DashboardSnapshot(
+            epoch=1,
+            version=1,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[building],
+            config=config,
+            outages_schedules={},
+        )
+        current = previous.model_copy(
+            update={"version": 2, "buildings": [updated_building]}
+        )
+
+        assert DashboardSnapshotService._changed_sections(previous, current) == [
+            "summary"
+        ]
+
+    def test_changed_sections_reports_building_order_and_config_changes(self):
+        building = BuildingSnapshot(
+            id="507f1f77bcf86cd799439011",
+            name={"en": "Building", "uk": "Будинок"},
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            charge_source="None",
+        )
+        previous = DashboardSnapshot(
+            epoch=1,
+            version=1,
+            generated_at=datetime.now(timezone.utc),
+            buildings=[building],
+            config=ConfigSnapshot(title={"en": "Dashboard", "uk": "Панель"}),
+            outages_schedules={},
+        )
+        current = previous.model_copy(
+            update={
+                "version": 2,
+                "buildings": [building.model_copy(update={"order": 2})],
+                "config": ConfigSnapshot(title={"en": "New", "uk": "Нова"}),
+            }
+        )
+
+        assert DashboardSnapshotService._changed_sections(previous, current) == [
+            "buildings",
+            "config",
         ]
 
 
