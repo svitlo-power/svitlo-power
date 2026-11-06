@@ -9,6 +9,7 @@ from app.main import create_app
 from app.settings import Settings
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from shared.features import FeatureFlag, feature_flags
 from shared.models.dashboard_snapshot import (
     BuildingSnapshot as DashboardBuildingSnapshot,
     ConfigSnapshot as DashboardConfigSnapshot,
@@ -24,12 +25,24 @@ from shared.models.api.dashboard import (
 )
 
 
+@pytest.fixture(autouse=True)
+def restore_snapshot_read_flag():
+    original = feature_flags.is_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+    )
+    yield
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, original
+    )
+
+
 @pytest.fixture
 def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
     settings.APP_ACCESS_TOKEN = None
-    settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
+    settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+    feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
     return settings
 
 
@@ -172,7 +185,8 @@ class TestDashboardRoutes:
         mock_snapshot_client,
         dashboard_snapshot,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
         mock_snapshot_client.is_stale = False
 
@@ -196,7 +210,8 @@ class TestDashboardRoutes:
         mock_snapshot_client,
         dashboard_snapshot,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
         mock_snapshot_client.is_stale = False
 
@@ -218,7 +233,8 @@ class TestDashboardRoutes:
         mock_snapshot_client,
         dashboard_snapshot,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
         mock_snapshot_client.is_stale = False
 
@@ -241,7 +257,8 @@ class TestDashboardRoutes:
         dashboard_snapshot,
         sample_building,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
         mock_snapshot_client.is_stale = True
         mock_dashboard_service.get_buildings.return_value = [
@@ -268,7 +285,8 @@ class TestDashboardRoutes:
         mock_snapshot_client,
         dashboard_snapshot,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.get_snapshot.return_value = dashboard_snapshot
         mock_snapshot_client.is_stale = False
 
@@ -288,7 +306,8 @@ class TestDashboardRoutes:
         mock_settings,
         mock_snapshot_client,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.health.return_value = {
             "status": "healthy",
             "localEpoch": 1,
@@ -313,7 +332,8 @@ class TestDashboardRoutes:
         mock_settings,
         mock_snapshot_client,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
 
         response = client.get("/health/redis-dashboard")
 
@@ -327,7 +347,8 @@ class TestDashboardRoutes:
         mock_settings,
         mock_snapshot_client,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True)
         mock_snapshot_client.health.return_value = {"status": "unhealthy"}
 
         response = client.get("/health/redis-dashboard")

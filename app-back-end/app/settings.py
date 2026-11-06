@@ -45,8 +45,8 @@ class Settings(BaseSettings, BaseDeyeAppSettings, BaseAppSettings, BaseJWTSettin
     # Shared token the mobile app sends in the X-App-Token header; the check is off when empty
     APP_ACCESS_TOKEN: Optional[str] = Field(default=None, description="App access token")
 
-    # Redis-backed dashboard reads remain opt-in until parity thresholds are met.
-    APP_BACKEND_REDIS_DASHBOARD_ENABLED: bool = False
+    # Pydantic loads this flag from .env for local runs; lifespan applies it to shared FeatureFlags.
+    FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS: bool = False
     APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS: int = Field(default=300, gt=0)
     APP_BACKEND_SNAPSHOT_REFRESH_URL: str = (
         "http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh"

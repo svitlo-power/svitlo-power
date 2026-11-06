@@ -15,7 +15,7 @@ class TestSettings:
             "JWT_SECRET_KEY": "",
             "SECRET_KEY": "",
             "REDIS_URI": "redis://localhost:6379/0",
-            "APP_BACKEND_REDIS_DASHBOARD_ENABLED": "False",
+            "FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS": "False",
             "APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS": "300",
             "MONGO_URI": "mongodb://localhost:27017/?directConnection=true",
             "MONGO_DB": "svitlo-power",
@@ -41,7 +41,7 @@ class TestSettings:
             assert settings.MONGO_URI == "mongodb://localhost:27017/?directConnection=true"
             assert settings.MONGO_DB == "svitlo-power"
             assert settings.REDIS_URI == "redis://localhost:6379/0"
-            assert settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED is False
+            assert settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS is False
             assert settings.APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS == 300
             assert settings.APP_BACKEND_SNAPSHOT_REFRESH_URL == (
                 "http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh"
@@ -59,7 +59,7 @@ class TestSettings:
             "MONGO_URI": "mongodb://test:27017",
             "MONGO_DB": "test-db",
             "REDIS_URI": "redis://test:6379/1",
-            "APP_BACKEND_REDIS_DASHBOARD_ENABLED": "true",
+            "FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS": "true",
             "APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS": "120",
             "APP_BACKEND_SNAPSHOT_REFRESH_URL": "http://backend/internal/refresh",
         }, clear=True):
@@ -74,7 +74,7 @@ class TestSettings:
             assert settings.MONGO_URI == "mongodb://test:27017"
             assert settings.MONGO_DB == "test-db"
             assert settings.REDIS_URI == "redis://test:6379/1"
-            assert settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED is True
+            assert settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS is True
             assert settings.APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS == 120
             assert settings.APP_BACKEND_SNAPSHOT_REFRESH_URL == "http://backend/internal/refresh"
 

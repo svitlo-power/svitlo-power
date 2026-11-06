@@ -11,7 +11,10 @@ class FeatureFlag(str, Enum):
     DASHBOARD_SNAPSHOT_PUBLISH = "dashboard_snapshot_publish"
 
     # Public dashboard switches to post-publish dashboard_updated events
-    BACKEND_REDIS_DASHBOARD_ENABLED = "backend_redis_dashboard_enabled"
+    DASHBOARD_UPDATED_EVENT = "dashboard_updated_event"
+
+    # App-backend reads from the Redis dashboard snapshot
+    APP_BACKEND_DASHBOARD_SNAPSHOT_READS = "app_backend_dashboard_snapshot_reads"
     
     # Phase 3: SSE migration
     BACKEND_SSE_REDIS = "backend_sse_redis"

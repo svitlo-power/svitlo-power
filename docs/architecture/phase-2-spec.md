@@ -63,12 +63,12 @@ class DashboardSnapshotClient:
   producer refresh at most once per 60 seconds; wait for notification (max 5s),
   then `GET`
 
-### 2. Feature Flag
-**Flag**: `APP_BACKEND_REDIS_DASHBOARD_ENABLED` (default: `false`), together
+### 2. Snapshot Read and Event Configuration
+**Reader setting**: `FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS` (default: `false`), together
 with `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH=true`.
 
-The back-end feature `BACKEND_REDIS_DASHBOARD_ENABLED` (environment variable
-`FEATURE_BACKEND_REDIS_DASHBOARD_ENABLED`) controls whether the public UI uses
+The back-end feature `DASHBOARD_UPDATED_EVENT` (environment variable
+`FEATURE_DASHBOARD_UPDATED_EVENT`) controls whether the public UI uses
 post-publish `dashboard_updated` events; it does not switch admin back-end
 routes to Redis. `GET /api/app/features` exposes this as
 `dashboardUpdatedEventEnabled`, which is true only when snapshot publishing is
@@ -126,7 +126,7 @@ and version, lag, age, subscription state, and the most recent invalidation time
 
 ## Rollback Procedure
 
-1. **Immediate**: Set `APP_BACKEND_REDIS_DASHBOARD_ENABLED=false`
+1. **Immediate**: Set `FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS=false`
 2. **Effect**: Responses use the legacy calculation; no shadow comparison runs
 3. **Verification**: Confirm error rate drops, latency returns to baseline
 4. **Investigation**: Analyze Redis connectivity, reconciliation outcomes, and version lag

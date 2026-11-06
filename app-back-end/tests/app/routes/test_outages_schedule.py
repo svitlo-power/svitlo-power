@@ -16,6 +16,18 @@ from shared.models.outages_schedule import (
     DayStatus,
 )
 from shared.services.dashboard_snapshot import DashboardSnapshotClient
+from shared.features import FeatureFlag, feature_flags
+
+
+@pytest.fixture(autouse=True)
+def restore_snapshot_read_flag():
+    original = feature_flags.is_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+    )
+    yield
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, original
+    )
 
 
 @pytest.fixture
@@ -23,7 +35,8 @@ def mock_settings():
     settings = MagicMock(spec=Settings)
     settings.DEBUG = True
     settings.APP_ACCESS_TOKEN = None
-    settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = False
+    settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = False
+    feature_flags.set_enabled(FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, False)
     return settings
 
 
@@ -95,7 +108,10 @@ class TestOutagesScheduleRoutes:
         mock_outages_service,
         mock_snapshot_client,
     ):
-        mock_settings.APP_BACKEND_REDIS_DASHBOARD_ENABLED = True
+        mock_settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS = True
+        feature_flags.set_enabled(
+            FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, True
+        )
         mock_snapshot_client.is_stale = False
         mock_snapshot_client.get_outages_schedule.return_value = UnitSchedule(
             days=[

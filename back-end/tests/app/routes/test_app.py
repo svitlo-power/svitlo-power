@@ -25,7 +25,7 @@ def test_get_backend_version(monkeypatch, path):
 
 def test_get_backend_features_only_exposes_dashboard_read_mode():
     flags = (
-        FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED,
+        FeatureFlag.DASHBOARD_UPDATED_EVENT,
         FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH,
         FeatureFlag.DEYE_POLLING_PROCESSING,
     )
@@ -39,7 +39,7 @@ def test_get_backend_features_only_exposes_dashboard_read_mode():
         )
         for dashboard_enabled, publishing_enabled, deye_processing, expected in combinations:
             feature_flags.set_enabled(
-                FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED,
+                FeatureFlag.DASHBOARD_UPDATED_EVENT,
                 dashboard_enabled,
             )
             feature_flags.set_enabled(

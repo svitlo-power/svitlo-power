@@ -145,7 +145,7 @@ def register(app: FastAPI):
         snapshot_client: DashboardSnapshotClient = Injected(DashboardSnapshotClient),
     ):
         """Report Redis snapshot consumer health and version state."""
-        if not dashboard_snapshot_reads_enabled(request.app.state.settings):
+        if not dashboard_snapshot_reads_enabled():
             return {"status": "disabled"}
 
         result = snapshot_client.health()

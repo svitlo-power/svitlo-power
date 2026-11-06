@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from shared.features import FeatureFlag, feature_flags
 from prometheus_client import ProcessCollector, REGISTRY
 from shared.services.settings.service import SettingsService
 from shared.utils.power_estimation import set_settings_service
@@ -42,7 +43,11 @@ async def lifespan(app: FastAPI):
 
     snapshot_client = app.state.injector.get(DashboardSnapshotClient)
     app.state.dashboard_snapshot_client = snapshot_client
-    if dashboard_snapshot_reads_enabled(app.state.settings):
+    feature_flags.set_enabled(
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS,
+        app.state.settings.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS,
+    )
+    if dashboard_snapshot_reads_enabled():
         await snapshot_client.start()
 
     # Register service version metric

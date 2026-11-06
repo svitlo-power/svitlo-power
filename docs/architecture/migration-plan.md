@@ -98,10 +98,10 @@ existing feature flag.
   data.
 - Retain the legacy calculation as a fallback while Redis reads are rolled out.
 - Enable gradually and monitor error rates, snapshot freshness, and version lag.
-- The app-back-end reader requires `APP_BACKEND_REDIS_DASHBOARD_ENABLED=true`
+- The app-back-end reader requires `FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS=true`
   and `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH=true`. The front-end switches to
   `dashboard_updated` events only when snapshot publishing and
-  `FEATURE_BACKEND_REDIS_DASHBOARD_ENABLED` are enabled, and
+  `FEATURE_DASHBOARD_UPDATED_EVENT` are enabled, and
   `FEATURE_DEYE_POLLING_PROCESSING` is disabled. If snapshot events stop, the UI
   retries its data reads every five minutes; stale snapshots fall back to the
   legacy calculation.

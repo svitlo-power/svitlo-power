@@ -14,7 +14,7 @@ def register(app: FastAPI):
     async def get_backend_features() -> dict[str, bool]:
         return {
             "dashboardUpdatedEventEnabled": (
-                feature_flags.is_enabled(FeatureFlag.BACKEND_REDIS_DASHBOARD_ENABLED)
+                feature_flags.is_enabled(FeatureFlag.DASHBOARD_UPDATED_EVENT)
                 and feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
                 and not feature_flags.is_enabled(FeatureFlag.DEYE_POLLING_PROCESSING)
             ),
