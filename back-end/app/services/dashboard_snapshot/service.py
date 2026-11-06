@@ -314,9 +314,7 @@ class DashboardSnapshotService:
                         consumption_power=building.consumption_power,
                         battery_discharge_time=building.battery_discharge_time,
                         battery_charge_time=building.battery_charge_time,
-                        charge_source=building.charge_source.value
-                        if hasattr(building.charge_source, "value")
-                        else str(building.charge_source),
+                        charge_source=building.charge_source,
                         charge_power=building.charge_power,
                     )
                 )
@@ -324,21 +322,8 @@ class DashboardSnapshotService:
             # Build config snapshot
             outages_schedule = config.outages_schedule
             config_snapshot = ConfigSnapshot(
-                title=(
-                    config.title.root
-                    if hasattr(config.title, "root")
-                    else config.title
-                ),
-                outages_schedule=(
-                    {
-                        "enable": outages_schedule.enable,
-                        "regionId": outages_schedule.region_id,
-                        "dsoId": outages_schedule.dso_id,
-                        "queue": outages_schedule.queue,
-                    }
-                    if outages_schedule
-                    else None
-                ),
+                title=config.title,
+                outages_schedule=outages_schedule,
             )
 
             # Build outages schedules snapshot — only include the configured queue

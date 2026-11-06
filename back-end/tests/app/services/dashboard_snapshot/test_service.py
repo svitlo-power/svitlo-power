@@ -7,7 +7,7 @@ import asyncio
 import json
 
 from datetime import datetime, timezone
-
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 
@@ -43,6 +43,9 @@ from shared.models.dashboard_snapshot import (
     ConfigSnapshot,
     DashboardSnapshot,
 )
+from shared.models.api.dashboard import ChargeSource
+from shared.models.dashboard_config import OutagesScheduleConfig
+from shared.models.localizable_value import LocalizableValue
 from shared.models.outages_schedule import UnitSchedule
 from shared.features import feature_flags, FeatureFlag
 
@@ -127,25 +130,41 @@ class TestBuildSnapshot:
     async def test_build_snapshot_returns_valid_model(self):
 
         mock_events = MagicMock()
-
         mock_dashboard = MagicMock()
-
         mock_dashboard.get_config = AsyncMock()
-
-        mock_dashboard.get_config.return_value.title = {
-
-            "uk": "\u041f\u0430\u043d\u0435\u043b",
-
-            "en": "Dashboard",
-
-        }
-
-        mock_dashboard.get_config.return_value.outages_schedule = MagicMock(
+        title = LocalizableValue(
+            {"uk": "\u041f\u0430\u043d\u0435\u043b", "en": "Dashboard"}
+        )
+        configured_schedule = OutagesScheduleConfig(
             enable=True,
+            region_id=25,
+            dso_id=902,
             queue="queue1",
         )
-
-        mock_dashboard.get_buildings_with_summary = AsyncMock(return_value=[])
+        mock_dashboard.get_config.return_value = SimpleNamespace(
+            title=title,
+            outages_schedule=configured_schedule,
+        )
+        building = SimpleNamespace(
+            id="507f1f77bcf86cd799439011",
+            name=LocalizableValue({"en": "Building", "uk": "Будинок"}),
+            color="#fff",
+            order=1,
+            has_bound_station=True,
+            is_grid_available=True,
+            grid_availability_pct=100,
+            has_mixed_reporter_states=False,
+            is_charging=True,
+            is_discharging=False,
+            is_offline=False,
+            battery_percent=25,
+            consumption_power="1.00",
+            battery_discharge_time=None,
+            battery_charge_time=None,
+            charge_source=ChargeSource.GRID,
+            charge_power=500,
+        )
+        mock_dashboard.get_buildings_with_summary = AsyncMock(return_value=[building])
 
         mock_dashboard_repo = MagicMock()
 
@@ -208,14 +227,11 @@ class TestBuildSnapshot:
 
 
         assert isinstance(snapshot, DashboardSnapshot)
-
         assert snapshot.epoch == 1700000000000
-
         assert snapshot.version == 1
-
-        assert snapshot.buildings == []
-
-        assert snapshot.config.title.root == {"uk": "Панел", "en": "Dashboard"}
+        assert snapshot.buildings[0].charge_source == "Grid"
+        assert snapshot.config.title is title
+        assert snapshot.config.outages_schedule is configured_schedule
         assert snapshot.outages_schedules["queue1"] is unit_schedule
 
 
