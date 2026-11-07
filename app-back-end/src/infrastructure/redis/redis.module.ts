@@ -6,7 +6,9 @@ import { REDIS_READER, REDIS_SUBSCRIBER } from "../../tokens.js";
 import { RedisConnections } from "./redis-connections.service.js";
 
 function createRedisClient(url: string, clientName: string): RedisClientType {
-  const client = createClient({ url });
+  // Fail fast while disconnected instead of queueing commands: rate limiting
+  // fails open and snapshot reads fall back to the internal API.
+  const client = createClient({ url, disableOfflineQueue: true });
   const logger = new Logger("Redis");
   client.on("error", (error) =>
     logger.error(`Redis ${clientName} connection error: ${error.name}`),

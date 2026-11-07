@@ -1,6 +1,23 @@
+import { readFileSync } from "node:fs";
 import { registerAs } from "@nestjs/config";
 
+/**
+ * The back-end bounds each domain call with INTERNAL_API_TIMEOUT_SECONDS; the
+ * client waits a little longer so the upstream's own 504 reaches us first.
+ */
+const INTERNAL_API_TIMEOUT_MARGIN_MS = 2_000;
+
+function readVersion(): string {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
+  try {
+    return readFileSync("/app/VERSION", "utf8").trim() || "0000.00.00";
+  } catch {
+    return "0000.00.00";
+  }
+}
+
 export interface AppConfiguration {
+  version: string;
   port: number;
   metricsPort: number;
   trustProxyHops: number;
@@ -20,17 +37,24 @@ export interface AppConfiguration {
   rateLimitBlockMs: number;
 }
 
-function positiveInteger(
+function integerSetting(
   env: Record<string, unknown>,
   key: string,
   fallback: number,
+  minimum: number,
 ): string {
   const parsed = Number(env[key] ?? fallback);
-  if (!Number.isSafeInteger(parsed) || parsed < 1) {
-    throw new Error(`${key} must be a positive integer`);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
+    throw new Error(`${key} must be an integer >= ${minimum}`);
   }
   return String(parsed);
 }
+
+const positiveInteger = (
+  env: Record<string, unknown>,
+  key: string,
+  fallback: number,
+) => integerSetting(env, key, fallback, 1);
 
 export function validateEnvironment(
   env: Record<string, unknown>,
@@ -47,7 +71,7 @@ export function validateEnvironment(
     ...env,
     PORT: positiveInteger(env, "PORT", 8000),
     METRICS_PORT: positiveInteger(env, "METRICS_PORT", 9097),
-    TRUST_PROXY_HOPS: positiveInteger(env, "TRUST_PROXY_HOPS", 1),
+    TRUST_PROXY_HOPS: integerSetting(env, "TRUST_PROXY_HOPS", 1, 0),
     INTERNAL_API_TIMEOUT_SECONDS: positiveInteger(
       env,
       "INTERNAL_API_TIMEOUT_SECONDS",
@@ -74,6 +98,7 @@ export function validateEnvironment(
 }
 
 export const appConfig = registerAs("app", (): AppConfiguration => ({
+  version: readVersion(),
   port: Number(process.env.PORT ?? 8000),
   metricsPort: Number(process.env.METRICS_PORT ?? 9097),
   trustProxyHops: Number(process.env.TRUST_PROXY_HOPS ?? 1),
@@ -83,7 +108,8 @@ export const appConfig = registerAs("app", (): AppConfiguration => ({
     "http://svitlo-power-back-end:5005/internal/v1/app",
   internalApiToken: process.env.INTERNAL_API_TOKEN ?? "",
   internalApiTimeoutMs:
-    Number(process.env.INTERNAL_API_TIMEOUT_SECONDS ?? 10) * 1000 + 2_000,
+    Number(process.env.INTERNAL_API_TIMEOUT_SECONDS ?? 10) * 1000 +
+    INTERNAL_API_TIMEOUT_MARGIN_MS,
   redisUrl: process.env.REDIS_URI ?? "redis://svitlo-power-rds:6379/0",
   snapshotRefreshUrl:
     process.env.APP_BACKEND_SNAPSHOT_REFRESH_URL ??

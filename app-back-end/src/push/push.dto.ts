@@ -9,8 +9,8 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
-
-const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+import { objectIdPattern } from "../dashboard/dashboard.dto.js";
+import { AcceptsAlias } from "../http/aliases.js";
 
 export class DeviceRegistrationDto {
   @ApiProperty({ minLength: 1, maxLength: 4096, writeOnly: true })
@@ -29,6 +29,7 @@ export class DeviceRegistrationDto {
   language = "uk";
 
   @ApiPropertyOptional()
+  @AcceptsAlias("appVersion", "app_version")
   @IsOptional()
   @IsString()
   appVersion?: string;
@@ -49,6 +50,7 @@ export class DeviceSubscriptionsDto extends DeviceTokenDto {
   enabled = true;
 
   @ApiPropertyOptional({ type: [String], default: [] })
+  @AcceptsAlias("disabledTopics", "disabled_topics", () => [])
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

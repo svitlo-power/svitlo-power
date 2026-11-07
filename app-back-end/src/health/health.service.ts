@@ -1,22 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { Gauge, Registry, collectDefaultMetrics } from "@prometheus-io/client";
-import { InternalApiClient } from "../../../shared/typescript/src/index.js";
 import { RedisConnections } from "../infrastructure/redis/redis-connections.service.js";
+import { InternalApiClient } from "../shared.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
 
-const registry = new Registry();
-collectDefaultMetrics({ register: registry });
-const snapshotAge = new Gauge({
-  name: "redis_snapshot_age_seconds",
-  help: "Age of the app-back-end local dashboard snapshot",
-  registers: [registry],
-});
-const snapshotVersionLag = new Gauge({
-  name: "redis_snapshot_version_lag",
-  help: "Number of snapshot versions the app-back-end consumer is behind Redis",
-  registers: [registry],
-});
+type CheckStatus = "healthy" | "unhealthy";
 
 @Injectable()
 export class HealthService {
@@ -27,19 +15,13 @@ export class HealthService {
   ) {}
 
   async health() {
-    const [redis, api] = await Promise.all([
-      this.redis.ping(),
-      this.api.getHealth().then(
-        () => "healthy",
-        () => "unhealthy",
-      ),
-    ]);
+    const { redis, internalApi } = await this.dependencyChecks();
     const snapshot = this.snapshots.health();
     const checks = {
-      redis: { status: redis ? "healthy" : "unhealthy", component: "redis" },
-      internalApi: { status: api, component: "internal_api" },
+      redis: { status: redis, component: "redis" },
+      internalApi: { status: internalApi, component: "internal_api" },
       dashboard_snapshot: {
-        status: snapshot.status,
+        status: this.snapshots.isEnabled() ? snapshot.status : "disabled",
         component: "dashboard_snapshot",
         details: {
           epoch: snapshot.localEpoch,
@@ -62,7 +44,7 @@ export class HealthService {
   dashboardSnapshotHealth() {
     const snapshot = this.snapshots.health();
     return {
-      status: snapshot.status,
+      status: this.snapshots.isEnabled() ? snapshot.status : "disabled",
       component: "dashboard_snapshot",
       details: {
         epoch: snapshot.localEpoch,
@@ -73,43 +55,38 @@ export class HealthService {
     };
   }
 
+  /**
+   * Ready means this service can answer requests: its own Redis is reachable
+   * and the internal API accepts our credentials. The back-end's database
+   * health is deliberately not included, so a Mongo incident does not mark
+   * every consumer unhealthy and trigger cascading restarts.
+   */
   async readiness() {
-    const [redis, upstream] = await Promise.all([
-      this.redis.ping(),
-      this.api.getReadiness().catch(() => null),
-    ]);
-    const upstreamReady = upstream?.status === "ready";
-    const ready = redis && upstreamReady;
-    return {
-      status: ready ? "ready" : "not_ready",
-      checks: {
-        internalApi: upstreamReady ? "healthy" : "unhealthy",
-        mongodb: upstream?.checks.mongodb ?? "unknown",
-        redis:
-          redis && upstream?.checks.redis === "healthy"
-            ? "healthy"
-            : "unhealthy",
-      },
-    };
+    const checks = await this.dependencyChecks();
+    const ready = Object.values(checks).every((status) => status === "healthy");
+    return { status: ready ? "ready" : "not_ready", checks };
   }
 
   redisDashboardHealth() {
     return this.snapshots.isEnabled()
       ? this.snapshots.health()
-      : { status: "disabled" };
+      : { status: "disabled" as const };
   }
 
-  async metrics() {
-    const snapshot = this.snapshots.health();
-    snapshotAge.set(
-      typeof snapshot.snapshotAgeSeconds === "number"
-        ? snapshot.snapshotAgeSeconds
-        : 0,
-    );
-    snapshotVersionLag.set(Number(snapshot.versionLag ?? 0));
+  private async dependencyChecks(): Promise<{
+    redis: CheckStatus;
+    internalApi: CheckStatus;
+  }> {
+    const [redis, internalApi] = await Promise.all([
+      this.redis.ping(),
+      this.api.getHealth().then(
+        () => true,
+        () => false,
+      ),
+    ]);
     return {
-      contentType: registry.contentType,
-      body: await registry.metrics(),
+      redis: redis ? "healthy" : "unhealthy",
+      internalApi: internalApi ? "healthy" : "unhealthy",
     };
   }
 }

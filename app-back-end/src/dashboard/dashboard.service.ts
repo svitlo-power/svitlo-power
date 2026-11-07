@@ -6,14 +6,27 @@ import {
 } from "@nestjs/common";
 import {
   Building,
+  BuildingSnapshot,
   BuildingSummary,
   BuildingWithSummary,
   DashboardConfig,
   InternalApiClient,
-} from "../../../shared/typescript/src/index.js";
+  PowerLogs,
+} from "../shared.js";
+import { parseIsoDateTime } from "../http/iso-date.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
-import { BuildingIdsDto, PowerLogsDto } from "./dashboard.dto.js";
+import {
+  BuildingIdsDto,
+  objectIdPattern,
+  PowerLogsDto,
+} from "./dashboard.dto.js";
+
+export interface MobileDashboardConfig {
+  title: DashboardConfig["title"];
+  enableOutagesSchedule: boolean;
+  outagesScheduleQueue: string | null;
+}
 
 @Injectable()
 export class DashboardService {
@@ -24,22 +37,19 @@ export class DashboardService {
 
   async getBuildings(): Promise<Building[]> {
     const snapshot = this.snapshots.getActiveSnapshot();
-    if (snapshot)
-      return snapshot.buildings.map((building) => this.basicBuilding(building));
+    if (snapshot) return snapshot.buildings.map(toBuilding);
     return this.api.getBuildings();
   }
 
   async getBuildingSummaries(body: BuildingIdsDto): Promise<BuildingSummary[]> {
     const snapshot = this.snapshots.getActiveSnapshot();
     if (snapshot) {
-      const byId = new Map(
-        snapshot.buildings.map((building) => [building.id, building]),
-      );
-      if (body.buildingIds.every((id) => byId.has(id))) {
+      const known = new Set(snapshot.buildings.map((building) => building.id));
+      if (body.buildingIds.every((id) => known.has(id))) {
         const requested = new Set(body.buildingIds);
         return snapshot.buildings
           .filter((building) => requested.has(building.id))
-          .map((building) => this.summary(building));
+          .map(toSummary);
       }
     }
     return this.api.getBuildingSummaries(body.buildingIds);
@@ -49,17 +59,13 @@ export class DashboardService {
     const snapshot = this.snapshots.getActiveSnapshot();
     if (snapshot)
       return snapshot.buildings.map((building) => ({
-        ...this.basicBuilding(building),
-        ...this.summary(building),
+        ...toBuilding(building),
+        ...toSummary(building),
       }));
     return this.api.getBuildingsWithSummary();
   }
 
-  async getDashboardConfig(): Promise<{
-    title: DashboardConfig["title"];
-    enableOutagesSchedule: boolean;
-    outagesScheduleQueue: string | null;
-  }> {
+  async getDashboardConfig(): Promise<MobileDashboardConfig> {
     const snapshot = this.snapshots.getActiveSnapshot();
     const config = snapshot?.config ?? (await this.api.getDashboardConfig());
     const schedule = config.outagesSchedule;
@@ -70,60 +76,60 @@ export class DashboardService {
     };
   }
 
-  async getPowerLogs(buildingId: string, body: PowerLogsDto) {
-    if (!/^[0-9a-fA-F]{24}$/.test(buildingId)) {
-      throw new UnprocessableEntityException("Invalid building id");
+  async getPowerLogs(
+    buildingId: string,
+    body: PowerLogsDto,
+  ): Promise<PowerLogs> {
+    if (!objectIdPattern.test(buildingId)) {
+      // Same shape as FastAPI's path-parameter validation error.
+      throw new UnprocessableEntityException({
+        detail: [
+          {
+            loc: ["path", "building_id"],
+            msg: "Invalid ObjectId",
+            type: "value_error",
+          },
+        ],
+      });
     }
-    if (!body.startDate || !body.endDate)
+    const start = parseIsoDateTime(body.startDate);
+    const end = parseIsoDateTime(body.endDate);
+    if (start === null || end === null)
       throw new BadRequestException("Invalid date format");
-    const start = Date.parse(body.startDate);
-    const end = Date.parse(body.endDate);
-    if (!Number.isFinite(start) || !Number.isFinite(end)) {
-      throw new BadRequestException("Invalid date format");
-    }
     if (start >= end)
       throw new BadRequestException("startDate must be before endDate");
-    return this.api.getPowerLogs(buildingId, body.startDate, body.endDate);
+    return this.api.getPowerLogs(
+      buildingId,
+      body.startDate as string,
+      body.endDate as string,
+    );
   }
+}
 
-  private basicBuilding(
-    building: Record<string, unknown> & { id: string },
-  ): Building {
-    return {
-      id: building.id,
-      name: building.name as Record<string, string>,
-      color: String(building.color),
-      hasBoundStation: Boolean(building.hasBoundStation),
-      order: Number(building.order),
-    };
-  }
+function toBuilding(building: BuildingSnapshot): Building {
+  return {
+    id: building.id,
+    name: building.name,
+    color: building.color,
+    hasBoundStation: building.hasBoundStation,
+    order: building.order,
+  };
+}
 
-  private summary(
-    building: Record<string, unknown> & { id: string },
-  ): BuildingSummary {
-    return {
-      id: building.id,
-      isGridAvailable:
-        (building.isGridAvailable as boolean | null | undefined) ?? null,
-      gridAvailabilityPct:
-        (building.gridAvailabilityPct as number | null | undefined) ?? null,
-      hasMixedReporterStates:
-        (building.hasMixedReporterStates as boolean | null | undefined) ?? null,
-      batteryPercent:
-        (building.batteryPercent as number | null | undefined) ?? null,
-      isCharging: (building.isCharging as boolean | null | undefined) ?? null,
-      isDischarging:
-        (building.isDischarging as boolean | null | undefined) ?? null,
-      isOffline: (building.isOffline as boolean | null | undefined) ?? null,
-      batteryDischargeTime:
-        (building.batteryDischargeTime as string | null | undefined) ?? null,
-      batteryChargeTime:
-        (building.batteryChargeTime as string | null | undefined) ?? null,
-      consumptionPower:
-        (building.consumptionPower as string | null | undefined) ?? null,
-      chargeSource:
-        (building.chargeSource as string | null | undefined) ?? "None",
-      chargePower: (building.chargePower as number | null | undefined) ?? null,
-    };
-  }
+function toSummary(building: BuildingSnapshot): BuildingSummary {
+  return {
+    id: building.id,
+    isGridAvailable: building.isGridAvailable ?? null,
+    gridAvailabilityPct: building.gridAvailabilityPct ?? null,
+    hasMixedReporterStates: building.hasMixedReporterStates ?? null,
+    batteryPercent: building.batteryPercent ?? null,
+    isCharging: building.isCharging ?? null,
+    isDischarging: building.isDischarging ?? null,
+    isOffline: building.isOffline ?? null,
+    batteryDischargeTime: building.batteryDischargeTime ?? null,
+    batteryChargeTime: building.batteryChargeTime ?? null,
+    consumptionPower: building.consumptionPower ?? null,
+    chargeSource: building.chargeSource,
+    chargePower: building.chargePower ?? null,
+  };
 }

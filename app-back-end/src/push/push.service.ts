@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { InternalApiClient } from "../../../shared/typescript/src/index.js";
+import { InternalApiClient } from "../shared.js";
 import { INTERNAL_API } from "../tokens.js";
 import { DeviceRegistrationDto, DeviceSubscriptionsDto } from "./push.dto.js";
 

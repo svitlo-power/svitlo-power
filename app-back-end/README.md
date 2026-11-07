@@ -8,6 +8,27 @@ HTTP logs are structured JSON with request IDs; app/service credentials and
 push-device tokens are redacted. Helmet headers and Redis-backed route limits
 are enabled by default.
 
+## Health, metrics, and failure behaviour
+
+- `GET /health/live` and `GET /health/ready` are the only routes that skip the
+  `X-App-Token` check, so container probes can call them. Readiness requires
+  this service's Redis and an authenticated internal API `/health`; it does not
+  include the back-end's MongoDB status, so a database incident does not cascade
+  into app-back-end restarts.
+- `/health`, `/health/dashboard-snapshot`, and `/health/redis-dashboard` expose
+  internal state and require the app token, as in the Python service.
+- Prometheus metrics are served only on `METRICS_PORT` (default 9097) at
+  `/metrics`; the public API is not reachable on that port. Metric names match
+  the Python service (`redis_snapshot_*`, `service_version_info`) so the
+  existing Grafana dashboards keep working. The version comes from the image's
+  `/app/VERSION` (Docker build arg `VERSION`) or `APP_VERSION`.
+- Rate limits fail open: if Redis is unavailable, requests are not throttled
+  and a warning is logged at most every 30 seconds. Redis clients do not queue
+  commands while disconnected, so requests never hang on Redis.
+- Request bodies accept the camelCase aliases and the snake_case field names,
+  matching the Pydantic models (`populate_by_name=True`). Power-log dates
+  follow Python `datetime.fromisoformat` rules; values without an offset are UTC.
+
 ## Structure
 
 - `src/config`: validated, typed environment configuration.
@@ -15,7 +36,9 @@ are enabled by default.
 - `src/infrastructure/redis` and `src/snapshots`: Redis connections and snapshot lifecycle.
 - `src/dashboard`, `src/outages-schedule`, `src/push`, and `src/health`: feature controllers, services, DTOs, and modules.
 - `src/http`: cross-cutting authentication, exception mapping, and validation.
-- `shared/typescript`: framework-independent API contracts and Redis clients.
+- `src/metrics`: Prometheus registry and the dedicated metrics server.
+- `shared/typescript`: framework-independent API contracts and Redis clients,
+  imported only through `src/shared.ts`.
 
 ## Local development
 

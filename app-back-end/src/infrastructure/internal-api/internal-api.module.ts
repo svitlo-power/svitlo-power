@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
-import { InternalApiClient } from "../../../../shared/typescript/src/index.js";
+import { InternalApiClient } from "../../shared.js";
 import { appConfig } from "../../config/app.config.js";
 import { INTERNAL_API } from "../../tokens.js";
 

@@ -5,10 +5,7 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
-import {
-  DashboardSnapshotClient,
-  DashboardSnapshotHealth,
-} from "../../../shared/typescript/src/index.js";
+import { DashboardSnapshotClient, DashboardSnapshotHealth } from "../shared.js";
 import { appConfig } from "../config/app.config.js";
 import { SNAPSHOT_CLIENT } from "../tokens.js";
 

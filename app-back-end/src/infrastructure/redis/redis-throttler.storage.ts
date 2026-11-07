@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { Logger } from "@nestjs/common";
 import { ThrottlerStorage } from "@nestjs/throttler";
 import { RedisClientType } from "redis";
 
@@ -40,7 +41,16 @@ end
 return { hits, windowFor, blocked, blockFor }
 `;
 
+const FAILURE_LOG_INTERVAL_MS = 30_000;
+
+/**
+ * Rate limiting is a safeguard, not a dependency: when Redis is unavailable the
+ * storage fails open so mobile requests that do not need Redis keep working.
+ */
 export class RedisThrottlerStorage implements ThrottlerStorage {
+  private readonly logger = new Logger(RedisThrottlerStorage.name);
+  private lastFailureLogAt = 0;
+
   constructor(private readonly redis: RedisClientType) {}
 
   async increment(
@@ -54,10 +64,21 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
       .update(`${throttlerName}:${key}`)
       .digest("hex");
     const keyPrefix = `app-backend:rate-limit:{${digest}}`;
-    const result = (await this.redis.eval(incrementScript, {
-      keys: [`${keyPrefix}:hits`, `${keyPrefix}:blocked`],
-      arguments: [String(ttl), String(limit), String(blockDuration)],
-    })) as number[];
+    let result: number[];
+    try {
+      result = (await this.redis.eval(incrementScript, {
+        keys: [`${keyPrefix}:hits`, `${keyPrefix}:blocked`],
+        arguments: [String(ttl), String(limit), String(blockDuration)],
+      })) as number[];
+    } catch (error) {
+      this.logFailure(error);
+      return {
+        totalHits: 0,
+        timeToExpire: 0,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      };
+    }
     const [totalHits, windowRemaining, isBlocked, blockRemaining] =
       result.map(Number);
 
@@ -67,5 +88,14 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
       isBlocked: isBlocked === 1,
       timeToBlockExpire: Math.max(0, Math.ceil(blockRemaining / 1000)),
     };
+  }
+
+  private logFailure(error: unknown): void {
+    const now = Date.now();
+    if (now - this.lastFailureLogAt < FAILURE_LOG_INTERVAL_MS) return;
+    this.lastFailureLogAt = now;
+    this.logger.warn(
+      `Rate limiting disabled while Redis is unavailable: ${error instanceof Error ? error.name : "unknown error"}`,
+    );
   }
 }

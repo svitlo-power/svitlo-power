@@ -1,5 +1,9 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { InternalApiClient } from "../../../shared/typescript/src/index.js";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  InternalApiClient,
+  InternalApiError,
+  OutageSchedule,
+} from "../shared.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
 
@@ -10,10 +14,21 @@ export class OutagesScheduleService {
     private readonly snapshots: SnapshotService,
   ) {}
 
-  getSchedule(queue: string) {
-    return (
-      this.snapshots.getOutageSchedule(queue) ??
-      this.api.getOutageSchedule(queue)
-    );
+  async getSchedule(
+    queue: string,
+  ): Promise<OutageSchedule | Record<string, unknown>> {
+    const cached = this.snapshots.getOutageSchedule(queue);
+    if (cached) return cached;
+    try {
+      return await this.api.getOutageSchedule(queue);
+    } catch (error) {
+      if (error instanceof InternalApiError && error.status === 404) {
+        // Keep the legacy mobile API message.
+        throw new NotFoundException({
+          detail: `No schedule found for queue ${queue}`,
+        });
+      }
+      throw error;
+    }
   }
 }

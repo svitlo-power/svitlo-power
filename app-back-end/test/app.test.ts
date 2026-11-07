@@ -13,7 +13,7 @@ import {
   REDIS_SUBSCRIBER,
   SNAPSHOT_CLIENT,
 } from "../src/tokens.js";
-import { InternalApiError } from "../../shared/typescript/src/index.js";
+import { InternalApiError } from "../src/shared.js";
 
 const api = {
   getBuildings: async () => [
@@ -57,7 +57,13 @@ const snapshot = {
   getOutageSchedule: () => null,
   getSnapshot: () => null,
   isStale: () => true,
-  health: () => ({ status: "unhealthy" }),
+  health: () => ({
+    status: "unhealthy",
+    localEpoch: 0,
+    localVersion: 0,
+    versionLag: 0,
+    snapshotAgeSeconds: null,
+  }),
   stop: async () => undefined,
 };
 
@@ -170,7 +176,7 @@ test("snapshot health reporting remains available", async () => {
     .expect(200)
     .expect((response) => {
       assert.equal(response.body.component, "dashboard_snapshot");
-      assert.equal(response.body.status, "unhealthy");
+      assert.equal(response.body.status, "disabled");
     });
 });
 
@@ -187,10 +193,6 @@ test("all dashboard, outage, and push routes remain wired to the internal API", 
     .post("/api/dashboard/buildings/summary")
     .set(headers)
     .send({ buildingIds: [id] })
-    .expect(200);
-  await server
-    .get("/api/dashboard/buildings-with-summary")
-    .set(headers)
     .expect(200);
   await server.get("/api/dashboard/config").set(headers).expect(200);
   await server
@@ -267,18 +269,175 @@ test("development OpenAPI documents public routes and app-token security", async
     });
 });
 
-test("push registration rate limit returns 429 after the configured burst", async () => {
+test("detailed health requires the app token while probes stay public", async () => {
+  await server.get("/health").expect(401);
+  await server.get("/health/dashboard-snapshot").expect(401);
+  await server.get("/health/redis-dashboard").expect(401);
+  await server
+    .get("/health/redis-dashboard")
+    .set("X-App-Token", "mobile-token")
+    .expect(200)
+    .expect({ status: "disabled" });
+  await server
+    .get("/metrics")
+    .set("X-App-Token", "mobile-token")
+    .expect(404)
+    .expect({ detail: "Not Found" });
+});
+
+test("readiness depends on the internal API but not on the back-end database", async () => {
+  const original = api.getHealth;
+  api.getHealth = async () => {
+    throw new InternalApiError("down", 503, undefined);
+  };
+  await server
+    .get("/health/ready")
+    .expect(503)
+    .expect((response) => {
+      assert.equal(response.body.status, "not_ready");
+      assert.deepEqual(response.body.checks, {
+        redis: "healthy",
+        internalApi: "unhealthy",
+      });
+    });
+  api.getHealth = original;
+});
+
+test("invalid building ids return the FastAPI-shaped 422 detail", async () => {
+  await server
+    .post("/api/buildings/not-an-object-id/power-logs")
+    .set("X-App-Token", "mobile-token")
+    .send({
+      startDate: "2026-01-01T00:00:00Z",
+      endDate: "2026-01-02T00:00:00Z",
+    })
+    .expect(422)
+    .expect((response) => {
+      assert.ok(Array.isArray(response.body.detail));
+      assert.deepEqual(response.body.detail[0].loc, ["path", "building_id"]);
+    });
+});
+
+test("power-log dates follow the legacy ISO 8601 rules", async () => {
   const headers = { "X-App-Token": "mobile-token" };
-  for (let attempt = 0; attempt < 7; attempt += 1) {
+  const path = "/api/buildings/507f1f77bcf86cd799439011/power-logs";
+  for (const startDate of ["Jan 1 2026", "2026-02-30T00:00:00Z", "2026"]) {
     await server
-      .post("/api/push/devices")
+      .post(path)
       .set(headers)
-      .send({ token: `device-${attempt}`, platform: "android" })
-      .expect(200);
+      .send({ startDate, endDate: "2026-03-02T00:00:00Z" })
+      .expect(400)
+      .expect({ detail: "Invalid date format" });
   }
+  // Naive timestamps are UTC, offsets are honoured, and snake_case is accepted.
+  await server
+    .post(path)
+    .set(headers)
+    .send({
+      start_date: "2026-01-01T01:30:00+02:00",
+      end_date: "2026-01-01T00:00:00",
+    })
+    .expect(200);
+  await server
+    .post(path)
+    .set(headers)
+    .send({
+      startDate: "2026-01-01T03:00:00+02:00",
+      endDate: "2026-01-01T00:30:00",
+    })
+    .expect(400)
+    .expect({ detail: "startDate must be before endDate" });
+});
+
+test("snake_case request fields from Pydantic aliases are still accepted", async () => {
+  const headers = { "X-App-Token": "mobile-token" };
+  let summaryIds: string[] = [];
+  let subscriptions: unknown;
+  let registration: unknown;
+  const originals = {
+    getBuildingSummaries: api.getBuildingSummaries,
+    updateSubscriptions: api.updateSubscriptions,
+    registerDevice: api.registerDevice,
+  };
+  api.getBuildingSummaries = async (ids?: unknown) => {
+    summaryIds = ids as string[];
+    return [];
+  };
+  api.updateSubscriptions = async (body?: unknown) => {
+    subscriptions = body;
+    return { id: "id" };
+  };
+  api.registerDevice = async (body: unknown) => {
+    registration = body;
+    return body;
+  };
+
+  await server
+    .post("/api/dashboard/buildings/summary")
+    .set(headers)
+    .send({ building_ids: ["507f1f77bcf86cd799439011"] })
+    .expect(200);
+  await server
+    .post("/api/push/devices/subscriptions")
+    .set(headers)
+    .send({ token: "t", disabled_topics: ["outages"] })
+    .expect(200);
+  await server
+    .post("/api/push/devices/subscriptions")
+    .set(headers)
+    .send({ token: "t2" })
+    .expect(200);
+  const defaults = subscriptions;
   await server
     .post("/api/push/devices")
     .set(headers)
-    .send({ token: "rate-limited-device", platform: "android" })
-    .expect(429);
+    .send({ token: "t3", platform: "android", app_version: "1.2.3" })
+    .expect(200);
+
+  assert.deepEqual(summaryIds, ["507f1f77bcf86cd799439011"]);
+  const plain = (value: unknown) => JSON.parse(JSON.stringify(value));
+  assert.deepEqual(plain(defaults), {
+    token: "t2",
+    enabled: true,
+    disabledTopics: [],
+    buildings: [],
+  });
+  assert.deepEqual(plain(registration), {
+    token: "t3",
+    platform: "android",
+    language: "uk",
+    appVersion: "1.2.3",
+  });
+  Object.assign(api, originals);
+});
+
+test("missing outage schedules keep the legacy 404 message", async () => {
+  const original = api.getOutageSchedule;
+  api.getOutageSchedule = async () => {
+    throw new InternalApiError("not found", 404, "Schedule not found");
+  };
+  await server
+    .get("/api/outagesSchedule/outagesSchedule/9.9")
+    .set("X-App-Token", "mobile-token")
+    .expect(404)
+    .expect({ detail: "No schedule found for queue 9.9" });
+  api.getOutageSchedule = original;
+});
+
+// Runs last: it exhausts the registration rate limit for this client.
+test("push registration rate limit returns 429 after the configured burst", async () => {
+  const headers = { "X-App-Token": "mobile-token" };
+  const statuses: number[] = [];
+  // Earlier tests already used part of the 8-per-minute budget.
+  for (let attempt = 0; attempt < 9; attempt += 1) {
+    const response = await server
+      .post("/api/push/devices")
+      .set(headers)
+      .send({ token: `device-${attempt}`, platform: "android" });
+    statuses.push(response.status);
+  }
+  const firstBlocked = statuses.indexOf(429);
+  assert.ok(firstBlocked > 0, `expected a 429, got ${statuses.join(",")}`);
+  assert.ok(statuses.slice(0, firstBlocked).every((status) => status === 200));
+  assert.ok(statuses.slice(firstBlocked).every((status) => status === 429));
 });

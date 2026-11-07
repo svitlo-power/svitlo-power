@@ -22,7 +22,7 @@ export class DashboardController {
     return this.dashboard.getBuildingSummaries(body);
   }
 
-  @Get(["buildings/buildings", "dashboard/buildings-with-summary"])
+  @Get("buildings/buildings")
   @ApiOperation({ summary: "Get buildings with their current summaries" })
   getBuildingsWithSummary() {
     return this.dashboard.getBuildingsWithSummary();

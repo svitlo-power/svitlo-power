@@ -10,6 +10,8 @@ import { timingSafeEqual } from "node:crypto";
 import { Request } from "express";
 import { appConfig } from "../config/app.config.js";
 
+const PUBLIC_PATHS = new Set(["/health/live", "/health/ready"]);
+
 @Injectable()
 export class AppTokenGuard implements CanActivate {
   constructor(
@@ -19,13 +21,9 @@ export class AppTokenGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    if (
-      request.path === "/metrics" ||
-      request.path === "/health" ||
-      request.path.startsWith("/health/")
-    ) {
-      return true;
-    }
+    // Container probes cannot send the mobile token; everything else, including
+    // detailed health, requires it as in the Python service.
+    if (PUBLIC_PATHS.has(request.path)) return true;
     const expected = this.config.appAccessToken;
     if (!expected) return true;
     const supplied = request.header("X-App-Token");
