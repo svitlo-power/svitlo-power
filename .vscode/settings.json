@@ -1,5 +1,13 @@
 {
     "python.analysis.extraPaths": [
         "./shared/python"
-    ]
+    ],
+    "chat.tools.terminal.autoApprove": {
+        "npm install": true,
+        "npm run build": true,
+        "git mv": true,
+        "npm audit": true,
+        "docker rm": true,
+        "docker network": true
+    }
 }

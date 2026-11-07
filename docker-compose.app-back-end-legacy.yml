@@ -1,0 +1,14 @@
+services:
+  svitlo-power-app-back-end:
+    build:
+      context: .
+      dockerfile: app-back-end-legacy/Dockerfile
+    image: ${REGISTRY_URL}/svitlo-power-app-back-end-legacy:${TAG:-latest}
+    env_file: .env
+    environment:
+      DEBUG: "False"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 8000)); s.close(); exit(0 if result==0 else 1)"]
+    depends_on:
+      svitlo-power-migrate:
+        condition: service_completed_successfully

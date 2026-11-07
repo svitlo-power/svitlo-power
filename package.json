@@ -27,6 +27,14 @@
     ],
     "front-end/**/*.{css,json,md,html}": [
       "npm --prefix front-end exec -- prettier --write"
+    ],
+    "app-back-end/**/*.{ts,js,json}": [
+      "npm --prefix app-back-end exec -- prettier --write",
+      "npm --prefix app-back-end exec -- eslint --config app-back-end/eslint.config.js --fix"
+    ],
+    "shared/typescript/**/*.{ts,json}": [
+      "npm --prefix shared/typescript exec -- prettier --write",
+      "npm --prefix shared/typescript exec -- eslint --config shared/typescript/eslint.config.js --fix"
     ]
   }
 }

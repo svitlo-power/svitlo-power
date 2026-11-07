@@ -1,54 +1,35 @@
-# Build stage
-FROM python:3.12-slim AS builder
+FROM node:22-bookworm-slim AS build
 
+WORKDIR /workspace/app-back-end
+COPY app-back-end/package*.json ./
+RUN npm ci
+COPY app-back-end/tsconfig.json ./
+COPY app-back-end/tsconfig.build.json ./
+COPY app-back-end/src ./src
+COPY app-back-end/test ./test
+COPY shared/typescript/package.json /workspace/shared/typescript/package.json
+COPY shared/typescript/src /workspace/shared/typescript/src
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM node:22-bookworm-slim AS test
+WORKDIR /workspace/app-back-end
+COPY app-back-end/package*.json ./
+RUN npm ci
+COPY app-back-end/tsconfig.json ./
+COPY app-back-end/eslint.config.js ./
+COPY app-back-end/src ./src
+COPY app-back-end/test ./test
+COPY shared/typescript /workspace/shared/typescript
+RUN npm ci --prefix /workspace/shared/typescript
+CMD ["sh", "-c", "npm --prefix /workspace/shared/typescript test && npm run lint && npm run format:check && npm test"]
+
+FROM node:22-bookworm-slim AS runtime
+ENV NODE_ENV=production
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy shared package first
-COPY shared/python /shared/python
-RUN pip install --no-cache-dir -e /shared/python
-
-# Copy requirements
-COPY app-back-end/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy app code
-COPY app-back-end/app/ ./app/
-COPY app-back-end/tests/ ./tests/
-COPY app-back-end/run.py .
-
-# Final stage
-FROM python:3.12-slim
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy shared python for test service
-COPY --from=builder /shared/python /shared/python
-
-# Copy app code
-COPY app-back-end/app/ ./app/
-COPY app-back-end/tests/ ./tests/
-COPY app-back-end/run.py .
-
-# Embed version
-ARG VERSION=0000.00.00
-RUN echo "${VERSION}" > /app/VERSION
-
-# Expose port
-EXPOSE 8000
-
-# Run the application
-CMD ["python", "run.py"]
+COPY --from=build --chown=node:node /workspace/app-back-end/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/app-back-end/dist ./dist
+COPY --from=build --chown=node:node /workspace/app-back-end/package.json ./package.json
+USER node
+EXPOSE 8000 9097
+CMD ["node", "dist/app-back-end/src/main.js"]

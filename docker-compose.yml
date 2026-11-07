@@ -141,9 +141,26 @@ services:
       dockerfile: app-back-end/Dockerfile
     image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
     restart: always
-    env_file: .env
     environment:
-      - DEBUG=False
+      PORT: "8000"
+      METRICS_PORT: "9097"
+      APP_ACCESS_TOKEN: ${APP_ACCESS_TOKEN:-}
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://svitlo-power-back-end:5005/internal/v1/app}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      INTERNAL_API_TIMEOUT_SECONDS: ${INTERNAL_API_TIMEOUT_SECONDS:-10}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
+      APP_LOG_PRETTY: ${APP_LOG_PRETTY:-false}
+      APP_RATE_LIMIT_WINDOW_MS: ${APP_RATE_LIMIT_WINDOW_MS:-60000}
+      APP_RATE_LIMIT_MAX: ${APP_RATE_LIMIT_MAX:-120}
+      APP_RATE_LIMIT_BLOCK_MS: ${APP_RATE_LIMIT_BLOCK_MS:-60000}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      REDIS_URI: ${REDIS_URI:-redis://svitlo-power-rds:6379/0}
+      APP_BACKEND_SNAPSHOT_REFRESH_URL: ${APP_BACKEND_SNAPSHOT_REFRESH_URL:-http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh}
+      APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS: ${APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS:-300}
+      FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS: ${FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS:-false}
+      FEATURE_DASHBOARD_SNAPSHOT_PUBLISH: ${FEATURE_DASHBOARD_SNAPSHOT_PUBLISH:-false}
+      FEATURE_DEYE_POLLING_PROCESSING: ${FEATURE_DEYE_POLLING_PROCESSING:-false}
     expose:
       - "8000"
       - "9097"
@@ -155,31 +172,26 @@ services:
     labels:
       io.hass.type: "addon"
     healthcheck:
-      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); result=s.connect_ex(('localhost', 8000)); s.close(); exit(0 if result==0 else 1)"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     depends_on:
-      svitlo-power-migrate:
-        condition: service_completed_successfully
       svitlo-power-rds:
+        condition: service_healthy
+      svitlo-power-back-end:
         condition: service_healthy
     stop_signal: SIGINT
     stop_grace_period: 15s
 
   svitlo-power-app-back-end-tests:
-    image: ${REGISTRY_URL}/svitlo-power-app-back-end:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: app-back-end/Dockerfile
+      target: test
+    image: ${REGISTRY_URL}/svitlo-power-app-back-end-tests:${TAG:-latest}
     profiles: ["tests"]
-    environment:
-      - PYTHONDONTWRITEBYTECODE=1
-    command:
-      [
-        "sh",
-        "-c",
-          "pip install --no-cache-dir pytest==8.3.4 pytest-asyncio==0.25.2 --root-user-action=ignore && pip install --no-cache-dir -e /shared/python && python -m pytest tests -v"
-      ]
-    working_dir: /app
     networks:
       - web_network
     restart: "no"

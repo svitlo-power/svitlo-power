@@ -9,7 +9,9 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - "app-back-end/**"
+      - "app-back-end-legacy/**"
       - "docker-compose.yml"
+      - "docker-compose.app-back-end-legacy.yml"
       - ".github/workflows/backend-build.yml"
       - ".github/scripts/detect-backend-images.sh"
       - ".github/actions/compute-image-version/**"
@@ -22,7 +24,9 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - "app-back-end/**"
+      - "app-back-end-legacy/**"
       - "docker-compose.yml"
+      - "docker-compose.app-back-end-legacy.yml"
       - ".github/workflows/backend-build.yml"
       - ".github/scripts/detect-backend-images.sh"
       - ".github/actions/compute-image-version/**"
@@ -71,7 +75,7 @@ jobs:
             echo ""
             echo "**Trigger:** \`${{ github.event_name }}\`"
             echo "**Compared commits:** \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\`"
-            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") of 4 images"
+            echo "**Selected:** $(jq '.include | length' <<<"$MATRIX") images"
             echo ""
             echo "| Image | Dockerfile |"
             echo "|---|---|"
@@ -97,7 +101,13 @@ jobs:
         run: docker compose build svitlo-power-back-end
 
       - name: Build app-back-end image
-        run: docker compose build svitlo-power-app-back-end
+        run: docker compose build svitlo-power-app-back-end svitlo-power-app-back-end-tests
+
+      - name: Build legacy app-back-end rollback image
+        run: docker build -f app-back-end-legacy/Dockerfile -t svitlo-power-app-back-end-legacy:test .
+
+      - name: Test legacy app-back-end rollback image
+        run: docker run --rm svitlo-power-app-back-end-legacy:test python -m pytest -q
 
       - name: Run back-end tests in docker
         id: tests-backend
@@ -167,14 +177,21 @@ jobs:
               echo ""
               sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_app_backend.txt > test_output_app_backend.clean.txt
 
-              SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \
-                              test_output_app_backend.clean.txt | tail -1)
-
-              PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-              FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-              ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-              SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
-              DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+              if grep -qE "tests [0-9]+" test_output_app_backend.clean.txt; then
+                PASSED=$(grep -oE "pass [0-9]+" test_output_app_backend.clean.txt | tail -1 | grep -oE "[0-9]+$")
+                FAILED=$(grep -oE "fail [0-9]+" test_output_app_backend.clean.txt | tail -1 | grep -oE "[0-9]+$")
+                ERRORS=0
+                SKIPPED=$(grep -oE "skipped [0-9]+" test_output_app_backend.clean.txt | tail -1 | grep -oE "[0-9]+$")
+                DURATION=$(grep -oE "duration_ms [0-9.]+" test_output_app_backend.clean.txt | tail -1 | awk '{printf "%.2fs", $2 / 1000}')
+              else
+                SUMMARY_LINE=$(grep -E "^=+.*(passed|failed|error|no tests ran|skipped).*=+$" \\
+                                test_output_app_backend.clean.txt | tail -1)
+                PASSED=$(grep -oE "[0-9]+ passed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                FAILED=$(grep -oE "[0-9]+ failed"   <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                ERRORS=$(grep -oE "[0-9]+ errors?"  <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                SKIPPED=$(grep -oE "[0-9]+ skipped" <<<"$SUMMARY_LINE" | grep -oE "^[0-9]+")
+                DURATION=$(grep -oE "in [0-9.]+s"   <<<"$SUMMARY_LINE" | tail -1 | sed "s/^in //")
+              fi
 
               echo "| Result | Count |"
               echo "|--------|-------|"
