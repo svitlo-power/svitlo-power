@@ -20,6 +20,8 @@ class Settings(BaseSettings, BaseAppSettings, BaseDeyeAppSettings, BaseJWTSettin
     # -------------------------
 
     SECRET_KEY: str = Field(default_factory=lambda: generate_secret_key(32))
+    INTERNAL_API_TOKEN: str | None = None
+    INTERNAL_API_TIMEOUT_SECONDS: float = Field(default=10.0, gt=0)
 
     # -------------------------
     # Telegram
