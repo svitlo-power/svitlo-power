@@ -27,6 +27,7 @@ This directory contains the complete specification set for the incremental migra
 |------|-------------|
 | [snapshot-schema.json](snapshot-schema.json) | JSON Schema (draft-2020-12) for DashboardSnapshot v1 — buildings, config, outagesSchedules |
 | [redis-conventions.md](redis-conventions.md) | Redis key/channel naming, Lua scripts for atomic write + lease fence, monitoring |
+| [internal-app-api.md](internal-app-api.md) | Private app domain API contract and consumer configuration |
 
 ## ADR Reference
 

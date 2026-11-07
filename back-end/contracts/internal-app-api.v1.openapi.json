@@ -1,0 +1,1555 @@
+{
+  "components": {
+    "schemas": {
+      "BuildingResponse": {
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "hasBoundStation": {
+            "default": false,
+            "title": "Hasboundstation",
+            "type": "boolean"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PydanticObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizableValue"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "color",
+          "order"
+        ],
+        "title": "BuildingResponse",
+        "type": "object"
+      },
+      "BuildingSummaryResponse": {
+        "properties": {
+          "batteryChargeTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterychargetime"
+          },
+          "batteryDischargeTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterydischargetime"
+          },
+          "batteryPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterypercent"
+          },
+          "chargePower": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chargepower"
+          },
+          "chargeSource": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChargeSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "None"
+          },
+          "consumptionPower": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumptionpower"
+          },
+          "gridAvailabilityPct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gridavailabilitypct"
+          },
+          "hasMixedReporterStates": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasmixedreporterstates"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PydanticObjectId"
+          },
+          "isCharging": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ischarging"
+          },
+          "isDischarging": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isdischarging"
+          },
+          "isGridAvailable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isgridavailable"
+          },
+          "isOffline": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isoffline"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "BuildingSummaryResponse",
+        "type": "object"
+      },
+      "BuildingWithSummaryResponse": {
+        "properties": {
+          "batteryChargeTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterychargetime"
+          },
+          "batteryDischargeTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterydischargetime"
+          },
+          "batteryPercent": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batterypercent"
+          },
+          "chargePower": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chargepower"
+          },
+          "chargeSource": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChargeSource"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "None"
+          },
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "consumptionPower": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consumptionpower"
+          },
+          "gridAvailabilityPct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gridavailabilitypct"
+          },
+          "hasBoundStation": {
+            "default": false,
+            "title": "Hasboundstation",
+            "type": "boolean"
+          },
+          "hasMixedReporterStates": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasmixedreporterstates"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PydanticObjectId"
+          },
+          "isCharging": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ischarging"
+          },
+          "isDischarging": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isdischarging"
+          },
+          "isGridAvailable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isgridavailable"
+          },
+          "isOffline": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isoffline"
+          },
+          "name": {
+            "$ref": "#/components/schemas/LocalizableValue"
+          },
+          "order": {
+            "title": "Order",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "order"
+        ],
+        "title": "BuildingWithSummaryResponse",
+        "type": "object"
+      },
+      "BuildingsSummaryRequest": {
+        "properties": {
+          "buildingIds": {
+            "items": {
+              "$ref": "#/components/schemas/PydanticObjectId"
+            },
+            "title": "Buildingids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "buildingIds"
+        ],
+        "title": "BuildingsSummaryRequest",
+        "type": "object"
+      },
+      "ChargeSource": {
+        "enum": [
+          "None",
+          "Grid",
+          "Generator",
+          "Solar",
+          "Recuperation"
+        ],
+        "title": "ChargeSource",
+        "type": "string"
+      },
+      "DashboardConfigResponse": {
+        "properties": {
+          "outagesSchedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutagesScheduleConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "$ref": "#/components/schemas/LocalizableValue"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "DashboardConfigResponse",
+        "type": "object"
+      },
+      "DaySchedule": {
+        "properties": {
+          "date": {
+            "format": "date-time",
+            "title": "Date",
+            "type": "string"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "title": "Slots",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DayStatus"
+          }
+        },
+        "required": [
+          "slots",
+          "date",
+          "status"
+        ],
+        "title": "DaySchedule",
+        "type": "object"
+      },
+      "DayStatus": {
+        "enum": [
+          "ScheduleApplies",
+          "EmergencyShutdowns",
+          "WaitingForSchedule",
+          "NoOutages"
+        ],
+        "title": "DayStatus",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LocalizableValue": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "title": "LocalizableValue",
+        "type": "object"
+      },
+      "OutagesScheduleConfig": {
+        "properties": {
+          "dsoId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dsoid"
+          },
+          "enable": {
+            "default": false,
+            "title": "Enable",
+            "type": "boolean"
+          },
+          "queue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue"
+          },
+          "regionId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regionid"
+          }
+        },
+        "title": "OutagesScheduleConfig",
+        "type": "object"
+      },
+      "PeriodResponse": {
+        "properties": {
+          "durationSeconds": {
+            "title": "Durationseconds",
+            "type": "integer"
+          },
+          "endTime": {
+            "title": "Endtime",
+            "type": "string"
+          },
+          "isAvailable": {
+            "title": "Isavailable",
+            "type": "boolean"
+          },
+          "startTime": {
+            "title": "Starttime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "startTime",
+          "endTime",
+          "isAvailable",
+          "durationSeconds"
+        ],
+        "title": "PeriodResponse",
+        "type": "object"
+      },
+      "PowerLogsRequest": {
+        "properties": {
+          "endDate": {
+            "title": "Enddate",
+            "type": "string"
+          },
+          "startDate": {
+            "title": "Startdate",
+            "type": "string"
+          }
+        },
+        "title": "PowerLogsRequest",
+        "type": "object"
+      },
+      "PowerLogsResponse": {
+        "properties": {
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/PeriodResponse"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "totalAvailableSeconds": {
+            "title": "Totalavailableseconds",
+            "type": "integer"
+          },
+          "totalGeneratorSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalgeneratorseconds"
+          },
+          "totalSeconds": {
+            "title": "Totalseconds",
+            "type": "integer"
+          },
+          "totalUnavailableSeconds": {
+            "title": "Totalunavailableseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "periods",
+          "totalAvailableSeconds",
+          "totalUnavailableSeconds",
+          "totalSeconds"
+        ],
+        "title": "PowerLogsResponse",
+        "type": "object"
+      },
+      "PushDeviceRegisterRequest": {
+        "properties": {
+          "appVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appversion"
+          },
+          "language": {
+            "default": "uk",
+            "title": "Language",
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/PushPlatform"
+          },
+          "token": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "platform"
+        ],
+        "title": "PushDeviceRegisterRequest",
+        "type": "object"
+      },
+      "PushDeviceResponse": {
+        "properties": {
+          "appVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appversion"
+          },
+          "buildings": {
+            "items": {
+              "$ref": "#/components/schemas/PydanticObjectId"
+            },
+            "title": "Buildings",
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "disabledTopics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disabledtopics",
+            "type": "array"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PydanticObjectId"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "lastSeen": {
+            "format": "date-time",
+            "title": "Lastseen",
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/PushPlatform"
+          }
+        },
+        "required": [
+          "id",
+          "platform",
+          "language",
+          "enabled",
+          "disabledTopics",
+          "buildings",
+          "createdAt",
+          "lastSeen"
+        ],
+        "title": "PushDeviceResponse",
+        "type": "object"
+      },
+      "PushDeviceSubscriptionsRequest": {
+        "properties": {
+          "buildings": {
+            "items": {
+              "$ref": "#/components/schemas/PydanticObjectId"
+            },
+            "title": "Buildings",
+            "type": "array"
+          },
+          "disabledTopics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disabledtopics",
+            "type": "array"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "token": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "PushDeviceSubscriptionsRequest",
+        "type": "object"
+      },
+      "PushDeviceTokenRequest": {
+        "properties": {
+          "token": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "PushDeviceTokenRequest",
+        "type": "object"
+      },
+      "PushPlatform": {
+        "enum": [
+          "android",
+          "web"
+        ],
+        "title": "PushPlatform",
+        "type": "string"
+      },
+      "PushTopicResponse": {
+        "properties": {
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Description",
+            "type": "object"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Name",
+            "type": "object"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description"
+        ],
+        "title": "PushTopicResponse",
+        "type": "object"
+      },
+      "PydanticObjectId": {
+        "example": "5eb7cf5a86d9755df3a6c593",
+        "maxLength": 24,
+        "minLength": 24,
+        "pattern": "^[0-9a-f]{24}$",
+        "type": "string"
+      },
+      "Slot": {
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SlotType"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "type"
+        ],
+        "title": "Slot",
+        "type": "object"
+      },
+      "SlotType": {
+        "enum": [
+          "Definite",
+          "NotPlanned"
+        ],
+        "title": "SlotType",
+        "type": "string"
+      },
+      "UnitSchedule": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DaySchedule"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "updatedOn": {
+            "format": "date-time",
+            "title": "Updatedon",
+            "type": "string"
+          }
+        },
+        "required": [
+          "days",
+          "updatedOn"
+        ],
+        "title": "UnitSchedule",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/internal/v1/app/dashboard/buildings": {
+      "get": {
+        "operationId": "get_buildings_internal_v1_app_dashboard_buildings_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BuildingResponse"
+                  },
+                  "title": "Response Get Buildings Internal V1 App Dashboard Buildings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Buildings"
+      }
+    },
+    "/internal/v1/app/dashboard/buildings-with-summary": {
+      "get": {
+        "operationId": "get_buildings_with_summary_internal_v1_app_dashboard_buildings_with_summary_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BuildingWithSummaryResponse"
+                  },
+                  "title": "Response Get Buildings With Summary Internal V1 App Dashboard Buildings With Summary Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Buildings With Summary"
+      }
+    },
+    "/internal/v1/app/dashboard/buildings/summary": {
+      "post": {
+        "operationId": "get_buildings_summary_internal_v1_app_dashboard_buildings_summary_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildingsSummaryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BuildingSummaryResponse"
+                  },
+                  "title": "Response Get Buildings Summary Internal V1 App Dashboard Buildings Summary Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Buildings Summary"
+      }
+    },
+    "/internal/v1/app/dashboard/buildings/{building_id}/power-logs": {
+      "post": {
+        "operationId": "get_power_logs_internal_v1_app_dashboard_buildings__building_id__power_logs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "building_id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PydanticObjectId"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PowerLogsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PowerLogsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Power Logs"
+      }
+    },
+    "/internal/v1/app/dashboard/config": {
+      "get": {
+        "operationId": "get_config_internal_v1_app_dashboard_config_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Config"
+      }
+    },
+    "/internal/v1/app/health": {
+      "get": {
+        "operationId": "health_internal_v1_app_health_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/internal/v1/app/outages-schedule/{queue}": {
+      "get": {
+        "operationId": "get_outages_schedule_internal_v1_app_outages_schedule__queue__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "queue",
+            "required": true,
+            "schema": {
+              "title": "Queue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitSchedule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Outages Schedule"
+      }
+    },
+    "/internal/v1/app/push/devices": {
+      "post": {
+        "operationId": "register_device_internal_v1_app_push_devices_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Device"
+      }
+    },
+    "/internal/v1/app/push/devices/current": {
+      "post": {
+        "operationId": "get_device_internal_v1_app_push_devices_current_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Device"
+      }
+    },
+    "/internal/v1/app/push/devices/subscriptions": {
+      "post": {
+        "operationId": "update_subscriptions_internal_v1_app_push_devices_subscriptions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceSubscriptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Subscriptions"
+      }
+    },
+    "/internal/v1/app/push/devices/unregister": {
+      "post": {
+        "operationId": "unregister_device_internal_v1_app_push_devices_unregister_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushDeviceTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unregister Device"
+      }
+    },
+    "/internal/v1/app/push/topics": {
+      "get": {
+        "operationId": "get_topics_internal_v1_app_push_topics_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PushTopicResponse"
+                  },
+                  "title": "Response Get Topics Internal V1 App Push Topics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Topics"
+      }
+    },
+    "/internal/v1/app/ready": {
+      "get": {
+        "operationId": "ready_internal_v1_app_ready_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ready"
+      }
+    }
+  }
+}
