@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.routes.stations_data import register
 from app.utils.jwt_dependencies import jwt_required
+from shared import current_language
 
 
 class TestStationsDataRoute:
@@ -41,6 +42,7 @@ class TestStationsDataRoute:
         mock_station = MagicMock()
         mock_station.id = "507f1f77bcf86cd799439011"
         mock_station.station_name = "Test Station"
+        mock_station.station_alias = None
 
         mock_data = MagicMock()
         mock_data.battery_soc = 85.0
@@ -80,6 +82,7 @@ class TestStationsDataRoute:
         mock_station = MagicMock()
         mock_station.id = "507f1f77bcf86cd799439011"
         mock_station.station_name = "Test Station"
+        mock_station.station_alias = None
 
         mock_data = MagicMock()
         mock_data.battery_soc = 85.0
@@ -293,6 +296,128 @@ class TestStationsDataRoute:
         })
         assert response.status_code == 404
         assert "Station not found" in response.json()["detail"]
+
+        app.dependency_overrides.clear()
+
+    def test_get_stations_data_uses_localized_alias(self):
+        token = current_language.set("uk")
+        try:
+            app = FastAPI()
+            register(app)
+
+            mock_station = MagicMock()
+            mock_station.id = "507f1f77bcf86cd799439011"
+            mock_station.station_name = "Test Station"
+            mock_station.station_alias = MagicMock()
+            mock_station.station_alias.get_culture_value = MagicMock(return_value="Тестова станція")
+
+            mock_data = MagicMock()
+            mock_data.battery_soc = 85.0
+            mock_data.discharge_power = 100.0
+            mock_data.charge_power = 0.0
+            mock_data.consumption_power = 50.0
+            mock_data.last_update_time = datetime.now(timezone.utc)
+
+            mock_stations = MagicMock()
+            mock_stations.get_stations_data = AsyncMock(return_value=[(mock_station, [mock_data])])
+
+            mock_injector = MagicMock()
+            mock_injector.get = MagicMock(return_value=mock_stations)
+            app.state.injector = mock_injector
+
+            app.dependency_overrides[jwt_required] = lambda: {"sub": "testuser"}
+
+            client = TestClient(app)
+            response = client.post("/api/stationsData/stationsData", json={
+                "lastSeconds": 3600,
+                "recordsCount": 250,
+            })
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == 1
+            assert data[0]["name"] == "Тестова станція"
+
+            app.dependency_overrides.clear()
+        finally:
+            current_language.reset(token)
+
+    def test_get_stations_data_falls_back_to_station_name_when_alias_none(self):
+        token = current_language.set("uk")
+        try:
+            app = FastAPI()
+            register(app)
+
+            mock_station = MagicMock()
+            mock_station.id = "507f1f77bcf86cd799439011"
+            mock_station.station_name = "Test Station"
+            mock_station.station_alias = None
+
+            mock_data = MagicMock()
+            mock_data.battery_soc = 85.0
+            mock_data.discharge_power = 100.0
+            mock_data.charge_power = 0.0
+            mock_data.consumption_power = 50.0
+            mock_data.last_update_time = datetime.now(timezone.utc)
+
+            mock_stations = MagicMock()
+            mock_stations.get_stations_data = AsyncMock(return_value=[(mock_station, [mock_data])])
+
+            mock_injector = MagicMock()
+            mock_injector.get = MagicMock(return_value=mock_stations)
+            app.state.injector = mock_injector
+
+            app.dependency_overrides[jwt_required] = lambda: {"sub": "testuser"}
+
+            client = TestClient(app)
+            response = client.post("/api/stationsData/stationsData", json={
+                "lastSeconds": 3600,
+                "recordsCount": 250,
+            })
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == 1
+            assert data[0]["name"] == "Test Station"
+
+            app.dependency_overrides.clear()
+        finally:
+            current_language.reset(token)
+
+    def test_get_stations_data_preserves_order(self):
+        app = FastAPI()
+        register(app)
+
+        stations = []
+        for idx in range(3):
+            st = MagicMock()
+            st.id = f"507f1f77bcf86cd79943901{idx}"
+            st.station_name = f"Station {idx}"
+            st.station_alias = None
+            stations.append(st)
+
+        mock_data = MagicMock()
+        mock_data.battery_soc = 85.0
+        mock_data.discharge_power = 100.0
+        mock_data.charge_power = 0.0
+        mock_data.consumption_power = 50.0
+        mock_data.last_update_time = datetime.now(timezone.utc)
+
+        mock_stations = MagicMock()
+        mock_stations.get_stations_data = AsyncMock(return_value=[(st, [mock_data]) for st in stations])
+
+        mock_injector = MagicMock()
+        mock_injector.get = MagicMock(return_value=mock_stations)
+        app.state.injector = mock_injector
+
+        app.dependency_overrides[jwt_required] = lambda: {"sub": "testuser"}
+
+        client = TestClient(app)
+        response = client.post("/api/stationsData/stationsData", json={
+            "lastSeconds": 3600,
+            "recordsCount": 250,
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert [d["name"] for d in data] == ["Station 0", "Station 1", "Station 2"]
 
         app.dependency_overrides.clear()
 
