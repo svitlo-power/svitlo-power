@@ -13,6 +13,7 @@ import { IconName } from "@fortawesome/fontawesome-svg-core";
 import { AnonymousLayout } from "../layouts/anonymousLayout";
 import { PublicLayout } from "../layouts/publicLayout";
 import { authDataSelector } from "../stores/selectors";
+import { isPublicFrontendDisabled } from "../config";
 
 export type MenuItem = RouteObject & {
   children?: MenuItem[];
@@ -160,9 +161,11 @@ const Routes: FC = () => {
     ...publicRoutes,
     {
       path: "/",
-      element: <PublicLayout>
-        <BuildingsPage />
-      </PublicLayout>,
+      element: isPublicFrontendDisabled()
+        ? <Navigate to="/login" replace />
+        : <PublicLayout>
+            <BuildingsPage />
+          </PublicLayout>,
     },
     {
       path: '*',
