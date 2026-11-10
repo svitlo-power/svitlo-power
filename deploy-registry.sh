@@ -14,7 +14,8 @@ set -euo pipefail
 #   - svitlo-power-back-end (back-end)
 #   - svitlo-power-sse-back-end (sse-back-end)
 #   - svitlo-power-grid-reporter (grid-reporter)
-#   - svitlo-power-front-end (front-end, nginx with baked-in dist)
+#   - svitlo-power-front-end (public app-v2 frontend)
+#   - svitlo-power-admin-front-end (React admin frontend)
 # Note: svitlo-power-migrate uses same image as svitlo-power-back-end
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -87,11 +88,37 @@ IMAGES=(
     "svitlo-power-back-end"
     "svitlo-power-sse-back-end"
     "svitlo-power-grid-reporter"
-    "svitlo-power-front-end"
 )
 
 for IMAGE in "${IMAGES[@]}"; do
     FULL_IMAGE="$REGISTRY_URL/$IMAGE:$TAG"
+    echo "Pulling $FULL_IMAGE..."
+    if ! docker pull "$FULL_IMAGE"; then
+        echo "Error: Failed to pull $FULL_IMAGE from $REGISTRY_URL."
+        echo "Falling back to local build deploy.sh..."
+        if [ "$DEPLOY_SH_FOUND" = true ]; then
+            exec bash "$REPO_ROOT/deploy.sh" "$@"
+        else
+            echo "Error: deploy.sh not found or not executable. Cannot fallback."
+            exit 1
+        fi
+    fi
+done
+
+read_env_value() {
+    local name="$1"
+    sed -n "s/^${name}=//p" "$ENV_FILE" | tail -n 1
+}
+
+PUBLIC_FRONTEND_TAG="${PUBLIC_FRONTEND_TAG:-$(read_env_value PUBLIC_FRONTEND_TAG)}"
+PUBLIC_FRONTEND_TAG="${PUBLIC_FRONTEND_TAG:-latest}"
+ADMIN_FRONTEND_TAG="${ADMIN_FRONTEND_TAG:-$(read_env_value ADMIN_FRONTEND_TAG)}"
+ADMIN_FRONTEND_TAG="${ADMIN_FRONTEND_TAG:-latest}"
+
+for IMAGE_AND_TAG in \
+    "svitlo-power-front-end:$PUBLIC_FRONTEND_TAG" \
+    "svitlo-power-admin-front-end:$ADMIN_FRONTEND_TAG"; do
+    FULL_IMAGE="$REGISTRY_URL/$IMAGE_AND_TAG"
     echo "Pulling $FULL_IMAGE..."
     if ! docker pull "$FULL_IMAGE"; then
         echo "Error: Failed to pull $FULL_IMAGE from $REGISTRY_URL."
@@ -118,6 +145,8 @@ echo "Starting containers with registry images (tag: $TAG)..."
 # Export TAG and REGISTRY_URL so docker-compose can use them
 export TAG
 export REGISTRY_URL
+export PUBLIC_FRONTEND_TAG
+export ADMIN_FRONTEND_TAG
 # Read SSE_SCALE from .env, fallback to 3
 SSE_SCALE="${SSE_SCALE:-3}"
 docker compose up -d --scale svitlo-power-sse-back-end="${SSE_SCALE}" || { echo "Failed to start containers"; exit 1; }

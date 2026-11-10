@@ -37,9 +37,15 @@ server {
     try_files /VERSION =404;
   }
 
+  location = /runtime-config.js {
+    default_type application/javascript;
+    add_header Cache-Control "no-store";
+    try_files $uri =404;
+  }
+
   location /metrics {
     add_header Content-Type text/plain;
-    return 200 'service_version_info{service="front-end",version="${VERSION}"} 1.0\n';
+    return 200 'service_version_info{service="admin-front-end",version="${VERSION}"} 1.0\n';
   }
 
   location / {

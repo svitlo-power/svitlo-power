@@ -49,7 +49,11 @@ docker compose exec svitlo-power-back-end bash
 docker compose ps
 ```
 
-**Services:** `svitlo-power-back-end`, `svitlo-power-sse-back-end`, `svitlo-power-front-end`, `svitlo-power-grid-reporter`, `svitlo-power-mongo`, `svitlo-power-rds`, `svitlo-power-tests`
+**Services:** `svitlo-power-back-end`, `svitlo-power-sse-back-end`, `svitlo-power-front-end` (public app-v2 UI), `svitlo-power-admin-front-end` (React admin UI), `svitlo-power-grid-reporter`, `svitlo-power-mongo`, `svitlo-power-rds`, `svitlo-power-tests`
+
+The public UI is exposed on `OUTPUT_PORT` (default `5005`); the React admin UI is exposed on `ADMIN_OUTPUT_PORT` (default `5006`). Configure the host reverse proxy's admin-subdomain route to forward to the admin port. The frontend image tags can be selected independently with `PUBLIC_FRONTEND_TAG` and `ADMIN_FRONTEND_TAG`.
+
+Set `DISABLE_PUBLIC_FRONTEND=true` to disable the React admin UI's public landing page: unauthenticated visits to `/` go to `/login`, and authenticated visits to `/` show the admin home page. The default `false` preserves the public Buildings landing page.
 
 ## To run tests in docker ##
 

@@ -23,6 +23,8 @@ RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lis
 COPY --from=build /app/dist /var/www/front-end
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-site.conf.template /etc/nginx/conf.d/default.conf.template
+COPY docker-entrypoint/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.d/40-runtime-config.sh \
+    && chmod +x /docker-entrypoint.d/40-runtime-config.sh
 
-# Use envsubst to substitute VERSION in nginx config
-CMD envsubst '${VERSION}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"
+CMD ["nginx", "-g", "daemon off;"]

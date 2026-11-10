@@ -201,13 +201,7 @@ services:
     restart: "no"
 
   svitlo-power-front-end:
-    build:
-      context: front-end
-      additional_contexts:
-        shared: ./shared
-      args:
-        VERSION: ${TAG:-latest}
-    image: ${REGISTRY_URL}/svitlo-power-front-end:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-front-end:${PUBLIC_FRONTEND_TAG:-latest}
     restart: always
     ports:
       - "127.0.0.1:${OUTPUT_PORT:-5005}:80"
@@ -215,15 +209,44 @@ services:
       - web_network
     labels:
       io.hass.type: "addon"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      svitlo-power-app-back-end:
+        condition: service_healthy
+
+  svitlo-power-admin-front-end:
+    build:
+      context: front-end
+      additional_contexts:
+        shared: ./shared
+      args:
+        VERSION: ${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-admin-front-end:${ADMIN_FRONTEND_TAG:-latest}
+    restart: always
+    environment:
+      - DISABLE_PUBLIC_FRONTEND=${DISABLE_PUBLIC_FRONTEND:-false}
+    ports:
+      - "127.0.0.1:${ADMIN_OUTPUT_PORT:-5006}:80"
+    networks:
+      - web_network
+    labels:
+      io.hass.type: "addon"
     stop_signal: SIGQUIT
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/version"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     depends_on:
       svitlo-power-back-end:
+        condition: service_healthy
+      svitlo-power-sse-back-end:
         condition: service_healthy
 
 volumes:

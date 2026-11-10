@@ -1,4 +1,4 @@
-name: Frontend Build
+name: Admin Frontend Build
 
 on:
   push:
@@ -73,13 +73,13 @@ jobs:
         id: compute
         uses: ./.github/actions/compute-image-version
         with:
-          image-name: svitlo-power-front-end
+          image-name: svitlo-power-admin-front-end
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
 
   build-and-push:
-    name: Build front-end image
+    name: Build admin front-end image
     runs-on: [self-hosted, Linux, X64, proxmox]
     timeout-minutes: 45
     needs: [compute-version, run-tests]
@@ -104,7 +104,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6.2.0
         with:
-          images: ${{ env.REGISTRY }}/svitlo-power-front-end
+          images: ${{ env.REGISTRY }}/svitlo-power-admin-front-end
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -124,8 +124,8 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
             VERSION=${{ needs.compute-version.outputs.version }}
-          cache-from: type=gha,scope=svitlo-power-front-end
-          cache-to: type=gha,mode=max,scope=svitlo-power-front-end
+          cache-from: type=gha,scope=svitlo-power-admin-front-end
+          cache-to: type=gha,mode=max,scope=svitlo-power-admin-front-end
           build-contexts: |
             shared=./shared
 
@@ -140,10 +140,10 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Cleanup svitlo-power-front-end
+      - name: Cleanup svitlo-power-admin-front-end
         uses: ./.github/actions/cleanup-old-images
         with:
-          image-name: svitlo-power-front-end
+          image-name: svitlo-power-admin-front-end
           registry-url: ${{ env.REGISTRY }}
           registry-username: ${{ vars.REGISTRY_USERNAME || secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
