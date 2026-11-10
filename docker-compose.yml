@@ -24,6 +24,7 @@ services:
     env_file: .env
     environment:
       - DEBUG=False
+      - APP_ACCESS_TOKEN=${VITE_APP_ACCESS_TOKEN:-${APP_ACCESS_TOKEN:-}}
     expose:
       - "5005"
       - "9096"
@@ -203,6 +204,15 @@ services:
   svitlo-power-front-end:
     image: ${REGISTRY_URL}/svitlo-power-front-end:${PUBLIC_FRONTEND_TAG:-latest}
     restart: always
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-/api/}
+      VITE_APP_ACCESS_TOKEN: ${VITE_APP_ACCESS_TOKEN:-}
+      VITE_PRIVACY_POLICY_URL: ${VITE_PRIVACY_POLICY_URL:-}
+      VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+      VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID:-}
+      VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+      VITE_FIREBASE_VAPID_KEY: ${VITE_FIREBASE_VAPID_KEY:-}
     ports:
       - "127.0.0.1:${OUTPUT_PORT:-5005}:80"
     networks:
