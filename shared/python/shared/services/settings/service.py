@@ -5,17 +5,22 @@ from injector import inject, singleton
 
 from shared.models.localizable_value import LocalizableValue
 from shared.models.system_setting import SystemSetting, SystemSettingCategory, SystemSettingValue
+from shared.repositories import ISettingsRepository
 
 
 @singleton
 class SettingsService:
     @inject
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        settings_repo: ISettingsRepository,
+    ):
+        self._settings_repo = settings_repo
 
     async def get_setting(self, key: str) -> Optional[SystemSetting]:
         """Get a setting by key."""
-        return await SystemSetting.find_one(SystemSetting.key == key)
+        settings = await self._settings_repo.get_settings_by_keys([key])
+        return settings[0] if settings else None
 
     async def get_value(self, key: str, default: SystemSettingValue = None) -> SystemSettingValue:
         """Get the current value of a setting (or default if not set)."""
@@ -123,20 +128,28 @@ class SettingsService:
 
     async def get_all_settings(self) -> List[SystemSetting]:
         """Get all settings."""
-        return await SystemSetting.find_all().to_list()
+        return await self._settings_repo.get_all_settings()
 
     async def get_settings_by_category(
         self,
         category_id: PydanticObjectId,
     ) -> List[SystemSetting]:
         """Get settings by category."""
-        return await SystemSetting.find(
-            SystemSetting.category_id == category_id
-        ).to_list()
+        all_settings = await self._settings_repo.get_all_settings()
+        return [s for s in all_settings if s.category_id == category_id]
 
-    async def get_settings_grouped_by_category(self) -> dict:
-        """Get all settings grouped by category."""
-        settings = await self.get_all_settings()
+    async def get_settings_grouped_by_category(
+        self,
+        keys: Optional[List[str]] = None,
+    ) -> dict:
+        """Get settings grouped by category.
+
+        If keys is provided, only settings with matching keys are returned from the database.
+        """
+        if keys:
+            settings = await self._settings_repo.get_settings_by_keys(keys)
+        else:
+            settings = await self._settings_repo.get_all_settings()
         for setting in settings:
             if setting.category_id is None:
                 raise RuntimeError(

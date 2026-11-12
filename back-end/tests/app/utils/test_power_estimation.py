@@ -1,4 +1,6 @@
 """Tests for shared/utils/power_estimation.py."""
+from unittest.mock import MagicMock
+
 import pytest
 from shared.utils.power_estimation import (
     get_kilowatthour_consumption,
@@ -99,3 +101,63 @@ class TestGetEstimateChargeTime:
         # Use target_soc=100 to match original behavior
         result = await get_estimate_charge_time(10.0, 100, 1.0, target_batt_soc=100)
         assert result == "00:00"
+
+
+class TestGetEstimateDischargeTimeStationOverride:
+    """Tests that station-level discharge_target_soc overrides the global setting."""
+
+    def _station(self, discharge_target_soc):
+        station = MagicMock()
+        station.discharge_target_soc = discharge_target_soc
+        return station
+
+    @pytest.mark.asyncio
+    async def test_uses_station_override_when_set(self):
+        station = self._station(30)
+        # 10 kWh * (100 - 30) / 100 = 7 kWh remaining; / 1 kWh = 7 hours
+        result = await get_estimate_discharge_time(10.0, 100, 1.0, station=station)
+        assert result == "07:00"
+
+    @pytest.mark.asyncio
+    async def test_uses_station_override_when_zero(self):
+        station = self._station(0)
+        result = await get_estimate_discharge_time(10.0, 100, 1.0, station=station)
+        assert result == "10:00"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_default_when_station_override_is_none(self):
+        station = self._station(None)
+        # No settings service in tests → default discharge target = 10
+        # 10 kWh * (100 - 10) / 100 = 9 kWh remaining; / 1 kWh = 9 hours
+        result = await get_estimate_discharge_time(10.0, 100, 1.0, station=station)
+        assert result == "09:00"
+
+
+class TestGetEstimateChargeTimeStationOverride:
+    """Tests that station-level charge_target_soc overrides the global setting."""
+
+    def _station(self, charge_target_soc):
+        station = MagicMock()
+        station.charge_target_soc = charge_target_soc
+        return station
+
+    @pytest.mark.asyncio
+    async def test_uses_station_override_when_set(self):
+        station = self._station(80)
+        # 10 kWh * (80 - 0) / 100 = 8 kWh remaining; / 1 kW = 8 hours
+        result = await get_estimate_charge_time(10.0, 0, 1.0, station=station)
+        assert result == "08:00"
+
+    @pytest.mark.asyncio
+    async def test_uses_station_override_when_100(self):
+        station = self._station(100)
+        result = await get_estimate_charge_time(10.0, 0, 1.0, station=station)
+        assert result == "10:00"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_default_when_station_override_is_none(self):
+        station = self._station(None)
+        # No settings service in tests → default charge target = 97
+        # 10 kWh * (97 - 0) / 100 = 9.7 kWh remaining; / 1 kW = 9.7 hours
+        result = await get_estimate_charge_time(10.0, 0, 1.0, station=station)
+        assert result == "09:41"

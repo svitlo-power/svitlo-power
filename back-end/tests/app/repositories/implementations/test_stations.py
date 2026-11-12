@@ -20,13 +20,20 @@ Station.connection_id = MagicMock()
 class TestStationsRepository:
     """Tests for StationsRepository write methods."""
 
+    @pytest.fixture
+    def repo(self):
+        mock_settings = MagicMock()
+        mock_settings.get_int = AsyncMock(return_value=10)
+        return StationsRepository(settings=mock_settings)
+
     @pytest.mark.asyncio
-    async def test_edit_station_found(self):
+    async def test_edit_station_found(self, repo):
         """Test edit_station when station found."""
         station_id = str(PydanticObjectId("507f1f77bcf86cd799439011"))
         mock_station = MagicMock(spec=Station)
         mock_station.save = AsyncMock()
-        repo = StationsRepository()
+        mock_station.discharge_target_soc = None
+        mock_station.charge_target_soc = None
         with patch.object(repo, 'get_station', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_station
             await repo.edit_station(station_id, True, 1, 10.0, "alias")
@@ -37,39 +44,36 @@ class TestStationsRepository:
             mock_station.save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_edit_station_not_found(self):
+    async def test_edit_station_not_found(self, repo):
         """Test edit_station raises ValueError when not found."""
         station_id = str(PydanticObjectId("507f1f77bcf86cd799439011"))
-        repo = StationsRepository()
         with patch.object(repo, 'get_station', new_callable=AsyncMock) as mock_get:
             mock_get.return_value = None
             with pytest.raises(ValueError):
                 await repo.edit_station(station_id, True, 1, 10.0, "alias")
 
     @pytest.mark.asyncio
-    async def test_count_by_connection(self):
+    async def test_count_by_connection(self, repo):
         """Test count_by_connection."""
         conn_id = PydanticObjectId("507f1f77bcf86cd799439011")
         with patch.object(Station, 'find') as mock_find:
             mock_find.return_value.count = AsyncMock(return_value=5)
-            repo = StationsRepository()
             result = await repo.count_by_connection(conn_id)
             assert result == 5
             mock_find.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_assign_connection_to_unassigned(self):
+    async def test_assign_connection_to_unassigned(self, repo):
         """Test assign_connection_to_unassigned."""
         conn_id = PydanticObjectId("507f1f77bcf86cd799439011")
         with patch.object(Station, 'find') as mock_find:
             mock_find.return_value.update_many = AsyncMock()
-            repo = StationsRepository()
             await repo.assign_connection_to_unassigned(conn_id)
             mock_find.assert_called_once_with({"connection_id": None})
             mock_find.return_value.update_many.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_station_new(self):
+    async def test_add_station_new(self, repo):
         """Test add_station creates a new station when it doesn't exist."""
         conn_id = PydanticObjectId("507f1f77bcf86cd799439011")
         now_ts = int(datetime.now().timestamp())
@@ -104,12 +108,11 @@ class TestStationsRepository:
                     MockStation.find.return_value = mock_find.return_value
                     MockStation.find_one = mock_find_one
                     MockStation.return_value = mock_new_record
-                    repo = StationsRepository()
                     await repo.add_station(mock_station_data, conn_id)
                     mock_new_record.insert.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_station_existing(self):
+    async def test_add_station_existing(self, repo):
         """Test add_station updates an existing station."""
         conn_id = PydanticObjectId("507f1f77bcf86cd799439011")
         now_ts = int(datetime.now().timestamp())
@@ -127,17 +130,15 @@ class TestStationsRepository:
             mock_find.return_value.sort.return_value.first_or_none = AsyncMock(return_value=mock_max_station)
             with patch.object(Station, 'find_one', new_callable=AsyncMock) as mock_find_one:
                 mock_find_one.return_value = mock_existing
-                repo = StationsRepository()
                 await repo.add_station(mock_station_data, conn_id)
                 assert mock_existing.connection_status == 1
                 mock_existing.save.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_station_exception(self):
+    async def test_add_station_exception(self, repo):
         """Test add_station handles exceptions gracefully."""
         conn_id = PydanticObjectId("507f1f77bcf86cd799439011")
         mock_station_data = MagicMock(spec=DeyeStation)
 
         with patch.object(Station, 'find', side_effect=Exception("DB error")):
-            repo = StationsRepository()
             await repo.add_station(mock_station_data, conn_id)  # Should not raise

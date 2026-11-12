@@ -1,5 +1,6 @@
-from typing import Dict
-from fastapi import FastAPI, Depends, HTTPException, status
+from typing import Dict, List, Optional, Union
+from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi_injector import Injected
 
 from shared.services.settings.service import SettingsService
 from app.utils.jwt_dependencies import jwt_required
@@ -23,17 +24,26 @@ def register(app: FastAPI):
 
     @app.get("/api/settings", response_model=SettingsGroupedResponse)
     async def get_all_settings(
-        current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
+        current_user = Depends(jwt_required),
+        settings_service: SettingsService = Injected(SettingsService),
+        keys: Optional[List[str]] = Query(None),
     ):
-        """Get all settings grouped by category."""
+        """Get all settings grouped by category, optionally filtered by keys."""
         # if not current_user.is_admin:
         #     raise HTTPException(
         #         status_code=status.HTTP_403_FORBIDDEN,
         #         detail="Admin access required"
         #     )
 
-        grouped = await settings_service.get_settings_grouped_by_category()
+        if isinstance(keys, list):
+            # FastAPI may parse a single comma-separated value as one list element
+            if len(keys) == 1 and "," in keys[0]:
+                keys_list = keys[0].split(",")
+            else:
+                keys_list = keys
+        else:
+            keys_list = None
+        grouped = await settings_service.get_settings_grouped_by_category(keys=keys_list)
         result = {}
         for category_id, data in grouped.items():
             category = data["category"]
@@ -53,7 +63,7 @@ def register(app: FastAPI):
     async def get_setting(
         key: str,
         current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
+        settings_service: SettingsService = Injected(SettingsService),
     ):
         """Get a single setting by key."""
         # if not current_user.is_admin:
@@ -77,7 +87,7 @@ def register(app: FastAPI):
         key: str,
         request: SettingUpdateRequest,
         current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
+        settings_service: SettingsService = Injected(SettingsService),
     ):
         """Update a setting value."""
         # if not current_user.is_admin:
@@ -101,7 +111,7 @@ def register(app: FastAPI):
     async def bulk_update_settings(
         request: SettingBulkUpdateRequest,
         current_user=Depends(jwt_required),
-        settings_service: SettingsService = Depends(),
+        settings_service: SettingsService = Injected(SettingsService),
     ):
         """Bulk update multiple settings."""
         # if not current_user.is_admin:
