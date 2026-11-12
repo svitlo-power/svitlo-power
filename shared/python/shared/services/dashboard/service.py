@@ -201,7 +201,6 @@ class ReadOnlyDashboardService(BaseService):
                     batt_capacity,
                     batt_soc,
                     ((station_data.charge_power or 0) / 1000.0) * -1,
-                    station=building.station,
                 )
                 result.charge_power = ((station_data.charge_power or 0) * -1) / 1000.0
 
@@ -210,7 +209,6 @@ class ReadOnlyDashboardService(BaseService):
                     batt_capacity,
                     batt_soc,
                     average_consumption_w / 1000,
-                    station=building.station,
                 )
                 result.battery_discharge_time = estimate_discharge_time
 

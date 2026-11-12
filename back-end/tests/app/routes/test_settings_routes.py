@@ -25,9 +25,7 @@ def make_read_only_setting():
 def make_test_client(settings_service):
     app = FastAPI()
     register(app)
-    mock_injector = MagicMock()
-    mock_injector.get = MagicMock(return_value=settings_service)
-    app.state.injector = mock_injector
+    app.dependency_overrides[SettingsService] = lambda: settings_service
     app.dependency_overrides[jwt_required] = lambda: {"sub": "test-user"}
     return TestClient(app)
 

@@ -12,7 +12,6 @@
     "lastUpdated": "Останнє оновлення",
     "enabled": "Увімкнено",
     "batteryCapacity": "Ємність батареї",
-    "soc": "Цільовий SOC",
     "order": "Порядок"
   },
   "aliasEdit": {
@@ -25,15 +24,6 @@
     "label": "Ємність батареї (в кВт·год)",
     "tooltip": "Редагувати ємність батареї",
     "valueLabel": "{{value}} кВт·год"
-  },
-  "socEdit": {
-    "title": "Редагувати цільовий SOC",
-    "dischargeLabel": "Цільовий SOC розрядження (%)",
-    "chargeLabel": "Цільовий SOC зарядження (%)",
-    "dischargeShort": "Розряд",
-    "chargeShort": "Заряд",
-    "useSetting": "Використовується налаштування ({{value}}%)",
-    "tooltip": "Редагувати цільовий SOC"
   },
   "connections": {
     "title": "З'єднання DEYE",

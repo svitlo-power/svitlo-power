@@ -139,34 +139,7 @@ class TestStationsServiceEditStation:
             order=1,
             battery_capacity=10.5,
             station_alias="alias",
-            discharge_target_soc=None,
-            charge_target_soc=None,
         )
-        mock_snapshot_service.refresh_and_publish.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_edit_station_refreshes_snapshot_with_soc_overrides(self):
-        """Test edit_station refreshes dashboard snapshot when SOC overrides change."""
-        mock_events = MagicMock()
-        mock_station_connections = MagicMock()
-        mock_stations_repo = MagicMock()
-        mock_stations_data_repo = MagicMock()
-
-        mock_stations_repo.edit_station = AsyncMock()
-
-        mock_snapshot_service = AsyncMock()
-        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
-        await service.edit_station("station-id", True, 1, 10.5, "alias", discharge_target_soc=30, charge_target_soc=80)
-        mock_stations_repo.edit_station.assert_called_once_with(
-            station_id="station-id",
-            enabled=True,
-            order=1,
-            battery_capacity=10.5,
-            station_alias="alias",
-            discharge_target_soc=30,
-            charge_target_soc=80,
-        )
-        mock_snapshot_service.refresh_and_publish.assert_called_once()
 
 
 class TestStationsServiceSyncStations:

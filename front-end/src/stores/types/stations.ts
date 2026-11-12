@@ -6,8 +6,6 @@ export type BaseServerStationItem = {
   enabled: boolean;
   order: number;
   batteryCapacity: number;
-  dischargeTargetSoc: number | null;
-  chargeTargetSoc: number | null;
 };
 
 export type ServerStationItem = BaseServerStationItem & {

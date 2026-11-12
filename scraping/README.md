@@ -12,19 +12,8 @@ docker compose -f scraping\docker-compose.yml up -d
 
 Prometheus scrapes `/metrics` from the backend services on the shared Docker
 network every 15 seconds. The grid reporter uses port `9099`; the three FastAPI
-services use their container HTTP port `5005`. Redis is intentionally not
-included.
-
-Container-level CPU and memory metrics are collected by cAdvisor, which reads
-container stats from the Docker socket and exposes them on port `8080`. Prometheus
-scrapes cAdvisor as the `cadvisor` job.
-
-The "Svitlo Power - Service Overview" Grafana dashboard integrates container CPU
-and memory metrics into the existing "Process CPU usage" and "Process resident
-memory" panels alongside the process-level metrics, using the same scale.
-
-A separate "Svitlo Power - Container Metrics" dashboard shows CPU and memory for
-all containers discovered by cAdvisor.
+services use their container HTTP port `5005`. Redis and host/container
+exporters are intentionally not included.
 
 The scheduler runs in `svitlo-power-back-end` and publishes
 `job_execution_success_total`, `job_execution_failure_total`, and

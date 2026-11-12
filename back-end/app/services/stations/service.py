@@ -71,19 +71,14 @@ class StationsService(BaseService):
         order: int,
         battery_capacity: float,
         station_alias: str,
-        discharge_target_soc: int | None = None,
-        charge_target_soc: int | None = None,
     ):
         await self._stations.edit_station(
-            station_id            = station_id,
-            enabled               = enabled,
-            order                 = order,
-            battery_capacity      = battery_capacity,
-            station_alias         = station_alias,
-            discharge_target_soc  = discharge_target_soc,
-            charge_target_soc     = charge_target_soc,
+            station_id       = station_id,
+            enabled          = enabled,
+            order            = order,
+            battery_capacity = battery_capacity,
+            station_alias    = station_alias
         )
-        await self._snapshot_service.refresh_and_publish()
 
     async def sync_stations(self, connection_ids: List[PydanticObjectId] | None = None):
         for connection in self._station_connections.get_connections():

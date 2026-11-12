@@ -12,7 +12,6 @@
     "lastUpdated": "Last updated",
     "enabled": "Enabled",
     "batteryCapacity": "Battery capacity",
-    "soc": "Target SOC",
     "order": "Order"
   },
   "aliasEdit": {
@@ -25,15 +24,6 @@
     "label": "Battery capacity (in kWh)",
     "tooltip": "Edit battery capacity",
     "valueLabel": "{{value}} kWh"
-  },
-  "socEdit": {
-    "title": "Edit target SOC",
-    "dischargeLabel": "Discharge Target SOC (%)",
-    "chargeLabel": "Charge Target SOC (%)",
-    "dischargeShort": "Discharge",
-    "chargeShort": "Charge",
-    "useSetting": "Using setting ({{value}}%)",
-    "tooltip": "Edit target SOC"
   },
   "connections": {
     "title": "DEYE connections",

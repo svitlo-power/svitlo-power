@@ -61,33 +61,13 @@ describe("settings thunks", () => {
       },
     ]);
 
-    expect(mockGet).toHaveBeenCalledWith("/settings", { params: undefined });
+    expect(mockGet).toHaveBeenCalledWith("/settings");
     expect(store.getState().settings.items).toEqual([{
       ...fetchedServerSetting,
       category: { id: "power", label: { en: "Power", uk: "Потужність" } },
       changed: false,
       created: false,
     }]);
-  });
-
-  it("passes keys as a query parameter when fetching specific settings", async () => {
-    mockGet.mockResolvedValue(fetchResponse());
-    const store = createTestStore();
-
-    await store.dispatch(fetchSettings(["discharge_target_soc", "charge_target_soc"])).unwrap();
-
-    expect(mockGet).toHaveBeenCalledWith("/settings", {
-      params: { keys: "discharge_target_soc,charge_target_soc" },
-    });
-  });
-
-  it("does not pass keys when none are requested", async () => {
-    mockGet.mockResolvedValue(fetchResponse());
-    const store = createTestStore();
-
-    await store.dispatch(fetchSettings()).unwrap();
-
-    expect(mockGet).toHaveBeenCalledWith("/settings", { params: undefined });
   });
 
   it("keeps the server error when fetching fails", async () => {

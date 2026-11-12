@@ -13,19 +13,15 @@ def set_settings_service(service):
     _settings_service = service
 
 
-async def get_discharge_target_soc(station=None) -> int:
-    """Get discharge target SOC from settings or station override."""
-    if station is not None and station.discharge_target_soc is not None:
-        return station.discharge_target_soc
+async def get_discharge_target_soc() -> int:
+    """Get discharge target SOC from settings."""
     if _settings_service:
         return await _settings_service.get_int("discharge_target_soc", 10)
     return 10
 
 
-async def get_charge_target_soc(station=None) -> int:
-    """Get charge target SOC from settings or station override."""
-    if station is not None and station.charge_target_soc is not None:
-        return station.charge_target_soc
+async def get_charge_target_soc() -> int:
+    """Get charge target SOC from settings."""
     if _settings_service:
         return await _settings_service.get_int("charge_target_soc", 97)
     return 97
@@ -40,10 +36,9 @@ async def get_estimate_discharge_time(
     batt_soc: int,
     average_consumption_kwh: float,
     target_batt_soc: Optional[int] = None,
-    station=None,
 ) -> str:
     if target_batt_soc is None:
-        target_batt_soc = await get_discharge_target_soc(station)
+        target_batt_soc = await get_discharge_target_soc()
     
     if average_consumption_kwh == 0:
         return "00:00"
@@ -61,10 +56,9 @@ async def get_estimate_charge_time(
     current_batt_soc: int,
     charge_power_kw: float,
     target_batt_soc: Optional[int] = None,
-    station=None,
 ) -> str:
     if target_batt_soc is None:
-        target_batt_soc = await get_charge_target_soc(station)
+        target_batt_soc = await get_charge_target_soc()
     
     if charge_power_kw == 0:
         return "00:00"
