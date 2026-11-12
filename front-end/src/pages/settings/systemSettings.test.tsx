@@ -132,7 +132,7 @@ describe("SystemSettingsPage", () => {
 
   it("fetches settings when mounted", async () => {
     renderPage();
-    await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/settings"));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith("/settings", { params: undefined }));
   });
 
   it("does not show reset-to-default controls", async () => {

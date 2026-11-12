@@ -29,7 +29,7 @@ def test_system_setting_accepts_localizable_text_value():
 
 @pytest.mark.asyncio
 async def test_get_localizable_text_returns_localizable_value():
-    service = SettingsService()
+    service = SettingsService(settings_repo=MagicMock())
     service.get_value = AsyncMock(return_value={"en": "Dashboard", "uk": "Панель"})
 
     result = await service.get_localizable_text(
@@ -42,7 +42,7 @@ async def test_get_localizable_text_returns_localizable_value():
 
 @pytest.mark.asyncio
 async def test_get_localizable_text_uses_default_when_setting_is_empty():
-    service = SettingsService()
+    service = SettingsService(settings_repo=MagicMock())
     default = LocalizableValue({"en": "Dashboard"})
     service.get_value = AsyncMock(return_value=None)
 
@@ -51,7 +51,7 @@ async def test_get_localizable_text_uses_default_when_setting_is_empty():
 
 @pytest.mark.asyncio
 async def test_get_localizable_text_uses_default_for_empty_localizable_value():
-    service = SettingsService()
+    service = SettingsService(settings_repo=MagicMock())
     default = LocalizableValue({"en": "Dashboard", "uk": "Панель"})
     service.get_value = AsyncMock(return_value={})
 
@@ -60,7 +60,7 @@ async def test_get_localizable_text_uses_default_for_empty_localizable_value():
 
 @pytest.mark.asyncio
 async def test_get_localizable_text_rejects_invalid_culture_codes():
-    service = SettingsService()
+    service = SettingsService(settings_repo=MagicMock())
     service.get_value = AsyncMock(return_value={"xx": "Invalid"})
 
     with pytest.raises(ValueError, match="Invalid culture code"):
@@ -85,8 +85,8 @@ async def test_get_settings_grouped_by_category_includes_category_metadata():
         default_value="",
         category_id=category_id,
     )
-    service = SettingsService()
-    service.get_all_settings = AsyncMock(return_value=[setting])
+    service = SettingsService(settings_repo=MagicMock())
+    service._settings_repo.get_all_settings = AsyncMock(return_value=[setting])
     category_query = MagicMock()
     category_query.to_list = AsyncMock(return_value=[category])
 
@@ -114,8 +114,8 @@ async def test_get_settings_grouped_by_category_includes_dashboard_configuration
         default_value={},
         category_id=category_id,
     )
-    service = SettingsService()
-    service.get_all_settings = AsyncMock(return_value=[setting])
+    service = SettingsService(settings_repo=MagicMock())
+    service._settings_repo.get_all_settings = AsyncMock(return_value=[setting])
     category_query = MagicMock()
     category_query.to_list = AsyncMock(return_value=[category])
 
@@ -134,8 +134,80 @@ async def test_get_settings_grouped_by_category_rejects_missing_category_referen
         setting_type="text",
         default_value="",
     )
-    service = SettingsService()
-    service.get_all_settings = AsyncMock(return_value=[setting])
+    service = SettingsService(settings_repo=MagicMock())
+    service._settings_repo.get_all_settings = AsyncMock(return_value=[setting])
 
     with pytest.raises(RuntimeError, match="has no category reference"):
         await service.get_settings_grouped_by_category()
+
+
+@pytest.mark.asyncio
+async def test_get_settings_grouped_by_category_filters_by_keys():
+    """Test that keys are passed through to the repository for DB-level filtering."""
+    category_id = PydanticObjectId("64a1a1a1a1a1a1a1a1a1a1a1")
+    category = MagicMock(
+        id=category_id,
+        label=LocalizableValue({"en": "Power Estimation", "uk": "Оцінка потужності"}),
+    )
+    setting = SystemSetting(
+        key="discharge_target_soc",
+        label=LocalizableValue({"en": "Discharge Target SOC", "uk": "Цільовий SOC"}),
+        description=LocalizableValue({"en": "Battery % to stop discharging"}),
+        setting_type="number",
+        default_value=10,
+        category_id=category_id,
+    )
+    service = SettingsService(settings_repo=MagicMock())
+    captured_keys = None
+
+    async def fake_get_settings_by_keys(keys):
+        nonlocal captured_keys
+        captured_keys = keys
+        return [setting]
+
+    service._settings_repo.get_settings_by_keys = fake_get_settings_by_keys
+    category_query = MagicMock()
+    category_query.to_list = AsyncMock(return_value=[category])
+
+    with patch.object(SystemSettingCategory, "find_all", return_value=category_query):
+        grouped = await service.get_settings_grouped_by_category(
+            keys=["discharge_target_soc", "charge_target_soc"]
+        )
+
+    assert captured_keys == ["discharge_target_soc", "charge_target_soc"]
+    assert grouped[str(category_id)]["settings"] == [setting]
+
+
+@pytest.mark.asyncio
+async def test_get_settings_grouped_by_category_no_keys_fetches_all():
+    """Test that without keys, all settings are fetched from the repository."""
+    category_id = PydanticObjectId("64a1a1a1a1a1a1a1a1a1a1a1")
+    category = MagicMock(
+        id=category_id,
+        label=LocalizableValue({"en": "Power Estimation", "uk": "Оцінка потужності"}),
+    )
+    setting = SystemSetting(
+        key="discharge_target_soc",
+        label=LocalizableValue({"en": "Discharge Target SOC"}),
+        description=LocalizableValue({"en": "Battery % to stop discharging"}),
+        setting_type="number",
+        default_value=10,
+        category_id=category_id,
+    )
+    service = SettingsService(settings_repo=MagicMock())
+    called_with_all = False
+
+    async def fake_get_all_settings():
+        nonlocal called_with_all
+        called_with_all = True
+        return [setting]
+
+    service._settings_repo.get_all_settings = fake_get_all_settings
+    category_query = MagicMock()
+    category_query.to_list = AsyncMock(return_value=[category])
+
+    with patch.object(SystemSettingCategory, "find_all", return_value=category_query):
+        grouped = await service.get_settings_grouped_by_category()
+
+    assert called_with_all is True
+    assert grouped[str(category_id)]["settings"] == [setting]

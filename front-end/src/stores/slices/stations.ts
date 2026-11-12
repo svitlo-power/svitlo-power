@@ -24,6 +24,12 @@ export type UpdateStationBatteryCapacityActionPayload = {
   batteryCapacity: number;
 };
 
+export type UpdateStationSocActionPayload = {
+  id: ObjectId;
+  dischargeTargetSoc: number | null;
+  chargeTargetSoc: number | null;
+};
+
 export type ChangeStationOrderPayload = {
   currentOrder: number;
   delta: number;
@@ -60,6 +66,20 @@ export const stationsSlice = createSlice({
       }
       if (station.batteryCapacity !== payload.batteryCapacity) {
         station.batteryCapacity = payload.batteryCapacity;
+        station.changed = true;
+      }
+    },
+    updateStationSoc(state, { payload }: PayloadAction<UpdateStationSocActionPayload>) {
+      const station = state.stations.find(s => s.id === payload.id);
+      if (!station) {
+        return;
+      }
+      if (
+        station.dischargeTargetSoc !== payload.dischargeTargetSoc ||
+        station.chargeTargetSoc !== payload.chargeTargetSoc
+      ) {
+        station.dischargeTargetSoc = payload.dischargeTargetSoc;
+        station.chargeTargetSoc = payload.chargeTargetSoc;
         station.changed = true;
       }
     },
@@ -121,6 +141,7 @@ export const {
   updateStationOrder,
   updateStationBatteryCapacity,
   updateStationAlias,
+  updateStationSoc,
   stationStateSaved,
 } = stationsSlice.actions;
 export const stationsReducer = stationsSlice.reducer;

@@ -133,6 +133,8 @@ class TestEstimateDischargeTimeRequest:
         mock_station = MagicMock(spec=Station)
         mock_station.id = PydanticObjectId()
         mock_station.battery_capacity = 10.0
+        mock_station.discharge_target_soc = None
+        mock_station.charge_target_soc = None
         mock_stations_repo.get_station = AsyncMock(return_value=mock_station)
 
         # Mock station data with battery_soc

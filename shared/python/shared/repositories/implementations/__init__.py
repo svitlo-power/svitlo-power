@@ -1,5 +1,6 @@
 from .dashboard_read import DashboardReadRepository
 from .ext_data_read import ExtDataReadRepository
+from .settings import SettingsRepository
 from .stations_read import StationsReadRepository
 from .stations_data_read import StationsDataReadRepository
 from .users_read import UsersReadRepository
@@ -11,6 +12,7 @@ from .push_topics import PushTopicsRepository
 __all__ = [
     DashboardReadRepository,
     ExtDataReadRepository,
+    SettingsRepository,
     StationsReadRepository,
     StationsDataReadRepository,
     UsersReadRepository,
