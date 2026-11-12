@@ -1,13 +1,21 @@
 {
-    "python.analysis.extraPaths": [
-        "./shared/python"
-    ],
-    "chat.tools.terminal.autoApprove": {
-        "npm install": true,
-        "npm run build": true,
-        "git mv": true,
-        "npm audit": true,
-        "docker rm": true,
-        "docker network": true
-    }
+  "python.analysis.extraPaths": ["./shared/python"],
+  "prettier.requireConfig": false,
+  "prettier.resolveGlobalModules": false,
+  "[javascript][javascriptreact][typescript][typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json][jsonc][css][scss][html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "chat.tools.terminal.autoApprove": {
+    "npm install": true,
+    "npm run build": true,
+    "git mv": true,
+    "npm audit": true,
+    "docker rm": true,
+    "docker network": true
+  }
 }
