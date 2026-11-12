@@ -122,17 +122,19 @@ snapshot scope or feature-flag rollout. The versioned private API in
 optional snapshot/event transport, never a domain database or a fallback to
 empty success-shaped responses.
 
-- Preserve the established mobile paths, aliases, payload shapes, app-token
+- Preserve the mobile paths, payload shapes, app-token
   authentication, and error statuses with contract tests.
-- Keep framework-independent API and Redis clients in `shared/typescript` and
+- Keep framework-independent API and Redis clients in the `shared/typescript`
+  npm workspace package and
   use Nest providers that can be replaced in tests.
 - Remove MongoDB configuration and migration dependencies from the Nest service.
   Keep the Python implementation as a separately buildable rollback image until
   staging and production cutover gates pass.
 - Configure the Nest service from selected root `.env` values only. Keep the
   internal API private and provide a separately managed service token.
-- Build and test both the service image and the shared TypeScript clients in CI;
-  select the Nest image when either its source or `shared/typescript` changes.
+- Test and build the shared TypeScript package in its own CI workflow (never
+  published); select the Nest image, which builds the shared package before the
+  service, when either its source or `shared/typescript` changes.
 
 **Cutover gate:** all legacy route contract tests pass, tests run without Mongo,
 readiness reflects the internal API/Redis dependencies, and snapshot

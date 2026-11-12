@@ -26,7 +26,6 @@ const api = {
     },
   ],
   getBuildingSummaries: async () => [],
-  getBuildingsWithSummary: async () => [],
   getDashboardConfig: async () => ({
     title: { uk: "Панель" },
     outagesSchedule: { enable: true, regionId: 1, dsoId: 2, queue: "1.1" },
@@ -120,13 +119,13 @@ after(async () => {
   await app.close();
 });
 
-test("public route requires the existing app token and preserves aliased config shape", async () => {
+test("public route requires the existing app token and preserves config shape", async () => {
   await server
     .get("/api/dashboard/config")
     .expect(401)
     .expect({ detail: "Invalid app token" });
   await server
-    .get("/api/buildings/dashboardConfig")
+    .get("/api/dashboard/config")
     .set("X-App-Token", "mobile-token")
     .expect(200)
     .expect({
@@ -136,11 +135,7 @@ test("public route requires the existing app token and preserves aliased config 
     });
 });
 
-test("legacy route aliases and validation status remain available", async () => {
-  await server
-    .get("/api/buildings/buildings")
-    .set("X-App-Token", "mobile-token")
-    .expect(200);
+test("summary validation status remains available", async () => {
   await server
     .post("/api/dashboard/buildings/summary")
     .set("X-App-Token", "mobile-token")
@@ -150,7 +145,7 @@ test("legacy route aliases and validation status remain available", async () => 
 
 test("invalid power-log date ranges retain the 400 response", async () => {
   await server
-    .post("/api/buildings/507f1f77bcf86cd799439011/power-logs")
+    .post("/api/dashboard/buildings/507f1f77bcf86cd799439011/power-logs")
     .set("X-App-Token", "mobile-token")
     .send({
       startDate: "2026-01-02T00:00:00Z",
@@ -162,7 +157,7 @@ test("invalid power-log date ranges retain the 400 response", async () => {
 
 test("missing power-log dates retain the legacy 400 response", async () => {
   await server
-    .post("/api/buildings/507f1f77bcf86cd799439011/power-logs")
+    .post("/api/dashboard/buildings/507f1f77bcf86cd799439011/power-logs")
     .set("X-App-Token", "mobile-token")
     .send({})
     .expect(400)
@@ -305,7 +300,7 @@ test("readiness depends on the internal API but not on the back-end database", a
 
 test("invalid building ids return the FastAPI-shaped 422 detail", async () => {
   await server
-    .post("/api/buildings/not-an-object-id/power-logs")
+    .post("/api/dashboard/buildings/not-an-object-id/power-logs")
     .set("X-App-Token", "mobile-token")
     .send({
       startDate: "2026-01-01T00:00:00Z",
@@ -320,7 +315,7 @@ test("invalid building ids return the FastAPI-shaped 422 detail", async () => {
 
 test("power-log dates follow the legacy ISO 8601 rules", async () => {
   const headers = { "X-App-Token": "mobile-token" };
-  const path = "/api/buildings/507f1f77bcf86cd799439011/power-logs";
+  const path = "/api/dashboard/buildings/507f1f77bcf86cd799439011/power-logs";
   for (const startDate of ["Jan 1 2026", "2026-02-30T00:00:00Z", "2026"]) {
     await server
       .post(path)

@@ -3,15 +3,24 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint --config eslint.config.js src test",
     "lint:fix": "eslint --config eslint.config.js src test --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" eslint.config.js",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" eslint.config.js",
-    "test": "npm run lint && npm run format:check && npm run build && node --test dist/test/*.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist-test/test/*.test.js"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -20,8 +29,5 @@
     "prettier": "3.9.10",
     "typescript-eslint": "8.72.1",
     "typescript": "6.0.3"
-  },
-  "overrides": {
-    "minimatch": "11.0.5"
   }
 }

@@ -8,7 +8,6 @@ import {
   Building,
   BuildingSnapshot,
   BuildingSummary,
-  BuildingWithSummary,
   DashboardConfig,
   InternalApiClient,
   PowerLogs,
@@ -53,16 +52,6 @@ export class DashboardService {
       }
     }
     return this.api.getBuildingSummaries(body.buildingIds);
-  }
-
-  async getBuildingsWithSummary(): Promise<BuildingWithSummary[]> {
-    const snapshot = this.snapshots.getActiveSnapshot();
-    if (snapshot)
-      return snapshot.buildings.map((building) => ({
-        ...toBuilding(building),
-        ...toSummary(building),
-      }));
-    return this.api.getBuildingsWithSummary();
   }
 
   async getDashboardConfig(): Promise<MobileDashboardConfig> {

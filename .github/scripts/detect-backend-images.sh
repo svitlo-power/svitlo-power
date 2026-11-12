@@ -29,7 +29,7 @@ images=()
 grep -q '^back-end/' <<<"$changed_paths" && images+=('{"image":"svitlo-power-back-end","dockerfile":"back-end/Dockerfile"}')
 grep -q '^sse-back-end/' <<<"$changed_paths" && images+=('{"image":"svitlo-power-sse-back-end","dockerfile":"sse-back-end/Dockerfile"}')
 grep -q '^grid-reporter/' <<<"$changed_paths" && images+=('{"image":"svitlo-power-grid-reporter","dockerfile":"grid-reporter/Dockerfile"}')
-if grep -Eq '^(app-back-end/|shared/typescript/)' <<<"$changed_paths"; then
+if grep -Eq '^(app-back-end/|shared/typescript/|package\.json$|package-lock\.json$)' <<<"$changed_paths"; then
   images+=('{"image":"svitlo-power-app-back-end","dockerfile":"app-back-end/Dockerfile"}')
 fi
 grep -q '^app-back-end-legacy/' <<<"$changed_paths" && images+=('{"image":"svitlo-power-app-back-end-legacy","dockerfile":"app-back-end-legacy/Dockerfile"}')

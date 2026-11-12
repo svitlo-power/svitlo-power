@@ -26,8 +26,6 @@ export interface BuildingSummary {
   chargePower: number | null;
 }
 
-export type BuildingWithSummary = Omit<Building, "id"> & BuildingSummary;
-
 export interface DashboardConfig {
   title: LocalizableValue;
   outagesSchedule: {
@@ -122,10 +120,6 @@ export class InternalApiClient {
       method: "POST",
       body: JSON.stringify({ buildingIds }),
     });
-  }
-
-  getBuildingsWithSummary(): Promise<BuildingWithSummary[]> {
-    return this.request("/dashboard/buildings-with-summary");
   }
 
   getDashboardConfig(): Promise<DashboardConfig> {

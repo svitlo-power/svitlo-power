@@ -22,23 +22,14 @@ export class DashboardController {
     return this.dashboard.getBuildingSummaries(body);
   }
 
-  @Get("buildings/buildings")
-  @ApiOperation({ summary: "Get buildings with their current summaries" })
-  getBuildingsWithSummary() {
-    return this.dashboard.getBuildingsWithSummary();
-  }
-
-  @Get(["dashboard/config", "buildings/dashboardConfig"])
+  @Get("dashboard/config")
   @ApiOperation({ summary: "Get mobile dashboard configuration" })
   getDashboardConfig() {
     return this.dashboard.getDashboardConfig();
   }
 
   @HttpCode(200)
-  @Post([
-    "dashboard/buildings/:building_id/power-logs",
-    "buildings/:building_id/power-logs",
-  ])
+  @Post("dashboard/buildings/:building_id/power-logs")
   @ApiOperation({ summary: "Get power availability logs for a building" })
   getPowerLogs(
     @Param("building_id") buildingId: string,

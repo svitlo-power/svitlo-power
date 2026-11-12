@@ -12,11 +12,15 @@
     "lint:fix": "eslint --config eslint.config.js src test --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" eslint.config.js",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"*.json\" eslint.config.js",
-    "start": "node dist/app-back-end/src/main.js",
+    "start": "node dist/src/main.js",
     "start:dev": "tsx watch --tsconfig tsconfig.json src/main.ts",
-    "test": "tsc -p tsconfig.json && node --test dist/app-back-end/test/*.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/test/*.test.js",
+    "prebuild": "npm run build -w @svitlo-power/shared-typescript",
+    "prestart:dev": "npm run build -w @svitlo-power/shared-typescript",
+    "pretest": "npm run build -w @svitlo-power/shared-typescript"
   },
   "dependencies": {
+    "@svitlo-power/shared-typescript": "1.0.0",
     "@nestjs/common": "12.4.0",
     "@nestjs/config": "12.1.1",
     "@nestjs/core": "12.4.0",
@@ -47,9 +51,5 @@
     "typescript-eslint": "8.72.1",
     "tsx": "4.23.15",
     "typescript": "6.0.3"
-  },
-  "overrides": {
-    "minimatch": "11.0.5",
-    "multer": "2.5.0"
   }
 }

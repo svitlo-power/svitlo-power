@@ -33,6 +33,7 @@ apps/static/assets/.temp
 node_modules
 app-back-end/dist/
 shared/typescript/dist/
+shared/typescript/dist-test/
 yarn.lock
 
 shared.egg-info

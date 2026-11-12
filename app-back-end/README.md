@@ -37,16 +37,20 @@ are enabled by default.
 - `src/dashboard`, `src/outages-schedule`, `src/push`, and `src/health`: feature controllers, services, DTOs, and modules.
 - `src/http`: cross-cutting authentication, exception mapping, and validation.
 - `src/metrics`: Prometheus registry and the dedicated metrics server.
-- `shared/typescript`: framework-independent API contracts and Redis clients,
-  imported only through `src/shared.ts`.
+- `@svitlo-power/shared-typescript` (`shared/typescript`): framework-independent
+  API contracts and Redis clients. It is a separate npm workspace package with its
+  own build and tests, imported only through `src/shared.ts`.
 
 ## Local development
 
-Use the repository-root `.env` and run the service from this directory:
+`app-back-end` and `shared/typescript` are npm workspaces of the repository root,
+so dependencies are installed once from the root lockfile. Use the
+repository-root `.env` and run:
 
 ```bash
-npm ci
-npm run start:dev
+npm ci                      # from the repository root
+cd app-back-end
+npm run start:dev           # builds the shared package first
 ```
 
 Set `INTERNAL_API_URL=http://127.0.0.1:5005/internal/v1/app` when the Processing
@@ -55,8 +59,9 @@ Processing service's token. `APP_ACCESS_TOKEN` remains the mobile client's
 `X-App-Token`. Redis should be available at `REDIS_URI`; snapshot reads remain
 disabled unless the existing publisher and consumer feature flags are enabled.
 
-Run the app tests with `npm test`. Run shared-client tests from the repository root
-with `cd shared/typescript && npm ci && npm test`.
+Run the app tests with `npm test` (it builds the shared package first). Run the
+shared-package tests from the repository root with
+`npm test -w @svitlo-power/shared-typescript`.
 Use `npm run lint` and `npm run format:check` before submitting changes. Set
 `API_DOCS_ENABLED=true` for a non-production environment to expose Swagger UI at
 `/docs` and its OpenAPI document at `/docs/openapi.json`; docs are disabled in

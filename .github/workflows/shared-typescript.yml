@@ -1,0 +1,58 @@
+name: Shared TypeScript
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "shared/typescript/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/shared-typescript.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "shared/typescript/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/shared-typescript.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts -w @svitlo-power/shared-typescript
+
+      - name: Lint
+        run: npm run lint -w @svitlo-power/shared-typescript
+
+      - name: Check formatting
+        run: npm run format:check -w @svitlo-power/shared-typescript
+
+      - name: Test
+        run: npm test -w @svitlo-power/shared-typescript
+
+      # Build only: the package is consumed from the workspace, never published.
+      - name: Build
+        run: npm run build -w @svitlo-power/shared-typescript
