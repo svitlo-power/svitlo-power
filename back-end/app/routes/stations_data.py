@@ -3,6 +3,7 @@ from statistics import mean
 from fastapi import FastAPI, Depends, HTTPException, Body, Path
 from fastapi_injector import Injected
 from app.services import StationsService
+from shared import current_language
 from app.utils.jwt_dependencies import jwt_required
 from app.models.api import StationsDataRequest
 
@@ -60,7 +61,7 @@ def register(app: FastAPI):
             station_data = downsample_data(station_data, body.records_count)
             return {
                 "id": str(station.id),
-                "name": station.station_name,
+                "name": station.station_alias.get_culture_value(current_language.get()) if station.station_alias else station.station_name,
                 "data": [
                     {
                         "batterySoc": d["battery_soc"] if isinstance(d, dict) else d.battery_soc,

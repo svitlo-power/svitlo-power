@@ -1,6 +1,7 @@
 from .interfaces import (
     IDashboardReadRepository,
     IExtDataReadRepository,
+    ISettingsRepository,
     IStationsReadRepository,
     IStationsDataReadRepository,
     IUsersReadRepository,
@@ -11,6 +12,7 @@ from .interfaces import (
 from .implementations import (
     DashboardReadRepository,
     ExtDataReadRepository,
+    SettingsRepository,
     StationsReadRepository,
     StationsDataReadRepository,
     UsersReadRepository,
@@ -21,10 +23,23 @@ from .implementations import (
 )
 
 __all__ = [
-    IDashboardReadRepository, IExtDataReadRepository, IStationsReadRepository, 
-    IStationsDataReadRepository, IUsersReadRepository, IOutagesScheduleRepository,
-    DashboardReadRepository, ExtDataReadRepository, StationsReadRepository,
-    StationsDataReadRepository, UsersReadRepository, RedisOutagesScheduleRepository,
-    InMemoryOutagesScheduleRepository, IPushDevicesRepository, IPushTopicsRepository,
-    PushDevicesRepository, PushTopicsRepository
+    IDashboardReadRepository,
+    IExtDataReadRepository,
+    ISettingsRepository,
+    IStationsReadRepository,
+    IStationsDataReadRepository,
+    IUsersReadRepository,
+    IOutagesScheduleRepository,
+    IPushDevicesRepository,
+    IPushTopicsRepository,
+    DashboardReadRepository,
+    ExtDataReadRepository,
+    SettingsRepository,
+    StationsReadRepository,
+    StationsDataReadRepository,
+    UsersReadRepository,
+    RedisOutagesScheduleRepository,
+    InMemoryOutagesScheduleRepository,
+    PushDevicesRepository,
+    PushTopicsRepository,
 ]

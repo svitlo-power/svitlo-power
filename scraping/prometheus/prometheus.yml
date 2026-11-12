@@ -29,3 +29,15 @@ scrape_configs:
     static_configs:
       - targets:
           - svitlo-power-front-end:80
+
+  - job_name: svitlo-power-admin-front-end
+    metrics_path: /metrics
+    fallback_scrape_protocol: PrometheusText1.0.0
+    static_configs:
+      - targets:
+          - svitlo-power-admin-front-end:80
+
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080

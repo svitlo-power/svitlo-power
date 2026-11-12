@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from "../../stores/store";
 import { PageHeaderButton, useHeaderContent } from "../../providers";
 import {
   cancelStationsEditing,
+  fetchSettings,
   fetchStations,
   saveStations,
 } from "../../stores/thunks";
@@ -11,6 +12,7 @@ import {
   updateStationAlias,
   updateStationBatteryCapacity,
   updateStationOrder,
+  updateStationSoc,
   updateStationState,
 } from "../../stores/slices";
 import { DataTable, ErrorMessage, OrderControl, Page } from "../../components";
@@ -19,6 +21,7 @@ import { Anchor } from "@mantine/core";
 import {
   AliasCell,
   BatteryCapacityCell,
+  SocCell,
   openConnectionsDialog,
 } from "./components";
 import { usePageTranslation } from "../../utils";
@@ -36,10 +39,21 @@ export const StationsPage: FC = () => {
   const changed = useAppSelector(selectStationsChanged);
   const loading = useAppSelector((state) => state.stations.loading);
   const error = useAppSelector((state) => state.stations.error);
+  const settings = useAppSelector((state) => state.settings.items);
+  const settingsLoading = useAppSelector((state) => state.settings.loading);
   const dispatch = useAppDispatch();
   const t = usePageTranslation("stations");
   const navigate = useNavigate();
   const [initiallyChanged, setInitiallyChanged] = useState(false);
+
+  const dischargeSetting = settings.find((s) => s.key === "discharge_target_soc");
+  const chargeSetting = settings.find((s) => s.key === "charge_target_soc");
+  const defaultDischarge = dischargeSetting
+    ? (dischargeSetting.value ?? dischargeSetting.default_value)
+    : null;
+  const defaultCharge = chargeSetting
+    ? (chargeSetting.value ?? chargeSetting.default_value)
+    : null;
 
   const getHeaderButtons = useCallback(
     (dataChanged: boolean): PageHeaderButton[] => [
@@ -73,6 +87,10 @@ export const StationsPage: FC = () => {
     return () => setHeaderButtons([]);
   }, [setHeaderButtons, getHeaderButtons, changed]);
 
+  useEffect(() => {
+    dispatch(fetchSettings(["discharge_target_soc", "charge_target_soc"]));
+  }, [dispatch]);
+
   const fetchData = useCallback(() => dispatch(fetchStations()), [dispatch]);
 
   useSubscribeEvent(EventType.StationDataUpdated, () => {
@@ -95,6 +113,13 @@ export const StationsPage: FC = () => {
   const onSetBatteryCapacity = (id: ObjectId, batteryCapacity: number) => {
     dispatch(updateStationBatteryCapacity({ id, batteryCapacity }));
   };
+  const onSetSoc = (
+    id: ObjectId,
+    dischargeTargetSoc: number | null,
+    chargeTargetSoc: number | null
+  ) => {
+    dispatch(updateStationSoc({ id, dischargeTargetSoc, chargeTargetSoc }));
+  };
 
   if (changed != initiallyChanged) {
     setInitiallyChanged(!initiallyChanged);
@@ -105,7 +130,7 @@ export const StationsPage: FC = () => {
   }
 
   return (
-    <Page loading={loading}>
+    <Page loading={loading || settingsLoading}>
       <DataTable<StationItem>
         data={stations}
         fetchAction={fetchData}
@@ -191,6 +216,22 @@ export const StationsPage: FC = () => {
                 id={row.original.id}
                 value={row.original.batteryCapacity}
                 onBatteryCapacityChange={onSetBatteryCapacity}
+              />
+            ),
+          },
+          {
+            id: "soc",
+            header: t("table.soc"),
+            accessorKey: "soc",
+            cell: ({ row }) => (
+              <SocCell
+                t={t}
+                id={row.original.id}
+                dischargeTargetSoc={row.original.dischargeTargetSoc}
+                chargeTargetSoc={row.original.chargeTargetSoc}
+                defaultDischargeTargetSoc={defaultDischarge as number ?? 0}
+                defaultChargeTargetSoc={defaultCharge as number ?? 0}
+                onSocChange={onSetSoc}
               />
             ),
           },

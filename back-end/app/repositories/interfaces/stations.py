@@ -16,6 +16,8 @@ class IStationsRepository(IStationsReadRepository):
         order: int,
         battery_capacity: float,
         station_alias: str,
+        discharge_target_soc: int | None = None,
+        charge_target_soc: int | None = None,
     ):
         ...
 

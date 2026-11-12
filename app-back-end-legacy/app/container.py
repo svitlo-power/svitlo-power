@@ -15,6 +15,7 @@ from shared.repositories.implementations import (
     InMemoryOutagesScheduleRepository,
     PushDevicesRepository,
     PushTopicsRepository,
+    SettingsRepository,
 )
 from shared.repositories.interfaces import (
     IDashboardReadRepository,
@@ -25,6 +26,7 @@ from shared.repositories.interfaces import (
     IOutagesScheduleRepository,
     IPushDevicesRepository,
     IPushTopicsRepository,
+    ISettingsRepository,
 )
 from shared.services import (
     DashboardSnapshotClient,
@@ -149,6 +151,11 @@ class AppModule(Module):
     @provider
     def provide_users_repository(self) -> IUsersReadRepository:
         return UsersReadRepository()
+
+    @singleton
+    @provider
+    def provide_settings_repository(self) -> ISettingsRepository:
+        return SettingsRepository()
 
     @singleton
     @provider
