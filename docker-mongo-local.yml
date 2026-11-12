@@ -13,6 +13,12 @@ services:
     command: ["mongod", "--bind_ip_all"]
     volumes:
       - mongo_local_data:/data/db
+    # Join the app stack's network so containers reach it as svitlo-power-mongo
+    # (MONGO_URI=mongodb://user:pass@svitlo-power-mongo:27017 for Docker runs).
+    networks:
+      web_network:
+        aliases:
+          - svitlo-power-mongo
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
@@ -21,3 +27,9 @@ services:
 
 volumes:
   mongo_local_data:
+
+# Same definition as docker-compose.yml (same Compose project), so both
+# files share the svitlo-power_web_network network.
+networks:
+  web_network:
+    driver: bridge
