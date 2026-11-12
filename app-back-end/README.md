@@ -50,13 +50,15 @@ repository-root `.env` and run:
 ```bash
 npm ci                      # from the repository root
 cd app-back-end
-npm run start:dev           # builds the shared package first
+npm run start:dev           # tsc --watch for shared + app, node --watch to run
 ```
 
 Set `INTERNAL_API_URL=http://127.0.0.1:5005/internal/v1/app` when the Processing
 service is running on the host. Keep `INTERNAL_API_TOKEN` identical to the
 Processing service's token. `APP_ACCESS_TOKEN` remains the mobile client's
-`X-App-Token`. Redis should be available at `REDIS_URI`; snapshot reads remain
+`X-App-Token`. Redis should be available at `REDIS_URI` (use
+`redis://127.0.0.1:6379/0` on the host: the Docker hostname does not resolve
+there, and startup waits silently until Redis connects); snapshot reads remain
 disabled unless the existing publisher and consumer feature flags are enabled.
 
 Run the app tests with `npm test` (it builds the shared package first). Run the

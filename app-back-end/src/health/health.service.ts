@@ -51,7 +51,8 @@ export class HealthService {
         version: snapshot.localVersion,
         age_seconds: snapshot.snapshotAgeSeconds,
       },
-      timestamp: new Date().toISOString(),
+      // Unix seconds, as the Python service returned for this route.
+      timestamp: Date.now() / 1000,
     };
   }
 

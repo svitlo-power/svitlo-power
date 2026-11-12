@@ -1,9 +1,11 @@
 import "reflect-metadata";
 import { ConfigType } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
 import { Logger } from "nestjs-pino";
 import { appConfig } from "./config/app.config.js";
+import { setupBodyParsing } from "./http/body-parsing.js";
 import { setupOpenApi } from "./http/openapi.js";
 import { createValidationPipe } from "./http/validation.pipe.js";
 import { createMetricsServer } from "./metrics/metrics.server.js";
@@ -12,7 +14,11 @@ import { SnapshotService } from "./snapshots/snapshot.service.js";
 import { AppModule } from "./app.module.js";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    bodyParser: false,
+  });
+  setupBodyParsing(app);
   app.useGlobalPipes(createValidationPipe());
   app.enableShutdownHooks();
   app.useLogger(app.get(Logger));

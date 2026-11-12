@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { INestApplication } from "@nestjs/common";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { appConfig } from "../src/config/app.config.js";
+import { setupBodyParsing } from "../src/http/body-parsing.js";
 import { createValidationPipe } from "../src/http/validation.pipe.js";
 import { setupOpenApi } from "../src/http/openapi.js";
 import {
@@ -107,7 +109,10 @@ before(async () => {
     .overrideProvider(SNAPSHOT_CLIENT)
     .useValue(snapshot)
     .compile();
-  const nestApp = moduleRef.createNestApplication();
+  const nestApp = moduleRef.createNestApplication<NestExpressApplication>({
+    bodyParser: false,
+  });
+  setupBodyParsing(nestApp);
   setupOpenApi(nestApp, moduleRef.get(appConfig.KEY));
   nestApp.useGlobalPipes(createValidationPipe());
   await nestApp.init();
@@ -141,6 +146,20 @@ test("summary validation status remains available", async () => {
     .set("X-App-Token", "mobile-token")
     .send({ buildingIds: ["bad"] })
     .expect(422);
+});
+
+test("malformed JSON returns the FastAPI 422 json_invalid detail", async () => {
+  await server
+    .post("/api/dashboard/buildings/summary")
+    .set("X-App-Token", "mobile-token")
+    .set("Content-Type", "application/json")
+    .send("{bad")
+    .expect(422)
+    .expect({
+      detail: [
+        { type: "json_invalid", loc: ["body", 1], msg: "JSON decode error" },
+      ],
+    });
 });
 
 test("invalid power-log date ranges retain the 400 response", async () => {
