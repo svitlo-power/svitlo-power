@@ -50,6 +50,7 @@ class EstimateDischargeTimeRequest(TemplateRequest):
             station.battery_capacity,
             batt_soc,
             average_consumption_kwh,
+            station=station,
         )
 
     def __str__(self):

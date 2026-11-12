@@ -9,11 +9,14 @@ import {
 } from "../types/settings";
 import { settingSaved } from "../slices/settings";
 
-export const fetchSettings = createAsyncThunk<FetchedSetting[]>(
-  "settings/fetchAll",
-  async (_, thunkAPI) => {
+export const fetchSettings = createAsyncThunk<FetchedSetting[], string[] | undefined>(
+  "settings/fetch",
+  async (requestedKeys: string[] | undefined, thunkAPI) => {
     try {
-      const response = await apiClient.get("/settings");
+      const params = requestedKeys && requestedKeys.length > 0
+        ? { keys: requestedKeys.join(",") }
+        : undefined;
+      const response = await apiClient.get("/settings", { params });
       const grouped = (response.data as ServerSettingsGroupedResponse).categories;
       const flattened: FetchedSetting[] = [];
       Object.values(grouped).forEach(({ id, label, settings }) => {

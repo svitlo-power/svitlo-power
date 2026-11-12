@@ -5,6 +5,7 @@ from app.settings import Settings
 from shared.services import EventsService, EventsServiceConfig, TranslationService, OutagesScheduleService
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.settings.service import SettingsService
+from shared.repositories import ISettingsRepository, SettingsRepository
 from .beanie_initializer import BeanieInitializer
 from .authorization import AuthorizationService
 from .bots import BotConfig, BotsService
@@ -40,6 +41,7 @@ class ServicesContainer(Module):
         binder.bind(AuthorizationService, scope=singleton)
 
         binder.bind(SettingsService, scope=singleton)
+        binder.bind(ISettingsRepository, to=SettingsRepository, scope=singleton)
 
         binder.bind(StationConnectionsService, scope=singleton)
 

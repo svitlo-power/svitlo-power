@@ -2,7 +2,9 @@ import logging
 from datetime import datetime, timezone
 
 from beanie import PydanticObjectId
+from injector import inject
 from shared.repositories import StationsReadRepository
+from shared.services import SettingsService
 
 from ..interfaces.stations import IStationsRepository
 from shared.models.station import Station
@@ -14,6 +16,13 @@ logger = logging.getLogger(__name__)
 
 class StationsRepository(StationsReadRepository, IStationsRepository):
 
+    @inject
+    def __init__(
+        self,
+        settings: SettingsService,
+    ):
+        self._settings = settings
+
     async def edit_station(
         self,
         station_id: str,
@@ -21,6 +30,8 @@ class StationsRepository(StationsReadRepository, IStationsRepository):
         order: int,
         battery_capacity: float,
         station_alias: str,
+        discharge_target_soc: int | None = None,
+        charge_target_soc: int | None = None,
     ):
         station = await self.get_station(station_id)
         if station is None:
@@ -30,7 +41,35 @@ class StationsRepository(StationsReadRepository, IStationsRepository):
         station.order = order
         station.battery_capacity = battery_capacity
         station.station_alias = station_alias
+
+        station.discharge_target_soc = await self._normalize_soc_override(
+            "discharge_target_soc", discharge_target_soc
+        )
+        station.charge_target_soc = await self._normalize_soc_override(
+            "charge_target_soc", charge_target_soc
+        )
+
         await station.save()
+
+    async def _normalize_soc_override(
+        self,
+        field: str,
+        new_value: int | None,
+    ) -> int | None:
+        """Normalize SOC override value against the global setting.
+
+        When the new value equals the global setting, store null (use setting).
+        Otherwise store the provided value (or null to clear the override).
+        """
+        setting_value = await self._settings.get_int(field, 0)
+
+        if new_value is None:
+            return None
+
+        if new_value == setting_value:
+            return None
+
+        return new_value
 
     async def count_by_connection(self, connection_id: PydanticObjectId) -> int:
         return await Station.find(Station.connection_id == connection_id).count()

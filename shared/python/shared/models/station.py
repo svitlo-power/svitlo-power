@@ -34,6 +34,9 @@ class Station(Document, LookupModel):
     generation_power: Optional[float] = None
     battery_capacity: Optional[float] = None
 
+    discharge_target_soc: Optional[int] = None
+    charge_target_soc: Optional[int] = None
+
     order: int = 1
     enabled: bool = True
 
@@ -76,6 +79,8 @@ class Station(Document, LookupModel):
             "owner_name": self.owner_name,
             "generation_power": self.generation_power,
             "battery_capacity": self.battery_capacity,
+            "discharge_target_soc": self.discharge_target_soc,
+            "charge_target_soc": self.charge_target_soc,
             "order": self.order,
             "enabled": self.enabled,
             "connection_id": str(self.connection_id) if self.connection_id else None,

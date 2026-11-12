@@ -8,4 +8,13 @@ providers:
     disableDeletion: true
     editable: true
     options:
-      path: /var/lib/grafana/dashboards
+      path: /var/lib/grafana/dashboards/svitlo-power
+
+  - name: Containers
+    orgId: 1
+    folder: Containers
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards/containers
