@@ -2,6 +2,10 @@
   "name": "svitlo-power",
   "version": "1.0.0",
   "description": "Svitlo Power monitoring tool - Development Environment",
+  "workspaces": [
+    "shared/typescript",
+    "app-back-end"
+  ],
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd back-end && .venv\\Scripts\\python run.py",
@@ -12,7 +16,9 @@
     "run:docker": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "prepare": "node .husky/install.mjs"
+    "prepare": "node .husky/install.mjs",
+    "build:shared": "npm run build -w @svitlo-power/shared-typescript",
+    "build:app-back-end": "npm run build -w svitlo-power-app-back-end"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
@@ -27,6 +33,18 @@
     ],
     "front-end/**/*.{css,json,md,html}": [
       "npm --prefix front-end exec -- prettier --write"
+    ],
+    "app-back-end/**/*.{ts,js,json}": [
+      "npm --prefix app-back-end exec -- prettier --write",
+      "npm --prefix app-back-end exec -- eslint --config app-back-end/eslint.config.js --fix"
+    ],
+    "shared/typescript/**/*.{ts,json}": [
+      "npm --prefix shared/typescript exec -- prettier --write",
+      "npm --prefix shared/typescript exec -- eslint --config shared/typescript/eslint.config.js --fix"
     ]
+  },
+  "overrides": {
+    "minimatch": "11.0.5",
+    "multer": "2.5.0"
   }
 }

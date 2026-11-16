@@ -1,0 +1,19 @@
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-test/
+**/coverage/
+front-end/stats.html
+
+# Lockfiles are owned by npm
+**/package-lock.json
+
+# Generated i18n copy (source of truth is shared/i18n)
+front-end/src/i18n/
+
+# Generated API contract
+back-end/contracts/
+
+# Python services are not formatted with Prettier
+**/.venv/
+**/__pycache__/

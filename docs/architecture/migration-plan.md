@@ -114,6 +114,33 @@ required; the consumer reconciles its local snapshot from Redis.
 **Rollback:** turn off the Redis-read flag and serve the legacy calculation.
 Keep publishing Redis snapshots while investigating.
 
+### Follow-up: Rewrite the app BFF in NestJS (issue #201)
+
+This follow-up modernizes the `app-back-end` runtime without changing Phase 2's
+snapshot scope or feature-flag rollout. The versioned private API in
+`internal-app-api.md` is the only source for domain operations; Redis remains an
+optional snapshot/event transport, never a domain database or a fallback to
+empty success-shaped responses.
+
+- Preserve the mobile paths, payload shapes, app-token
+  authentication, and error statuses with contract tests.
+- Keep framework-independent API and Redis clients in the `shared/typescript`
+  npm workspace package and
+  use Nest providers that can be replaced in tests.
+- Remove MongoDB configuration and migration dependencies from the Nest service.
+  Keep the Python implementation as a separately buildable rollback image until
+  staging and production cutover gates pass.
+- Configure the Nest service from selected root `.env` values only. Keep the
+  internal API private and provide a separately managed service token.
+- Test and build the shared TypeScript package in its own CI workflow (never
+  published); select the Nest image, which builds the shared package before the
+  service, when either its source or `shared/typescript` changes.
+
+**Cutover gate:** all legacy route contract tests pass, tests run without Mongo,
+readiness reflects the internal API/Redis dependencies, and snapshot
+reconnect/reconciliation checks pass. Roll back to the previous Python image if
+contract, health, or error-rate thresholds regress.
+
 ### 3. Move the back-end (admin) and app-back-end SSE to Redis
 
 **Deploy:** Redis-backed reads and local SSE fan-out for both `back-end` (admin)
