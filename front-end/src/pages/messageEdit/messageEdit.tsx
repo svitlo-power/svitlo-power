@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useHeaderContent } from "../../providers";
@@ -14,9 +15,11 @@ import {
   fetchBots,
   fetchStations,
   getChannel,
+  getTemplatePreview,
   updateMessage,
   createMessage,
 } from "../../stores/thunks";
+import { useDebounce } from "../../hooks";
 import {
   startCreatingMessage,
   finishEditingMessage,
@@ -34,15 +37,15 @@ import {
   Tabs,
   TextInput,
   Title,
-  Button,
   Loader,
   MultiSelect,
+  Box,
 } from "@mantine/core";
 import { useFormHandler, useLookup } from "../../hooks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { messageEditSchema, MessageEdit, ObjectId } from "../../schemas";
 import { Controller } from "react-hook-form";
-import { openMessagePreviewDialog, TemplateEditor } from "./components";
+import { TemplateEditor, LivePreviewPanel } from "./components";
 import { LookupSchema } from "../../types";
 import { usePageTranslation } from "../../utils";
 import { AVAILABLE_LANGUAGES } from "../../i18n";
@@ -55,6 +58,10 @@ type ComponentOwnProps = {
 export const MessageEditPage: FC<ComponentOwnProps> = ({ isEdit }) => {
   const bots = useAppSelector((state) => state.bots.bots);
   const message = useAppSelector((state) => state.messages.editingMessage);
+  const templatePreview = useAppSelector(
+    (state) => state.messages.templatePreview,
+  );
+  const previewError = useAppSelector((state) => state.messages.previewError);
   const loading = useAppSelector(selectMessageEditLoading);
   const stationsLoading = useAppSelector((state) => state.stations.loading);
   const dispatch = useAppDispatch();
@@ -346,6 +353,50 @@ export const MessageEditPage: FC<ComponentOwnProps> = ({ isEdit }) => {
     [hasFieldError],
   );
 
+  const [livePreviewLoading, setLivePreviewLoading] = useState(false);
+
+  const refreshLivePreview = useCallback(() => {
+    const name = getControlValue("name") as string;
+    const stations = getControlValue("stations") as ObjectId[];
+    const templateMacros = getControlValue("templateMacros") as string;
+    const shouldSendTemplate = getControlValue("shouldSendTemplate") as string;
+    const timeoutTemplate = getControlValue("timeoutTemplate") as string;
+    const messageTemplate = getControlValue("messageTemplate") as string;
+    const language = getControlValue("language") as string;
+
+    setLivePreviewLoading(true);
+    dispatch(
+      getTemplatePreview({
+        id: isEdit ? messageId : undefined,
+        name,
+        stations,
+        templateMacros,
+        shouldSendTemplate,
+        timeoutTemplate,
+        messageTemplate,
+        language,
+      }),
+    ).then(() => {
+      setLivePreviewLoading(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, isEdit, messageId]);
+
+  const debouncedRefreshLivePreview = useDebounce(refreshLivePreview, 500);
+
+  const handleTemplateChange = useCallback(() => {
+    debouncedRefreshLivePreview();
+  }, [debouncedRefreshLivePreview]);
+
+  useEffect(() => {
+    if (isEdit && isValid) {
+      const timer = setTimeout(() => {
+        refreshLivePreview();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isEdit, isValid, refreshLivePreview]);
+
   const createTemplateTabPanel = useCallback(
     (
       name:
@@ -356,11 +407,16 @@ export const MessageEditPage: FC<ComponentOwnProps> = ({ isEdit }) => {
     ) => {
       return (
         <Tabs.Panel value={name} key={`template_tab_pnl_${name}`}>
-          <TemplateEditor name={name} control={control} trigger={trigger} />
+          <TemplateEditor
+            name={name}
+            control={control}
+            trigger={trigger}
+            onChange={handleTemplateChange}
+          />
         </Tabs.Panel>
       );
     },
-    [control, trigger],
+    [control, trigger, handleTemplateChange],
   );
 
   const tabs = useMemo(
@@ -382,52 +438,39 @@ export const MessageEditPage: FC<ComponentOwnProps> = ({ isEdit }) => {
     [createTemplateTabPanel],
   );
 
-  const onOpenPreview = () => {
-    const name = getControlValue("name") as string;
-    const stations = getControlValue("stations") as ObjectId[];
-    const templateMacros = getControlValue("templateMacros") as string;
-    const shouldSendTemplate = getControlValue("shouldSendTemplate") as string;
-    const timeoutTemplate = getControlValue("timeoutTemplate") as string;
-    const messageTemplate = getControlValue("messageTemplate") as string;
-    const language = getControlValue("language") as string;
-    openMessagePreviewDialog({
-      message_id: isEdit ? messageId : undefined,
-      name,
-      stations,
-      templateMacros,
-      shouldSendTemplate,
-      timeoutTemplate,
-      messageTemplate,
-      language,
-      t,
-    });
-  };
-
   return (
     <FormPage loading={loading}>
       <form onSubmit={handleFormSubmit}>
-        {renderField("enabled")}
-        <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
-          {renderField("name")}
-          {renderField("language")}
+        <SimpleGrid cols={{ xs: 1, sm: 2 }}>
+          <Box>
+            {renderField("enabled")}
+            <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
+              {renderField("name")}
+              {renderField("language")}
+            </SimpleGrid>
+            <Divider />
+            <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
+              {renderField("botId")}
+              {renderField("stations")}
+            </SimpleGrid>
+            <Divider />
+            <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
+              {renderField("channelId")}
+            </SimpleGrid>
+            <Badge>{message?.channelName ?? ""}</Badge>
+            <Divider mt="xs" mb="xs" />
+            <Title order={4}>{t("templates.message")}</Title>
+          </Box>
+          <LivePreviewPanel
+            name={getControlValue("name") as string}
+            preview={templatePreview}
+            loading={livePreviewLoading}
+            error={previewError}
+            onRefresh={refreshLivePreview}
+            t={t}
+            isValid={isValid}
+          />
         </SimpleGrid>
-        <Divider />
-        <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
-          {renderField("botId")}
-          {renderField("stations")}
-        </SimpleGrid>
-        <Divider />
-        <SimpleGrid cols={{ xs: 1, sm: 2 }} mt="xs" mb="xs">
-          {renderField("channelId")}
-        </SimpleGrid>
-        <Badge>{message?.channelName ?? ""}</Badge>
-        <Divider mt="xs" mb="xs" />
-        <Title order={4}>
-          {t("templates.message")}
-          <Button ml="md" size="xs" onClick={onOpenPreview} disabled={!isValid}>
-            {t("button.preview")}
-          </Button>
-        </Title>
         <Tabs
           defaultValue={`messageTemplate`}
           mt="sm"

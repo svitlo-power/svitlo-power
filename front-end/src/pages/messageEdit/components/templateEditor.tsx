@@ -15,12 +15,14 @@ type ComponentProps = {
     | "shouldSendTemplate";
   control: Control<MessageEdit>;
   trigger: UseFormTrigger<MessageEdit>;
+  onChange?: (value: string) => void;
 };
 
 export const TemplateEditor: FC<ComponentProps> = ({
   name,
   control,
   trigger,
+  onChange,
 }: ComponentProps) => {
   const extensions = useMemo(
     () => [
@@ -47,6 +49,7 @@ export const TemplateEditor: FC<ComponentProps> = ({
               onChange={(value) => {
                 field.onChange(value);
                 trigger(name);
+                onChange?.(value);
               }}
               ref={field.ref}
               value={(field.value as string) ?? ""}

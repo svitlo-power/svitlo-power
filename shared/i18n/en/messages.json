@@ -28,7 +28,12 @@
   },
   "noData": "No data",
   "preview": {
-    "title": "Message '{{name}}' preview"
+    "title": "Message '{{name}}' preview",
+    "loading": "Loading preview..."
+  },
+  "livePreview": {
+    "invalidForm": "Form is invalid. Fix the errors to see the preview.",
+    "error": "Preview error: {{error}}"
   }
   ,
   "previewLabels": {
@@ -44,6 +49,9 @@
   },
   "button": {
     "create": "Create",
-    "preview": "Preview"
+    "preview": "Preview",
+    "livePreview": "Live preview",
+    "refresh": "Refresh",
+    "close": "Close"
   }
 }

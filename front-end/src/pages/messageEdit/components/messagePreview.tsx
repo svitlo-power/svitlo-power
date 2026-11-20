@@ -1,6 +1,6 @@
 import { FC, useMemo } from "react";
 import { TemplatePreview } from "../../../stores/types";
-import { Group, Badge, Paper, ScrollArea, Text, Button, Tabs } from "@mantine/core";
+import { Group, Badge, Paper, ScrollArea, Text, Tabs } from "@mantine/core";
 import { EditorView } from "@codemirror/view";
 import ReactCodeMirror, { StateEffect } from '@uiw/react-codemirror';
 import { langs } from '@uiw/codemirror-extensions-langs';
@@ -12,12 +12,11 @@ import { TFunction } from "i18next";
 import { formatDateTime } from "../../../utils";
 
 type MessagePreviewProps = {
-  handleClose: () => void;
   preview: TemplatePreview;
   t: TFunction;
 };
 
-export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, t }) => {
+export const MessagePreview: FC<MessagePreviewProps> = ({ preview, t }) => {
   const yes = t('button.yes');
   const no = t('button.no');
   const data = preview?.data;
@@ -99,8 +98,5 @@ export const MessagePreview: FC<MessagePreviewProps> = ({ handleClose, preview, 
         </ScrollArea>
       </Tabs.Panel>
     </Tabs>
-    <Group justify="flex-end">
-      <Button variant="default" onClick={handleClose}>{t('button.close')}</Button>
-    </Group>
   </>;
 }
