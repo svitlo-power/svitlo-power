@@ -1,2 +1,3 @@
-export * from './messagePreviewDialog';
+export * from './messagePreview';
+export * from './livePreviewPanel';
 export * from './templateEditor';
