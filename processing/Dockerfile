@@ -42,5 +42,5 @@ COPY --from=build --chown=node:node /workspace/processing/package.json ./process
 COPY --from=build --chown=node:node /workspace/processing/dist ./processing/dist
 WORKDIR /app/processing
 USER node
-EXPOSE 8100 9099
+EXPOSE 8100 9095
 CMD ["node", "dist/src/main.js"]

@@ -22,7 +22,7 @@ Python producer, which stays authoritative.
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `8100` | HTTP port (health + refresh trigger) |
-| `METRICS_PORT` | `9099` | Prometheus scrape port |
+| `METRICS_PORT` | `9095` | Prometheus scrape port |
 | `MONGO_URI` | `mongodb://127.0.0.1:27017` | MongoDB connection string |
 | `MONGO_DB` | `svitlo-power` | MongoDB database name |
 | `REDIS_URI` | `redis://svitlo-power-rds:6379/0` | Redis connection string |

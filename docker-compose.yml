@@ -189,10 +189,10 @@ services:
       - FEATURE_PROCESSING_SHADOW_MODE=${FEATURE_PROCESSING_SHADOW_MODE:-false}
     expose:
       - "8100"
-      - "9099"
+      - "9095"
     ports:
       - "127.0.0.1:${PROCESSOR_PORT:-8100}:8100"
-      - "127.0.0.1:${PROCESSOR_METRICS_PORT:-9099}:9099"
+      - "127.0.0.1:${PROCESSOR_METRICS_PORT:-9095}:9095"
     networks:
       - web_network
     labels:

@@ -5,7 +5,7 @@ import { validateEnvironment } from "../src/config/processing.config.js";
 test("the environment validation applies the documented defaults", () => {
   const validated = validateEnvironment({});
   assert.equal(validated.PORT, "8100");
-  assert.equal(validated.METRICS_PORT, "9099");
+  assert.equal(validated.METRICS_PORT, "9095");
   assert.equal(validated.PROCESSING_RECONCILIATION_INTERVAL_SECONDS, "300");
   assert.equal(validated.PROCESSING_REFRESH_COALESCE_MS, "500");
   assert.equal(validated.PROCESSING_LEASE_TTL_SECONDS, "30");

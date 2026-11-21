@@ -64,7 +64,7 @@ export function validateEnvironment(
   return {
     ...env,
     PORT: positiveInteger(env, "PORT", 8100),
-    METRICS_PORT: positiveInteger(env, "METRICS_PORT", 9099),
+    METRICS_PORT: positiveInteger(env, "METRICS_PORT", 9095),
     PROCESSING_RECONCILIATION_INTERVAL_SECONDS: positiveInteger(
       env,
       "PROCESSING_RECONCILIATION_INTERVAL_SECONDS",
@@ -100,7 +100,7 @@ export const processingConfig = registerAs(
   (): ProcessingConfiguration => ({
     version: readVersion(),
     port: Number(process.env.PORT ?? 8100),
-    metricsPort: Number(process.env.METRICS_PORT ?? 9099),
+    metricsPort: Number(process.env.METRICS_PORT ?? 9095),
     mongoUri: process.env.MONGO_URI ?? "mongodb://127.0.0.1:27017",
     mongoDatabase: process.env.MONGO_DB ?? "svitlo-power",
     redisUrl: process.env.REDIS_URI ?? "redis://svitlo-power-rds:6379/0",

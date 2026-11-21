@@ -11,9 +11,9 @@ docker compose -f scraping\docker-compose.yml up -d
 - Prometheus: http://localhost:9090
 
 Prometheus scrapes `/metrics` from the backend services on the shared Docker
-network every 15 seconds. The grid reporter uses port `9099`; the three FastAPI
-services use their container HTTP port `5005`. Redis is intentionally not
-included.
+network every 15 seconds. The processor uses port `9095`, the grid reporter
+`9099`, and the three FastAPI services use their container HTTP port `5005`.
+Redis is intentionally not included.
 
 Container-level CPU and memory metrics are collected by cAdvisor, which reads
 container stats from the Docker socket and exposes them on port `8080`. Prometheus
