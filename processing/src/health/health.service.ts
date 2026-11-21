@@ -1,8 +1,11 @@
 import { Injectable } from "@nestjs/common";
+import {
+  aggregateReadinessStatus,
+  CheckStatus,
+  toCheckStatus,
+} from "@svitlo-power/shared-typescript";
 import { RedisConnections } from "../infrastructure/redis/redis-connections.service.js";
 import { ProcessingService } from "../processing/processing.service.js";
-
-type CheckStatus = "healthy" | "unhealthy";
 
 @Injectable()
 export class HealthService {
@@ -36,11 +39,10 @@ export class HealthService {
       redis: await this.redisStatus(),
       snapshot: this.processing.status(),
     };
-    const ready = Object.values(checks).every((status) => status === "healthy");
-    return { status: ready ? "ready" : "not_ready", checks };
+    return { status: aggregateReadinessStatus(checks), checks };
   }
 
   private async redisStatus(): Promise<CheckStatus> {
-    return (await this.redis.ping()) ? "healthy" : "unhealthy";
+    return toCheckStatus(await this.redis.ping());
   }
 }

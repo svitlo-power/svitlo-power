@@ -1,5 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
+import {
+  isObjectId,
+  isStrictIsoDateTime,
+} from "@svitlo-power/shared-typescript";
 import { DashboardSnapshot } from "../shared.js";
 import { processingConfig } from "../config/processing.config.js";
 
@@ -7,10 +11,6 @@ export interface SnapshotValidatorResult {
   valid: boolean;
   errors: string[];
 }
-
-const OBJECT_ID = /^[0-9a-f]{24}$/;
-const ISO_DATE =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
 /**
  * Validates a built snapshot against the `DashboardSnapshot v1` contract before
@@ -37,7 +37,7 @@ export class SnapshotValidator {
     }
     if (
       typeof snapshot.generatedAt !== "string" ||
-      !ISO_DATE.test(snapshot.generatedAt)
+      !isStrictIsoDateTime(snapshot.generatedAt)
     ) {
       errors.push("generatedAt must be an ISO 8601 timestamp");
     }
@@ -88,7 +88,7 @@ export class SnapshotValidator {
     }
     const record = building as Record<string, unknown>;
     const errors: string[] = [];
-    if (typeof record.id !== "string" || !OBJECT_ID.test(record.id)) {
+    if (typeof record.id !== "string" || !isObjectId(record.id)) {
       errors.push(`${prefix}.id must be a 24-char hex ObjectId`);
     }
     if (

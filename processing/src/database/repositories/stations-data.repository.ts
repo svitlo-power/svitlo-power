@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { isObjectId } from "@svitlo-power/shared-typescript";
 import { Model, Types } from "mongoose";
 import {
   ExtDataDocument,
@@ -171,10 +172,6 @@ function toStationDataRecord(
     consumptionPower: document.consumption_power ?? null,
     lastUpdateTime: document.last_update_time ?? null,
   };
-}
-
-function isObjectId(value: string): boolean {
-  return /^[0-9a-f]{24}$/i.test(value);
 }
 
 function toObjectId(value: string): Types.ObjectId | string {

@@ -1,10 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { CheckStatus, toCheckStatus } from "@svitlo-power/shared-typescript";
 import { RedisConnections } from "../infrastructure/redis/redis-connections.service.js";
 import { InternalApiClient } from "../shared.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
-
-type CheckStatus = "healthy" | "unhealthy";
 
 @Injectable()
 export class HealthService {
@@ -86,8 +85,8 @@ export class HealthService {
       ),
     ]);
     return {
-      redis: redis ? "healthy" : "unhealthy",
-      internalApi: internalApi ? "healthy" : "unhealthy",
+      redis: toCheckStatus(redis),
+      internalApi: toCheckStatus(internalApi),
     };
   }
 }
