@@ -18,7 +18,7 @@ __pycache__/
 # other
 .DS_Store
 
-# sphinx docs 
+# sphinx docs
 _build
 _static
 _templates
@@ -32,6 +32,7 @@ apps/static/assets/.temp
 
 node_modules
 app-back-end/dist/
+processing/dist/
 shared/typescript/dist/
 shared/typescript/dist-test/
 yarn.lock

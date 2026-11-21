@@ -1,3 +1,5 @@
+import { BuildingSnapshot, DashboardSnapshot, UnitSchedule } from "./domain.js";
+
 export interface SnapshotRedisReader {
   get(key: string): Promise<string | null>;
 }
@@ -11,44 +13,8 @@ export interface RedisSubscription {
   unsubscribe(channel: string): Promise<unknown>;
 }
 
-export interface OutagesScheduleConfigSnapshot {
-  enable: boolean;
-  regionId: number;
-  dsoId: number;
-  queue: string;
-}
-
-export interface BuildingSnapshot {
-  id: string;
-  name: Record<string, string>;
-  color: string;
-  order: number;
-  hasBoundStation: boolean;
-  isGridAvailable?: boolean | null;
-  gridAvailabilityPct?: number | null;
-  hasMixedReporterStates?: boolean | null;
-  isCharging?: boolean | null;
-  isDischarging?: boolean | null;
-  isOffline?: boolean | null;
-  batteryPercent?: number | null;
-  consumptionPower?: string | null;
-  batteryDischargeTime?: string | null;
-  batteryChargeTime?: string | null;
-  chargeSource: string;
-  chargePower?: number | null;
-}
-
-export interface DashboardSnapshot {
-  epoch: number;
-  version: number;
-  generatedAt: string;
-  buildings: BuildingSnapshot[];
-  config: {
-    title: Record<string, string>;
-    outagesSchedule?: OutagesScheduleConfigSnapshot | null;
-  };
-  outagesSchedules: Record<string, Record<string, unknown>>;
-}
+// `BuildingSnapshot`, `DashboardSnapshot` and the outages-schedule config shape
+// are defined once in `domain.ts` and re-exported from there.
 
 export interface DashboardSnapshotHealth {
   status: "healthy" | "unhealthy";
@@ -189,7 +155,7 @@ export class DashboardSnapshotClient {
     return this.snapshot;
   }
 
-  getOutageSchedule(queue: string): Record<string, unknown> | null {
+  getOutageSchedule(queue: string): UnitSchedule | null {
     return this.snapshot?.outagesSchedules[queue] ?? null;
   }
 

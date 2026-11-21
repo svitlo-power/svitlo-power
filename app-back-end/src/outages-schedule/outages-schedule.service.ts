@@ -3,6 +3,7 @@ import {
   InternalApiClient,
   InternalApiError,
   OutageSchedule,
+  UnitSchedule,
 } from "../shared.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
@@ -14,9 +15,7 @@ export class OutagesScheduleService {
     private readonly snapshots: SnapshotService,
   ) {}
 
-  async getSchedule(
-    queue: string,
-  ): Promise<OutageSchedule | Record<string, unknown>> {
+  async getSchedule(queue: string): Promise<OutageSchedule | UnitSchedule> {
     const cached = this.snapshots.getOutageSchedule(queue);
     if (cached) return cached;
     try {

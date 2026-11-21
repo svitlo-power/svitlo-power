@@ -4,7 +4,8 @@
   "description": "Svitlo Power monitoring tool - Development Environment",
   "workspaces": [
     "shared/typescript",
-    "app-back-end"
+    "app-back-end",
+    "processing"
   ],
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -18,7 +19,8 @@
     "docker:logs": "docker compose logs -f",
     "prepare": "node .husky/install.mjs",
     "build:shared": "npm run build -w @svitlo-power/shared-typescript",
-    "build:app-back-end": "npm run build -w svitlo-power-app-back-end"
+    "build:app-back-end": "npm run build -w svitlo-power-app-back-end",
+    "build:processing": "npm run build -w svitlo-power-processing"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
@@ -37,6 +39,10 @@
     "app-back-end/**/*.{ts,js,json}": [
       "npm --prefix app-back-end exec -- prettier --write",
       "npm --prefix app-back-end exec -- eslint --config app-back-end/eslint.config.js --fix"
+    ],
+    "processing/**/*.{ts,js,json}": [
+      "npm --prefix processing exec -- prettier --write",
+      "npm --prefix processing exec -- eslint --config processing/eslint.config.js --fix"
     ],
     "shared/typescript/**/*.{ts,json}": [
       "npm --prefix shared/typescript exec -- prettier --write",

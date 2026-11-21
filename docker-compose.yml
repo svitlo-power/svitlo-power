@@ -178,6 +178,48 @@ services:
       - web_network
     restart: "no"
 
+  svitlo-power-processor:
+    build:
+      context: .
+      dockerfile: processing/Dockerfile
+    image: ${REGISTRY_URL}/svitlo-power-processor:${TAG:-latest}
+    restart: always
+    env_file: .env
+    environment:
+      - FEATURE_PROCESSING_SHADOW_MODE=${FEATURE_PROCESSING_SHADOW_MODE:-false}
+    expose:
+      - "8100"
+      - "9099"
+    ports:
+      - "127.0.0.1:${PROCESSOR_PORT:-8100}:8100"
+      - "127.0.0.1:${PROCESSOR_METRICS_PORT:-9099}:9099"
+    networks:
+      - web_network
+    labels:
+      io.hass.type: "addon"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8100/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      svitlo-power-rds:
+        condition: service_healthy
+    stop_signal: SIGINT
+    stop_grace_period: 15s
+
+  svitlo-power-processor-tests:
+    build:
+      context: .
+      dockerfile: processing/Dockerfile
+      target: test
+    image: ${REGISTRY_URL}/svitlo-power-processor-tests:${TAG:-latest}
+    profiles: ["tests"]
+    networks:
+      - web_network
+    restart: "no"
+
   svitlo-power-grid-reporter-tests:
     image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
     profiles: ["tests"]
