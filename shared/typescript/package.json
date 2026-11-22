@@ -24,10 +24,24 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@nestjs/mongoose": "12.0.1",
     "@types/node": "22.20.5",
     "eslint": "10.14.0",
+    "mongoose": "9.12.3",
     "prettier": "3.9.10",
     "typescript-eslint": "8.72.1",
     "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@nestjs/mongoose": ">=12.0.1",
+    "mongoose": ">=9.12.3"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/mongoose": {
+      "optional": true
+    },
+    "mongoose": {
+      "optional": true
+    }
   }
 }
