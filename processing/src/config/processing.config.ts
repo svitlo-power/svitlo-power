@@ -17,6 +17,8 @@ export interface ProcessingConfiguration {
   mongoUri: string;
   mongoDatabase: string;
   redisUrl: string;
+  /** Shared bearer token required by the internal refresh trigger. */
+  internalApiToken: string;
   logLevel: string;
   prettyLogs: boolean;
   /** Enables the shadow snapshot flow (build + compare + shadow writes). */
@@ -92,6 +94,7 @@ export function validateEnvironment(
       10,
     ),
     PROCESSING_LOG_LEVEL: logLevel,
+    INTERNAL_API_TOKEN: String(env.INTERNAL_API_TOKEN ?? ""),
   };
 }
 
@@ -104,6 +107,7 @@ export const processingConfig = registerAs(
     mongoUri: process.env.MONGO_URI ?? "mongodb://127.0.0.1:27017",
     mongoDatabase: process.env.MONGO_DB ?? "svitlo-power",
     redisUrl: process.env.REDIS_URI ?? "redis://svitlo-power-rds:6379/0",
+    internalApiToken: process.env.INTERNAL_API_TOKEN ?? "",
     logLevel: process.env.PROCESSING_LOG_LEVEL ?? "info",
     prettyLogs:
       process.env.PROCESSING_LOG_PRETTY === "true" &&

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
 import { LoggerModule } from "nestjs-pino";
 import { ConfigType } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
@@ -8,6 +9,7 @@ import {
   validateEnvironment,
 } from "./config/processing.config.js";
 import { HealthModule } from "./health/health.module.js";
+import { InternalTokenGuard } from "./http/internal-token.guard.js";
 import { MetricsModule } from "./metrics/metrics.module.js";
 import { ProcessingModule } from "./processing/processing.module.js";
 import { SchedulerModule } from "./scheduler/scheduler.module.js";
@@ -67,5 +69,6 @@ import { TriggersModule } from "./triggers/triggers.module.js";
     TriggersModule,
     HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: InternalTokenGuard }],
 })
 export class AppModule {}
