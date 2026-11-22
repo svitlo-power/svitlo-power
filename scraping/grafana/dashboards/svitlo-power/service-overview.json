@@ -184,7 +184,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(label_replace(container_cpu_usage_seconds_total{id!=\"/\",id=~\".*(front-end|admin-front-end).*\"}, \"container\", \"$1\", \"id\", \"^.*/([^/]+?)$\")[5m]) * 100",
+          "expr": "rate(label_replace(container_cpu_usage_seconds_total{id!=\"/\",id=~\".*(front-end|admin-front-end).*\"}, \"container\", \"$1\", \"id\", \"^.*/([^/]+?)$\"))[5m] * 100",
           "legendFormat": "{{container}}",
           "range": true,
           "refId": "B"
