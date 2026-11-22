@@ -19,7 +19,20 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 4,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["svitlo-power"],
+      "targetBlank": false,
+      "title": "Processing (Shadow)",
+      "tooltip": "Open the processing shadow-mode dashboard",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "datasource": {
@@ -62,9 +75,7 @@
         "orientation": "vertical",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -653,10 +664,7 @@
   "preload": false,
   "refresh": "15s",
   "schemaVersion": 41,
-  "tags": [
-    "svitlo-power",
-    "prometheus"
-  ],
+  "tags": ["svitlo-power", "prometheus"],
   "templating": {
     "list": []
   },
