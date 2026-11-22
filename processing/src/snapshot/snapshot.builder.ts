@@ -163,13 +163,27 @@ export class SnapshotBuilder {
     station: StationRecord | null,
     minutes: number,
   ): Promise<BuildingSnapshot> {
+    // Every optional field is initialised to null so the serialized shape
+    // matches the legacy Pydantic model, which declares each one as
+    // `Field(None, ...)` and therefore always emits the key.
     const snapshot: BuildingSnapshot = {
       id: building.id,
       name: building.name,
       color: building.color,
       order: building.order,
       hasBoundStation: station !== null,
+      isGridAvailable: null,
+      gridAvailabilityPct: null,
+      hasMixedReporterStates: null,
+      isCharging: null,
+      isDischarging: null,
+      isOffline: null,
+      batteryPercent: null,
+      consumptionPower: null,
+      batteryDischargeTime: null,
+      batteryChargeTime: null,
       chargeSource: CHARGE_SOURCE_NONE,
+      chargePower: null,
     };
 
     const observations = await this.getReporterStates(building.reportUserIds);

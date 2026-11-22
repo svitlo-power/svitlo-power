@@ -105,8 +105,9 @@ test("a building without a station reports only static fields", async () => {
   const [entry] = snapshot.buildings;
   assert.equal(entry.hasBoundStation, false);
   assert.equal(entry.chargeSource, "None");
-  assert.equal(entry.batteryPercent, undefined);
-  assert.equal(entry.isOffline, undefined);
+  // Optional fields are present but null, matching the legacy Pydantic model.
+  assert.equal(entry.batteryPercent, null);
+  assert.equal(entry.isOffline, null);
 });
 
 test("a building whose station has no measurements stops after the reporter state", async () => {
@@ -117,8 +118,9 @@ test("a building whose station has no measurements stops after the reporter stat
 
   const [entry] = snapshot.buildings;
   assert.equal(entry.hasBoundStation, true);
-  assert.equal(entry.batteryPercent, undefined);
-  assert.equal(entry.consumptionPower, undefined);
+  // Optional fields are present but null, matching the legacy Pydantic model.
+  assert.equal(entry.batteryPercent, null);
+  assert.equal(entry.consumptionPower, null);
 });
 
 test("reporter states drive grid availability and the mixed-state flag", async () => {
