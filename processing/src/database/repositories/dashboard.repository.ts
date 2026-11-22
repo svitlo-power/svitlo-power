@@ -42,8 +42,15 @@ export function toPowerEstimationStation(station: StationRecord | null): {
 /**
  * Extracts the ObjectId from a Beanie `Link` value.
  *
- * Beanie stores links either as a bare ObjectId or as a DBRef-like document
- * (`{ "$ref": ..., "$id": ... }`); both must resolve to the referenced `_id`.
+ * Beanie stores links in two shapes, and both must resolve to the referenced
+ * `_id`:
+ *
+ * - a bare `ObjectId`
+ * - a BSON `DBRef`, which the Node driver exposes as
+ *   `{ collection, oid, db, fields }` — note `oid`, not `$id`
+ *
+ * The `$ref`/`$id` pair only appears after a `JSON.stringify` round trip, so
+ * all three spellings are handled.
  */
 export function resolveLinkId(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -51,7 +58,9 @@ export function resolveLinkId(value: unknown): string | null {
   if (value instanceof Types.ObjectId) return value.toHexString();
   if (typeof value === "object") {
     const record = value as Record<string, unknown>;
-    const nested = record.$id ?? record._id ?? record.id;
+    // `oid` is the live DBRef field; `$id`/`_id`/`id` cover the serialized
+    // form and hand-built references.
+    const nested = record.oid ?? record.$id ?? record._id ?? record.id;
     if (nested === undefined || nested === null) return null;
     return resolveLinkId(nested);
   }
