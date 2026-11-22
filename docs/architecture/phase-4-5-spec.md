@@ -1,10 +1,10 @@
 # Phase 4-5 Spec: Processing Service Shadow Mode & Snapshot Ownership Cutover
 
 ## Objective
-Deploy a new `svitlo-power-processor` service that computes dashboard snapshots from **MongoDB directly** (using existing shared repositories), validate in shadow mode, then cut over snapshot ownership from the legacy `back-end`.
+Deploy a new `svitlo-power-processing` service that computes dashboard snapshots from **MongoDB directly** (using existing shared repositories), validate in shadow mode, then cut over snapshot ownership from the legacy `back-end`.
 
 ## Scope
-- **New Service**: `svitlo-power-processor` (Python, deployed independently, uses `shared/python` repositories)
+- **New Service**: `svitlo-power-processing` (Python, deployed independently, uses `shared/python` repositories)
 - **Phase 4**: Shadow mode — computes snapshots, compares with production, does NOT publish to production keys
 - **Phase 5**: Cutover — becomes authoritative publisher; legacy `back-end` stops publishing
 - **Consumers**: Both back-ends (unchanged, already reading from Redis)
@@ -51,7 +51,7 @@ Deploy a new `svitlo-power-processor` service that computes dashboard snapshots 
 
 ### 1. Processing Service Structure
 ```
-svitlo-power-processor/
+svitlo-power-processing/
 ├── pyproject.toml
 ├── src/
 │   └── processor/
@@ -271,7 +271,7 @@ Code removal happens in **Phase 9** after all capabilities are moved.
 - JSON schema published, Pydantic models generated
 - Redis lease Lua scripts registered
 - Feature flag infrastructure
-- CI/CD for new `svitlo-power-processor` service
+- CI/CD for new `svitlo-power-processing` service
 
 ## Risks & Mitigations
 

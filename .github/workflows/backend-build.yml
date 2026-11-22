@@ -110,7 +110,7 @@ jobs:
         run: docker compose build svitlo-power-app-back-end svitlo-power-app-back-end-tests
 
       - name: Build processing image
-        run: docker compose build svitlo-power-processor svitlo-power-processor-tests
+        run: docker compose build svitlo-power-processing svitlo-power-processing-tests
 
       - name: Build legacy app-back-end rollback image
         run: docker build -f app-back-end-legacy/Dockerfile -t svitlo-power-app-back-end-legacy:test .
@@ -139,7 +139,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f test_output_processing.txt
-          docker compose --profile tests run --rm --no-TTY svitlo-power-processor-tests \
+          docker compose --profile tests run --rm --no-TTY svitlo-power-processing-tests \
             | tee test_output_processing.txt
 
       - name: Generate Docker Test Summary

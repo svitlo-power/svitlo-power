@@ -86,7 +86,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "up{job=\"svitlo-power-processor\"}",
+          "expr": "up{job=\"svitlo-power-processing\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -467,7 +467,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "dashboard_snapshot_age_seconds{job=\"svitlo-power-processor\"}",
+          "expr": "dashboard_snapshot_age_seconds{job=\"svitlo-power-processing\"}",
           "legendFormat": "{{job}}",
           "range": true,
           "refId": "A"
@@ -561,14 +561,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "dashboard_snapshot_version{job=\"svitlo-power-processor\"}",
+          "expr": "dashboard_snapshot_version{job=\"svitlo-power-processing\"}",
           "legendFormat": "version",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "dashboard_snapshot_epoch{job=\"svitlo-power-processor\"}",
+          "expr": "dashboard_snapshot_epoch{job=\"svitlo-power-processing\"}",
           "legendFormat": "epoch",
           "range": true,
           "refId": "B"
@@ -662,14 +662,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(dashboard_snapshot_build_duration_seconds_bucket{job=\"svitlo-power-processor\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(dashboard_snapshot_build_duration_seconds_bucket{job=\"svitlo-power-processing\"}[5m])))",
           "legendFormat": "build",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(dashboard_snapshot_publish_duration_seconds_bucket{job=\"svitlo-power-processor\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(dashboard_snapshot_publish_duration_seconds_bucket{job=\"svitlo-power-processing\"}[5m])))",
           "legendFormat": "publish",
           "range": true,
           "refId": "B"
@@ -1052,14 +1052,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (reason) (rate(dashboard_refresh_requests_total{job=\"svitlo-power-processor\"}[5m])) or on() vector(0)",
+          "expr": "sum by (reason) (rate(dashboard_refresh_requests_total{job=\"svitlo-power-processing\"}[5m])) or on() vector(0)",
           "legendFormat": "{{reason}}",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "sum(rate(dashboard_refresh_coalesced_total{job=\"svitlo-power-processor\"}[5m])) or on() vector(0)",
+          "expr": "sum(rate(dashboard_refresh_coalesced_total{job=\"svitlo-power-processing\"}[5m])) or on() vector(0)",
           "legendFormat": "coalesced",
           "range": true,
           "refId": "B"
@@ -1153,7 +1153,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total{job=\"svitlo-power-processor\"}[1h])) or on() vector(0)",
+          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total{job=\"svitlo-power-processing\"}[1h])) or on() vector(0)",
           "legendFormat": "{{error_type}}",
           "range": true,
           "refId": "A"
@@ -1247,7 +1247,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(process_cpu_seconds_total{job=\"svitlo-power-processor\"}[5m])",
+          "expr": "rate(process_cpu_seconds_total{job=\"svitlo-power-processing\"}[5m])",
           "legendFormat": "cpu",
           "range": true,
           "refId": "A"
@@ -1341,14 +1341,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{job=\"svitlo-power-processor\"}",
+          "expr": "process_resident_memory_bytes{job=\"svitlo-power-processing\"}",
           "legendFormat": "rss",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "nodejs_heap_size_used_bytes{job=\"svitlo-power-processor\"}",
+          "expr": "nodejs_heap_size_used_bytes{job=\"svitlo-power-processing\"}",
           "legendFormat": "heap used",
           "range": true,
           "refId": "B"
@@ -1442,7 +1442,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "scrape_duration_seconds{job=\"svitlo-power-processor\"}",
+          "expr": "scrape_duration_seconds{job=\"svitlo-power-processing\"}",
           "legendFormat": "{{job}}",
           "range": true,
           "refId": "A"

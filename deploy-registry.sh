@@ -15,7 +15,7 @@ set -euo pipefail
 #   - svitlo-power-sse-back-end (sse-back-end)
 #   - svitlo-power-grid-reporter (grid-reporter)
 #   - svitlo-power-app-back-end (app-back-end)
-#   - svitlo-power-processor (processing)
+#   - svitlo-power-processing (processing)
 #   - svitlo-power-front-end (public app-v2 frontend)
 #   - svitlo-power-admin-front-end (React admin frontend)
 # Note: svitlo-power-migrate uses same image as svitlo-power-back-end
@@ -91,7 +91,7 @@ IMAGES=(
     "svitlo-power-sse-back-end"
     "svitlo-power-grid-reporter"
     "svitlo-power-app-back-end"
-    "svitlo-power-processor"
+    "svitlo-power-processing"
 )
 
 for IMAGE in "${IMAGES[@]}"; do

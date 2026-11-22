@@ -23,10 +23,10 @@ scrape_configs:
       - targets:
           - svitlo-power-grid-reporter:9099
 
-  - job_name: svitlo-power-processor
+  - job_name: svitlo-power-processing
     static_configs:
       - targets:
-          - svitlo-power-processor:9095
+          - svitlo-power-processing:9095
 
   - job_name: svitlo-power-front-end
     metrics_path: /metrics

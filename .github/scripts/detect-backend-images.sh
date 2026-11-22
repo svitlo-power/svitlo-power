@@ -5,7 +5,7 @@ set -euo pipefail
 base_sha=$1
 head_sha=$2
 
-all_images='[{"image":"svitlo-power-back-end","dockerfile":"back-end/Dockerfile"},{"image":"svitlo-power-sse-back-end","dockerfile":"sse-back-end/Dockerfile"},{"image":"svitlo-power-grid-reporter","dockerfile":"grid-reporter/Dockerfile"},{"image":"svitlo-power-app-back-end","dockerfile":"app-back-end/Dockerfile"},{"image":"svitlo-power-app-back-end-legacy","dockerfile":"app-back-end-legacy/Dockerfile"},{"image":"svitlo-power-processor","dockerfile":"processing/Dockerfile"}]'
+all_images='[{"image":"svitlo-power-back-end","dockerfile":"back-end/Dockerfile"},{"image":"svitlo-power-sse-back-end","dockerfile":"sse-back-end/Dockerfile"},{"image":"svitlo-power-grid-reporter","dockerfile":"grid-reporter/Dockerfile"},{"image":"svitlo-power-app-back-end","dockerfile":"app-back-end/Dockerfile"},{"image":"svitlo-power-app-back-end-legacy","dockerfile":"app-back-end-legacy/Dockerfile"},{"image":"svitlo-power-processing","dockerfile":"processing/Dockerfile"}]'
 
 if [[ "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
   echo "matrix={\"include\":${all_images}}"
@@ -33,7 +33,7 @@ if grep -Eq '^(app-back-end/|shared/typescript/|package\.json$|package-lock\.jso
   images+=('{"image":"svitlo-power-app-back-end","dockerfile":"app-back-end/Dockerfile"}')
 fi
 if grep -Eq '^(processing/|shared/typescript/|package\.json$|package-lock\.json$)' <<<"$changed_paths"; then
-  images+=('{"image":"svitlo-power-processor","dockerfile":"processing/Dockerfile"}')
+  images+=('{"image":"svitlo-power-processing","dockerfile":"processing/Dockerfile"}')
 fi
 grep -q '^app-back-end-legacy/' <<<"$changed_paths" && images+=('{"image":"svitlo-power-app-back-end-legacy","dockerfile":"app-back-end-legacy/Dockerfile"}')
 

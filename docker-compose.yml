@@ -178,11 +178,11 @@ services:
       - web_network
     restart: "no"
 
-  svitlo-power-processor:
+  svitlo-power-processing:
     build:
       context: .
       dockerfile: processing/Dockerfile
-    image: ${REGISTRY_URL}/svitlo-power-processor:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-processing:${TAG:-latest}
     restart: always
     env_file: .env
     environment:
@@ -191,8 +191,8 @@ services:
       - "8100"
       - "9095"
     ports:
-      - "127.0.0.1:${PROCESSOR_PORT:-8100}:8100"
-      - "127.0.0.1:${PROCESSOR_METRICS_PORT:-9095}:9095"
+      - "127.0.0.1:${PROCESSING_PORT:-8100}:8100"
+      - "127.0.0.1:${PROCESSING_METRICS_PORT:-9095}:9095"
     networks:
       - web_network
     labels:
@@ -209,12 +209,12 @@ services:
     stop_signal: SIGINT
     stop_grace_period: 15s
 
-  svitlo-power-processor-tests:
+  svitlo-power-processing-tests:
     build:
       context: .
       dockerfile: processing/Dockerfile
       target: test
-    image: ${REGISTRY_URL}/svitlo-power-processor-tests:${TAG:-latest}
+    image: ${REGISTRY_URL}/svitlo-power-processing-tests:${TAG:-latest}
     profiles: ["tests"]
     networks:
       - web_network
