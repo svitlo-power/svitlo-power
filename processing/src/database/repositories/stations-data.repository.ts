@@ -9,6 +9,12 @@ import {
 import { Model, Types } from "mongoose";
 
 export interface StationDataRecord {
+  /**
+   * Battery state of charge as a percentage.
+   *
+   * The legacy `StationData.battery_soc` is a `float`, so Pydantic renders
+   * `94` as `94.0`. `Number(...)` keeps the same representation on the wire.
+   */
   batterySoc: number | null;
   chargePower: number | null;
   dischargePower: number | null;

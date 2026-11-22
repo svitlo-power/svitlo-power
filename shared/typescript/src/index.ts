@@ -3,6 +3,7 @@ export * from "./dashboard-config.js";
 export * from "./health.js";
 export * from "./internal-api.js";
 export * from "./iso-date.js";
+export * from "./json-float.js";
 export * from "./object-id.js";
 export * from "./power-estimation.js";
 export * from "./redis-clients.js";

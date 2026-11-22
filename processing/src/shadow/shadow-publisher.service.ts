@@ -15,6 +15,7 @@ import {
   SHADOW_VERSION_NEXT_KEY,
   SNAPSHOT_TTL_SECONDS,
   parseShadowWriteResult,
+  stringifySnapshot,
 } from "../shared.js";
 import { ProcessingLease } from "../lease/processing-lease.service.js";
 import { PROCESSING_LEASE } from "../tokens.js";
@@ -108,7 +109,9 @@ export class ShadowPublisher {
           SHADOW_VERSION_COMMITTED_KEY,
         ],
         arguments: [
-          JSON.stringify(snapshot),
+          // Python's json.dumps always writes floats with a decimal point, so
+          // batteryPercent/chargePower must keep theirs to match the contract.
+          stringifySnapshot(snapshot),
           notification,
           String(SNAPSHOT_TTL_SECONDS),
           token,
