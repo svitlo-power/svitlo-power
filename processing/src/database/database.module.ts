@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigType } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
-import { processingConfig } from "../config/processing.config.js";
 import {
   BuildingSchema,
   ExtDataSchema,
@@ -10,7 +9,8 @@ import {
   StationSchema,
   SystemSettingSchema,
   UserSchema,
-} from "../shared.js";
+} from "@svitlo-power/shared-typescript/schemas";
+import { processingConfig } from "../config/processing.config.js";
 
 /**
  * Registers the Mongoose connection and every schema the snapshot builder

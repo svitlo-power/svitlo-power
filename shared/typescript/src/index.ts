@@ -8,7 +8,6 @@ export * from "./power-estimation.js";
 export * from "./redis-clients.js";
 export * from "./redis-keys.js";
 export * from "./redis-scripts.js";
-export * from "./schemas/index.js";
 export * from "./snapshot-diff.js";
 
 // `internal-api.ts` predates the snapshot contract and declares a permissive

@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
 import {
   SystemSettingDocument,
   SystemSettingSchemaClass,
-} from "../../shared.js";
+} from "@svitlo-power/shared-typescript/schemas";
+import { Model } from "mongoose";
 
 /**
  * Read-only access to `system_settings`.

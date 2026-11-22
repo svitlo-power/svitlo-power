@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { isObjectId } from "@svitlo-power/shared-typescript";
-import { Model, Types } from "mongoose";
 import {
   BuildingDocument,
   BuildingSchemaClass,
   StationDocument,
   StationSchemaClass,
-} from "../../shared.js";
+} from "@svitlo-power/shared-typescript/schemas";
+import { Model, Types } from "mongoose";
 
 export interface BuildingRecord {
   id: string;
