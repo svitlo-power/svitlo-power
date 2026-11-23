@@ -10,8 +10,13 @@ import {
 import { processingConfig } from "../config/processing.config.js";
 
 /**
- * Owns the Prometheus registry. Metric names match the Python producer so the
- * existing Grafana dashboards and alerts keep working after the cutover.
+ * Owns the Prometheus registry.
+ *
+ * The snapshot/refresh metric names match the Python producer so the existing
+ * Grafana dashboards and alerts keep working after the cutover. While shadow
+ * mode is active both services export them, so every panel and alert has to
+ * filter on `job`; the shadow-only metrics carry a `processing_shadow_`
+ * prefix and never collide.
  */
 @Injectable()
 export class MetricsService {
@@ -70,6 +75,9 @@ export class MetricsService {
   private readonly shadowMismatches = new Counter({
     name: "processing_shadow_mismatch_total",
     help: "Field-level mismatches found while comparing snapshots",
+    // The field label is the bare key (for example `batteryPercent`), never
+    // `buildings[<index>].<key>`: the index would make the label cardinality
+    // grow with the number of buildings.
     labelNames: ["section", "field"],
     registers: [this.registry],
   });
@@ -77,6 +85,11 @@ export class MetricsService {
     name: "processing_shadow_comparisons_total",
     help: "Shadow comparisons by outcome",
     labelNames: ["result"],
+    registers: [this.registry],
+  });
+  private readonly shadowSkew = new Gauge({
+    name: "processing_shadow_comparison_skew_seconds",
+    help: "Age difference between the compared production and shadow snapshots",
     registers: [this.registry],
   });
   private readonly leaseAcquired = new Counter({
@@ -145,6 +158,10 @@ export class MetricsService {
 
   setShadowParity(rate: number): void {
     this.shadowParity.set(rate);
+  }
+
+  setShadowSkew(seconds: number): void {
+    this.shadowSkew.set(seconds);
   }
 
   shadowMismatch(section: string, field: string): void {

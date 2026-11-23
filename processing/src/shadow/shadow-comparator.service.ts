@@ -119,6 +119,7 @@ export class ShadowComparator {
   ): ShadowComparison {
     if (reason !== undefined) {
       this.metrics.shadowComparison(reason);
+      if (skewSeconds !== undefined) this.metrics.setShadowSkew(skewSeconds);
       return {
         compared: false,
         matches: false,
@@ -130,6 +131,7 @@ export class ShadowComparator {
       };
     }
     this.metrics.setShadowParity(parity);
+    if (skewSeconds !== undefined) this.metrics.setShadowSkew(skewSeconds);
     this.metrics.shadowComparison(matches ? "match" : "mismatch");
     return {
       compared: true,

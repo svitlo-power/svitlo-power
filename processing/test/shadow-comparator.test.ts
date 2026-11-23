@@ -8,6 +8,7 @@ function metrics(): MetricsService {
   const noop = () => undefined;
   return {
     setShadowParity: noop,
+    setShadowSkew: noop,
     shadowMismatch: noop,
     shadowComparison: noop,
   } as unknown as MetricsService;
