@@ -3,12 +3,15 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
+  OnModuleDestroy,
 } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
-import { Cron, CronExpression } from "@nestjs/schedule";
+import { SchedulerRegistry } from "@nestjs/schedule";
 import { processingConfig } from "../config/processing.config.js";
 import { MetricsService } from "../metrics/metrics.service.js";
 import { SnapshotReconciliationJob } from "./jobs/snapshot-reconciliation.job.js";
+
+export const RECONCILIATION_JOB_NAME = "snapshot-reconciliation";
 
 /**
  * Owns the recurring reconciliation schedule.
@@ -17,7 +20,9 @@ import { SnapshotReconciliationJob } from "./jobs/snapshot-reconciliation.job.js
  * holds the Redis lease that makes the work single-writer across replicas.
  */
 @Injectable()
-export class SchedulerService implements OnApplicationBootstrap {
+export class SchedulerService
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(SchedulerService.name);
   private running = false;
 
@@ -25,19 +30,29 @@ export class SchedulerService implements OnApplicationBootstrap {
     @Inject(processingConfig.KEY)
     private readonly config: ConfigType<typeof processingConfig>,
     private readonly job: SnapshotReconciliationJob,
+    private readonly registry: SchedulerRegistry,
     private readonly metrics: MetricsService,
   ) {}
 
   onApplicationBootstrap(): void {
     if (!this.config.shadowModeEnabled) {
       this.logger.log("Scheduler disabled: shadow mode is off");
+      return;
     }
+    // Registered dynamically so PROCESSING_RECONCILIATION_INTERVAL_SECONDS is
+    // honoured instead of a hardcoded five-minute cron.
+    const job = this.job.schedule(this.config.reconciliationIntervalMs);
+    this.registry.addCronJob(RECONCILIATION_JOB_NAME, job);
+    job.start();
+    this.logger.log(
+      `Snapshot reconciliation scheduled every ${this.config.reconciliationIntervalMs / 1000}s`,
+    );
   }
 
-  /** Every five minutes, as a safety net for missed triggers. */
-  @Cron(CronExpression.EVERY_5_MINUTES, { name: "snapshot-reconciliation" })
-  async handleCron(): Promise<void> {
-    await this.runExclusive("scheduled");
+  onModuleDestroy(): void {
+    if (this.registry.doesExist("cron", RECONCILIATION_JOB_NAME)) {
+      this.registry.deleteCronJob(RECONCILIATION_JOB_NAME);
+    }
   }
 
   /**
@@ -54,13 +69,13 @@ export class SchedulerService implements OnApplicationBootstrap {
     try {
       await this.job.run(reason);
       this.metrics.jobExecution(
-        "snapshot-reconciliation",
+        RECONCILIATION_JOB_NAME,
         "ok",
         (Date.now() - startedAt) / 1000,
       );
     } catch (error) {
       this.metrics.jobExecution(
-        "snapshot-reconciliation",
+        RECONCILIATION_JOB_NAME,
         "error",
         (Date.now() - startedAt) / 1000,
       );

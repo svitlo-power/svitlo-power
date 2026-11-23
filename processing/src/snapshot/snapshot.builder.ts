@@ -1,4 +1,5 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
+import { ConfigType } from "@nestjs/config";
 import {
   BuildingSnapshot,
   ChargeSource,
@@ -9,6 +10,7 @@ import {
   getEstimateChargeTime,
   getEstimateDischargeTime,
 } from "../shared.js";
+import { processingConfig } from "../config/processing.config.js";
 import {
   BuildingRecord,
   DashboardRepository,
@@ -58,6 +60,8 @@ const CHARGE_SOURCE_RECUPERATION: ChargeSource = "Recuperation";
 @Injectable()
 export class SnapshotBuilder {
   constructor(
+    @Inject(processingConfig.KEY)
+    private readonly config: ConfigType<typeof processingConfig>,
     private readonly dashboard: DashboardRepository,
     private readonly stationsData: StationsDataRepository,
     private readonly settings: SettingsRepository,
@@ -209,8 +213,8 @@ export class SnapshotBuilder {
 
     const assumed = await this.stationsData.getAssumedConnectionStatus(
       station.id,
-      this.reportIntervalSeconds,
-      this.assumedOfflineReports,
+      this.config.deyeReportIntervalSeconds,
+      this.config.deyeAssumedOfflineReports,
     );
     snapshot.isOffline =
       station.connectionStatus === "ALL_OFFLINE" || assumed === "OFFLINE";
@@ -273,8 +277,4 @@ export class SnapshotBuilder {
       .map((id) => byUser.get(id))
       .filter((entry): entry is ExtDataRecord => entry !== undefined);
   }
-
-  /** Overridable in tests so the offline threshold is deterministic. */
-  reportIntervalSeconds = 300;
-  assumedOfflineReports = 2;
 }

@@ -29,6 +29,7 @@
     "@prometheus-io/client": "0.16.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
+    "cron": "4.4.0",
     "mongoose": "9.12.3",
     "nestjs-pino": "5.3.1",
     "pino": "10.4.0",

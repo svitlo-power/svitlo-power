@@ -187,6 +187,10 @@ services:
     env_file: .env
     environment:
       - FEATURE_PROCESSING_SHADOW_MODE=${FEATURE_PROCESSING_SHADOW_MODE:-false}
+      # The app reads PORT/METRICS_PORT from the shared .env; pin them so a
+      # value meant for another service cannot move the listener.
+      - PORT=8100
+      - METRICS_PORT=9095
     expose:
       - "8100"
       - "9095"

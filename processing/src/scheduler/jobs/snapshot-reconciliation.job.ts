@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { SchedulerRegistry } from "@nestjs/schedule";
+import { CronJob } from "cron";
 import { ProcessingService } from "../../processing/processing.service.js";
 
 /**
@@ -13,30 +13,35 @@ import { ProcessingService } from "../../processing/processing.service.js";
 export class SnapshotReconciliationJob {
   private readonly logger = new Logger(SnapshotReconciliationJob.name);
 
-  constructor(
-    private readonly registry: SchedulerRegistry,
-    private readonly processing: ProcessingService,
-  ) {}
+  constructor(private readonly processing: ProcessingService) {}
 
-  /** Runs one reconciliation, recording duration and outcome. */
+  /** Builds the cron job that drives the reconciliation interval. */
+  schedule(intervalMs: number): CronJob {
+    return new CronJob(`*/${Math.floor(intervalMs / 1000)} * * * *`, () => {
+      void this.runExclusive("scheduled");
+    });
+  }
+
+  /**
+   * Runs one reconciliation, recording duration and outcome.
+   *
+   * Errors propagate: the scheduler records the `result="error"` outcome and
+   * logs them, so swallowing them here would hide failed builds.
+   */
   async run(reason: string): Promise<void> {
+    const result = await this.processing.reconcile(reason);
+    this.logger.log(
+      `Reconciliation job finished: built=${result.built} published=${result.published}`,
+    );
+  }
+
+  private async runExclusive(reason: string): Promise<void> {
     try {
-      const result = await this.processing.reconcile(reason);
-      this.logger.log(
-        `Reconciliation job finished: built=${result.built} published=${result.published}`,
-      );
+      await this.run(reason);
     } catch (error) {
       this.logger.error(
         `Reconciliation job failed: ${(error as Error).message}`,
       );
     }
-  }
-
-  /** Guards against overlapping executions of the same named job. */
-  isRunning(name: string): boolean {
-    const job = this.registry.getCronJob(name) as unknown as {
-      isRunning?: () => boolean;
-    };
-    return typeof job.isRunning === "function" ? job.isRunning() : false;
   }
 }

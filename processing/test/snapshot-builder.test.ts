@@ -93,7 +93,13 @@ function builder(options: FakeOptions = {}): SnapshotBuilder {
     getAllSchedules: async () => options.schedules ?? {},
   } as unknown as OutagesScheduleRepository;
 
-  return new SnapshotBuilder(dashboard, stationsData, settingsRepo, outages);
+  return new SnapshotBuilder(
+    { deyeReportIntervalSeconds: 300, deyeAssumedOfflineReports: 2 } as never,
+    dashboard,
+    stationsData,
+    settingsRepo,
+    outages,
+  );
 }
 
 test("a building without a station reports only static fields", async () => {
