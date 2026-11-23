@@ -29,8 +29,11 @@ Python producer, which stays authoritative.
 | `FEATURE_PROCESSING_SHADOW_MODE` | `false` | Enables the shadow snapshot flow |
 | `PROCESSING_RECONCILIATION_INTERVAL_SECONDS` | `300` | Safety-net reconciliation cadence |
 | `PROCESSING_REFRESH_COALESCE_MS` | `500` | Refresh debounce window |
+| `PROCESSING_COMPARISON_MAX_SKEW_SECONDS` | `120` | Maximum tolerated age gap between the compared snapshots |
 | `PROCESSING_LEASE_TTL_SECONDS` | `30` | Shadow lease TTL |
 | `PROCESSING_LEASE_RENEW_INTERVAL_SECONDS` | `10` | Shadow lease renewal cadence |
+| `DEYE_REPORT_INTERVAL` | `300` | Reporter cadence used for the assumed-offline threshold |
+| `DEYE_ASSUMED_OFFLINE_REPORTS` | `2` | Missed reports before a station counts as offline |
 | `PROCESSING_LOG_LEVEL` | `info` | Pino log level |
 
 ## Endpoints
@@ -57,6 +60,27 @@ shadow:meta:dashboard:version
 
 The production snapshot key is only ever read, for comparison. The legacy
 producer keeps publishing to the production keys until the Phase 5 cutover.
+
+The service is a read-only MongoDB consumer: `autoIndex` and `autoCreate` are
+disabled, so the indexes declared on the shared schemas are never built against
+the Python-owned collections.
+
+## Metrics
+
+The `dashboard_snapshot_*` and `dashboard_refresh_*` metric names are shared
+with the legacy Python producer, so every panel and alert must filter on
+`job="svitlo-power-processing"` until the cutover. The shadow-only metrics carry
+a `processing_shadow_` prefix and never collide:
+
+| Metric | Type | Purpose |
+|---|---|---|
+| `processing_shadow_parity_rate` | Gauge | Field-level parity vs production |
+| `processing_shadow_mismatch_total` | Counter | Mismatches by `section`/`field` |
+| `processing_shadow_comparisons_total` | Counter | Comparisons by outcome |
+| `processing_shadow_comparison_skew_seconds` | Gauge | Age gap between the compared snapshots |
+| `processing_lease_acquired_total` | Counter | Lease acquisitions |
+| `processing_lease_lost_total` | Counter | Lease losses |
+| `processing_job_executions_total` | Counter | Scheduled job outcomes |
 
 ## Development
 

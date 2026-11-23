@@ -8,6 +8,7 @@ test("the environment validation applies the documented defaults", () => {
   assert.equal(validated.METRICS_PORT, "9095");
   assert.equal(validated.PROCESSING_RECONCILIATION_INTERVAL_SECONDS, "300");
   assert.equal(validated.PROCESSING_REFRESH_COALESCE_MS, "500");
+  assert.equal(validated.PROCESSING_COMPARISON_MAX_SKEW_SECONDS, "120");
   assert.equal(validated.PROCESSING_LEASE_TTL_SECONDS, "30");
   assert.equal(validated.PROCESSING_LEASE_RENEW_INTERVAL_SECONDS, "10");
   assert.equal(validated.DEYE_REPORT_INTERVAL, "300");
