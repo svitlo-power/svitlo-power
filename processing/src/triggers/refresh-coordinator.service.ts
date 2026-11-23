@@ -32,12 +32,15 @@ export class RefreshCoordinator {
       return this.pending;
     }
 
-    this.pending = new Promise<ReconcileResult>((resolve) => {
+    // `reject` must be wired up: a failing build has to surface to the HTTP
+    // caller (and to Node's unhandled-rejection guard) instead of leaving every
+    // coalesced caller waiting on a promise that never settles.
+    this.pending = new Promise<ReconcileResult>((resolve, reject) => {
       this.debounceTimer = setTimeout(() => {
         this.debounceTimer = null;
         void this.processing
           .reconcile(reason)
-          .then(resolve)
+          .then(resolve, reject)
           .finally(() => {
             if (this.followers > 0) {
               this.logger.log(

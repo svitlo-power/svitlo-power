@@ -68,7 +68,26 @@ export class ProcessingService
     this.startedAt = Date.now();
     await this.lease.acquire();
     this.lease.start();
-    await this.reconcile("startup");
+    try {
+      await this.reconcile("startup");
+    } catch (error) {
+      // A failed first build must not stop the container from booting: the
+      // scheduler and the refresh trigger retry, and /health/ready reports it.
+      this.logger.error(
+        `Startup reconciliation failed: ${(error as Error).message}`,
+      );
+      this.metrics.writeError("exception");
+      this.lastResult = {
+        built: false,
+        published: false,
+        epoch: this.epoch,
+        version: 0,
+        changed: [],
+        parity: null,
+        mismatches: 0,
+        reason: "exception",
+      };
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
