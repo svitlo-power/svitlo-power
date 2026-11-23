@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { Connection as MongooseConnection } from "mongoose";
 import { InjectConnection } from "@nestjs/mongoose";
+// `Connection` is a TypeScript-only type: importing it as a value makes tsc
+// emit a named ESM import that mongoose does not provide, and Node crashes at
+// module instantiation before any Nest code runs.
+import type { Connection as MongooseConnection } from "mongoose";
 import {
   aggregateReadinessStatus,
   CheckStatus,
