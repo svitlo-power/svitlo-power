@@ -27,6 +27,12 @@ export interface ProcessingConfiguration {
   reconciliationIntervalMs: number;
   /** Debounce window that coalesces bursts of refresh requests. */
   refreshCoalesceMs: number;
+  /**
+   * Maximum tolerated age difference between the production and shadow
+   * snapshots. Beyond it the comparison is skipped instead of reporting
+   * mismatches caused purely by time skew.
+   */
+  comparisonMaxSkewSeconds: number;
   deyeReportIntervalSeconds: number;
   deyeAssumedOfflineReports: number;
   leaseTtlSeconds: number;
@@ -77,6 +83,11 @@ export function validateEnvironment(
       "PROCESSING_REFRESH_COALESCE_MS",
       500,
     ),
+    PROCESSING_COMPARISON_MAX_SKEW_SECONDS: positiveInteger(
+      env,
+      "PROCESSING_COMPARISON_MAX_SKEW_SECONDS",
+      120,
+    ),
     DEYE_REPORT_INTERVAL: positiveInteger(env, "DEYE_REPORT_INTERVAL", 300),
     DEYE_ASSUMED_OFFLINE_REPORTS: positiveInteger(
       env,
@@ -118,6 +129,9 @@ export const processingConfig = registerAs(
       1000,
     refreshCoalesceMs: Number(
       process.env.PROCESSING_REFRESH_COALESCE_MS ?? 500,
+    ),
+    comparisonMaxSkewSeconds: Number(
+      process.env.PROCESSING_COMPARISON_MAX_SKEW_SECONDS ?? 120,
     ),
     deyeReportIntervalSeconds: Number(process.env.DEYE_REPORT_INTERVAL ?? 300),
     deyeAssumedOfflineReports: Number(

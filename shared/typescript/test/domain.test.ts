@@ -167,10 +167,46 @@ test("snapshot diff reports the exact field that differs", () => {
   assert.equal(diff.matches, false);
   assert.deepEqual(
     diff.mismatches.map((mismatch) => mismatch.field),
-    ["buildings[0].batteryPercent", "buildings[0].chargeSource"],
+    [
+      "507f1f77bcf86cd799439011.batteryPercent",
+      "507f1f77bcf86cd799439011.chargeSource",
+    ],
   );
   assert.equal(diff.mismatches[0].section, "summary");
   assert.ok(diff.parity < 1);
+});
+
+test("snapshot diff matches buildings by id, not by position", () => {
+  const baseline = snapshot();
+  const reordered = snapshot();
+  reordered.buildings = [
+    { ...reordered.buildings[0], id: "507f1f77bcf86cd799439099" },
+    reordered.buildings[0],
+  ];
+
+  const diff = diffSnapshots(baseline, reordered);
+  assert.equal(diff.matches, false);
+  // Only the added/removed ids are reported; the shared building is untouched.
+  assert.deepEqual(diff.missingBuildings, []);
+  assert.deepEqual(diff.extraBuildings, ["507f1f77bcf86cd799439099"]);
+  assert.deepEqual(
+    diff.mismatches.map((mismatch) => mismatch.field),
+    ["buildings:length", "buildings.507f1f77bcf86cd799439099"],
+  );
+});
+
+test("snapshot diff reports a missing building as its own mismatch", () => {
+  const baseline = snapshot();
+  const candidate = snapshot();
+  candidate.buildings = [];
+
+  const diff = diffSnapshots(baseline, candidate);
+  assert.deepEqual(diff.missingBuildings, ["507f1f77bcf86cd799439011"]);
+  assert.deepEqual(diff.extraBuildings, []);
+  assert.deepEqual(
+    diff.mismatches.map((mismatch) => mismatch.field),
+    ["buildings:length", "buildings.507f1f77bcf86cd799439011"],
+  );
 });
 
 test("snapshot diff ignores generatedAt, epoch and version", () => {

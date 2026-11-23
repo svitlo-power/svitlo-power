@@ -151,7 +151,15 @@ export class MetricsService {
     this.shadowMismatches.labels({ section, field }).inc();
   }
 
-  shadowComparison(result: "match" | "mismatch" | "no-baseline"): void {
+  shadowComparison(
+    result:
+      | "match"
+      | "mismatch"
+      | "no-baseline"
+      | "invalid-baseline"
+      | "read-error"
+      | "stale-baseline",
+  ): void {
     this.shadowComparisons.labels({ result }).inc();
   }
 

@@ -30,7 +30,11 @@ function snapshot(
 function comparator(redis: {
   get: (key: string) => Promise<string | null>;
 }): ShadowComparator {
-  return new ShadowComparator(redis as never, metrics());
+  return new ShadowComparator(
+    redis as never,
+    { comparisonMaxSkewSeconds: 120 } as never,
+    metrics(),
+  );
 }
 
 test("an empty production cache is reported as having no baseline", async () => {
@@ -81,6 +85,31 @@ test("a differing production snapshot reports the mismatch count", async () => {
   // The added building shows up as a length mismatch plus the missing entry.
   assert.equal(result.mismatches, 2);
   assert.ok(result.parity < 1);
+});
+
+test("a large age difference between the snapshots skips the comparison", async () => {
+  const baseline = snapshot();
+  const candidate = snapshot({
+    generatedAt: "2026-01-01T01:00:00.000Z",
+  });
+  const result = await comparator({
+    get: async () => JSON.stringify(baseline),
+  }).compareWithProduction(candidate);
+  assert.equal(result.compared, false);
+  assert.equal(result.reason, "stale-baseline");
+  assert.equal(result.skewSeconds, 3600);
+});
+
+test("a small age difference still compares and reports the skew", async () => {
+  const baseline = snapshot();
+  const candidate = snapshot({
+    generatedAt: "2026-01-01T00:00:30.000Z",
+  });
+  const result = await comparator({
+    get: async () => JSON.stringify(baseline),
+  }).compareWithProduction(candidate);
+  assert.equal(result.compared, true);
+  assert.equal(result.skewSeconds, 30);
 });
 
 test("a Redis read failure is reported instead of throwing", async () => {

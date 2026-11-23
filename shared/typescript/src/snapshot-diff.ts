@@ -26,6 +26,9 @@ export interface SnapshotDiff {
   /** Fraction of compared leaf fields that matched, 1 for an exact match. */
   parity: number;
   comparedFields: number;
+  /** Building ids present in one snapshot but not the other. */
+  missingBuildings: string[];
+  extraBuildings: string[];
 }
 
 const STATIC_FIELD_SET = new Set<string>(BUILDING_STATIC_FIELDS);
@@ -146,20 +149,36 @@ export function diffSnapshots(
     expected.buildings.length,
     actual.buildings.length,
   );
-  const length = Math.max(expected.buildings.length, actual.buildings.length);
-  for (let index = 0; index < length; index += 1) {
-    const left = expected.buildings[index];
-    const right = actual.buildings[index];
-    const field = `buildings[${index}]`;
-    if (!left || !right) {
-      compare("buildings", field, left ?? null, right ?? null);
-      continue;
-    }
+
+  // Buildings are matched by id, not by position: one added, removed or
+  // reordered building must not shift every later row into a false mismatch.
+  const expectedById = new Map(
+    expected.buildings.map((building) => [building.id, building]),
+  );
+  const actualById = new Map(
+    actual.buildings.map((building) => [building.id, building]),
+  );
+  const missingBuildings = [...expectedById.keys()].filter(
+    (id) => !actualById.has(id),
+  );
+  const extraBuildings = [...actualById.keys()].filter(
+    (id) => !expectedById.has(id),
+  );
+  for (const id of missingBuildings) {
+    compare("buildings", `buildings.${id}`, expectedById.get(id) ?? null, null);
+  }
+  for (const id of extraBuildings) {
+    compare("buildings", `buildings.${id}`, null, actualById.get(id) ?? null);
+  }
+
+  for (const [id, left] of expectedById) {
+    const right = actualById.get(id);
+    if (!right) continue;
     for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
       const section = STATIC_FIELD_SET.has(key) ? "buildings" : "summary";
       compare(
         section,
-        `${field}.${key}`,
+        `${id}.${key}`,
         (left as unknown as Record<string, unknown>)[key] ?? null,
         (right as unknown as Record<string, unknown>)[key] ?? null,
       );
@@ -194,5 +213,7 @@ export function diffSnapshots(
         ? 1
         : (comparedFields - mismatches.length) / comparedFields,
     comparedFields,
+    missingBuildings,
+    extraBuildings,
   };
 }
