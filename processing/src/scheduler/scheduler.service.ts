@@ -24,7 +24,6 @@ export class SchedulerService
   implements OnApplicationBootstrap, OnModuleDestroy
 {
   private readonly logger = new Logger(SchedulerService.name);
-  private running = false;
 
   constructor(
     @Inject(processingConfig.KEY)
@@ -41,7 +40,10 @@ export class SchedulerService
     }
     // Registered dynamically so PROCESSING_RECONCILIATION_INTERVAL_SECONDS is
     // honoured instead of a hardcoded five-minute cron.
-    const job = this.job.schedule(this.config.reconciliationIntervalMs);
+    const job = this.job.schedule(
+      this.config.reconciliationIntervalMs,
+      (reason) => this.runExclusive(reason),
+    );
     this.registry.addCronJob(RECONCILIATION_JOB_NAME, job);
     job.start();
     this.logger.log(
@@ -60,11 +62,10 @@ export class SchedulerService
    * build never overlaps with the next tick.
    */
   async runExclusive(reason: string): Promise<void> {
-    if (this.running) {
+    if (this.job.isRunning) {
       this.logger.warn(`Skipping ${reason} reconciliation: already running`);
       return;
     }
-    this.running = true;
     const startedAt = Date.now();
     try {
       await this.job.run(reason);
@@ -82,8 +83,6 @@ export class SchedulerService
       this.logger.error(
         `Scheduled reconciliation failed: ${(error as Error).message}`,
       );
-    } finally {
-      this.running = false;
     }
   }
 }

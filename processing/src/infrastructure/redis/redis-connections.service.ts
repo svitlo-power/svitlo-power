@@ -24,4 +24,14 @@ export class RedisConnections implements OnModuleDestroy {
       return false;
     }
   }
+
+  /**
+   * Whether the connection is currently usable.
+   *
+   * Readiness reports this directly: during a Redis outage a build only fails
+   * indirectly, which would leave the probe green while nothing can be written.
+   */
+  isConnected(): boolean {
+    return this.reader.isReady && this.writer.isReady;
+  }
 }

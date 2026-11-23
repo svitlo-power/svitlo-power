@@ -12,13 +12,17 @@ import { ProcessingService } from "../../processing/processing.service.js";
 @Injectable()
 export class SnapshotReconciliationJob {
   private readonly logger = new Logger(SnapshotReconciliationJob.name);
+  private running = false;
 
   constructor(private readonly processing: ProcessingService) {}
 
   /** Builds the cron job that drives the reconciliation interval. */
-  schedule(intervalMs: number): CronJob {
+  schedule(
+    intervalMs: number,
+    run: (reason: string) => Promise<void>,
+  ): CronJob {
     return new CronJob(`*/${Math.floor(intervalMs / 1000)} * * * *`, () => {
-      void this.runExclusive("scheduled");
+      void run("scheduled");
     });
   }
 
@@ -35,13 +39,25 @@ export class SnapshotReconciliationJob {
     );
   }
 
+  /** Guards against overlapping executions of the same named job. */
+  get isRunning(): boolean {
+    return this.running;
+  }
+
   private async runExclusive(reason: string): Promise<void> {
+    if (this.running) {
+      this.logger.warn(`Skipping ${reason} reconciliation: already running`);
+      return;
+    }
+    this.running = true;
     try {
       await this.run(reason);
     } catch (error) {
       this.logger.error(
         `Reconciliation job failed: ${(error as Error).message}`,
       );
+    } finally {
+      this.running = false;
     }
   }
 }

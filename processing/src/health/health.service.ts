@@ -1,4 +1,6 @@
 import { Injectable } from "@nestjs/common";
+import { Connection as MongooseConnection } from "mongoose";
+import { InjectConnection } from "@nestjs/mongoose";
 import {
   aggregateReadinessStatus,
   CheckStatus,
@@ -11,6 +13,7 @@ import { ProcessingService } from "../processing/processing.service.js";
 export class HealthService {
   constructor(
     private readonly redis: RedisConnections,
+    @InjectConnection() private readonly mongo: MongooseConnection,
     private readonly processing: ProcessingService,
   ) {}
 
@@ -37,6 +40,9 @@ export class HealthService {
   async readiness() {
     const checks = {
       redis: await this.redisStatus(),
+      // A Mongo outage is otherwise only visible indirectly, through a failed
+      // build; report the connection itself so the probe reacts immediately.
+      mongo: toCheckStatus(this.mongo.readyState === 1),
       snapshot: this.processing.status(),
     };
     return { status: aggregateReadinessStatus(checks), checks };
