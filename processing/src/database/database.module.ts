@@ -25,6 +25,12 @@ import { processingConfig } from "../config/processing.config.js";
       useFactory: (config: ConfigType<typeof processingConfig>) => ({
         uri: config.mongoUri,
         dbName: config.mongoDatabase,
+        // The collections belong to the Python/Beanie back-end. Building the
+        // indexes declared on the shared schemas would write to production
+        // during the shadow phase (and can fail on duplicate keys), so index
+        // management stays with the owner service.
+        autoIndex: false,
+        autoCreate: false,
       }),
     }),
     MongooseModule.forFeature([
