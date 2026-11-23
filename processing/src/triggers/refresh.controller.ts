@@ -39,12 +39,14 @@ export class RefreshController {
   @Post("refresh")
   async refresh(@Body() body: RefreshSnapshotRequestDto) {
     const reason = body.reason ?? "manual";
+    // `coalesced` is part of the result: reading a counter after the await
+    // races with the coordinator resetting it in its `finally` block.
     const result = await this.coordinator.request(reason);
     return {
       accepted: true,
       epoch: result.epoch,
       version: result.version,
-      coalesced: this.coordinator.coalescedCount > 0,
+      coalesced: result.coalesced,
     };
   }
 }

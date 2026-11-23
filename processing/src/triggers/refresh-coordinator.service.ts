@@ -29,7 +29,10 @@ export class RefreshCoordinator {
   async request(reason: string): Promise<ReconcileResult> {
     if (this.pending) {
       this.followers += 1;
-      return this.pending;
+      const pending = this.pending;
+      // The leader's result carries `coalesced: false`; every follower folded
+      // into that build reports `coalesced: true`.
+      return pending.then((result) => ({ ...result, coalesced: true }));
     }
 
     // `reject` must be wired up: a failing build has to surface to the HTTP
@@ -55,10 +58,5 @@ export class RefreshCoordinator {
     });
 
     return this.pending;
-  }
-
-  /** Number of requests folded into the in-flight build. */
-  get coalescedCount(): number {
-    return this.followers;
   }
 }

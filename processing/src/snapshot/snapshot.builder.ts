@@ -50,6 +50,24 @@ const CHARGE_SOURCE_GENERATOR: ChargeSource = "Generator";
 const CHARGE_SOURCE_RECUPERATION: ChargeSource = "Recuperation";
 
 /**
+ * Whether a station's newest sample is older than
+ * `reportIntervalSeconds * assumedOfflineReports`.
+ *
+ * Mirrors `StationsDataReadRepository.get_assumed_connection_status`, reusing
+ * the measurement the caller already fetched instead of querying again.
+ */
+function isAssumedOffline(
+  lastUpdateTime: Date | null,
+  reportIntervalSeconds: number,
+  assumedOfflineReports: number,
+): boolean {
+  if (!lastUpdateTime) return true;
+  const elapsedSeconds =
+    (Date.now() - new Date(lastUpdateTime).getTime()) / 1000;
+  return elapsedSeconds > reportIntervalSeconds * assumedOfflineReports;
+}
+
+/**
  * Builds a `DashboardSnapshot v1` from MongoDB and Redis.
  *
  * The transformation is a direct port of
@@ -144,22 +162,24 @@ export class SnapshotBuilder {
     const stationIds = buildings
       .map((building) => building.stationId)
       .filter((id): id is string => id !== null);
-    const stations = await this.dashboard.getStationsByIds(stationIds);
-    const minutes = await this.settings.getNumber(
-      "estimate_discharge_period_minutes",
-      25,
-    );
+    const [stations, minutes] = await Promise.all([
+      this.dashboard.getStationsByIds(stationIds),
+      this.settings.getNumber("estimate_discharge_period_minutes", 25),
+    ]);
 
-    const snapshots: BuildingSnapshot[] = [];
-    for (const building of buildings) {
-      const station = building.stationId
-        ? (stations.get(building.stationId) ?? null)
-        : null;
-      snapshots.push(
-        await this.buildBuildingSnapshot(building, station, minutes),
-      );
-    }
-    return snapshots;
+    // Buildings are independent of each other, so they are built in parallel
+    // instead of one sequential round of queries per building.
+    return Promise.all(
+      buildings.map((building) =>
+        this.buildBuildingSnapshot(
+          building,
+          building.stationId
+            ? (stations.get(building.stationId) ?? null)
+            : null,
+          minutes,
+        ),
+      ),
+    );
   }
 
   private async buildBuildingSnapshot(
@@ -203,6 +223,8 @@ export class SnapshotBuilder {
 
     if (station === null) return snapshot;
 
+    // One query for the latest measurement: it feeds both the offline check and
+    // the summary, so the previous duplicate lookup is gone.
     const stationData = await this.stationsData.getLastStationData(station.id);
     if (stationData === null) return snapshot;
 
@@ -211,13 +233,13 @@ export class SnapshotBuilder {
     const isDischarging = dischargePower > DISCHARGE_THRESHOLD_W;
     const isCharging = chargePower * -1 > CHARGE_THRESHOLD_W;
 
-    const assumed = await this.stationsData.getAssumedConnectionStatus(
-      station.id,
-      this.config.deyeReportIntervalSeconds,
-      this.config.deyeAssumedOfflineReports,
-    );
     snapshot.isOffline =
-      station.connectionStatus === "ALL_OFFLINE" || assumed === "OFFLINE";
+      station.connectionStatus === "ALL_OFFLINE" ||
+      isAssumedOffline(
+        stationData.lastUpdateTime,
+        this.config.deyeReportIntervalSeconds,
+        this.config.deyeAssumedOfflineReports,
+      );
     snapshot.isCharging = isCharging;
     snapshot.isDischarging = isDischarging;
     snapshot.batteryPercent = stationData.batterySoc;

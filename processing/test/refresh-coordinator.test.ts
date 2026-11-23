@@ -38,6 +38,7 @@ test("a successful build resolves every coalesced caller", async () => {
       changed: [],
       parity: 1,
       mismatches: 0,
+      coalesced: false,
     }),
   });
 
@@ -48,6 +49,9 @@ test("a successful build resolves every coalesced caller", async () => {
 
   assert.equal(leader.version, 2);
   assert.equal(follower.version, 2);
+  // The follower reports that its request was folded into the leader's build.
+  assert.equal(leader.coalesced, false);
+  assert.equal(follower.coalesced, true);
 });
 
 test("the coordinator accepts a new build after a failure", async () => {
@@ -64,6 +68,7 @@ test("the coordinator accepts a new build after a failure", async () => {
         changed: [],
         parity: 1,
         mismatches: 0,
+        coalesced: false,
       };
     },
   });

@@ -92,7 +92,11 @@ export class DashboardRepository {
   ): Promise<BuildingRecord[]> {
     const filter: Record<string, unknown> = {};
     if (ids !== undefined && ids !== null) {
-      filter._id = { $in: ids.map((id) => new Types.ObjectId(id)) };
+      // Validate before constructing ObjectIds: `new Types.ObjectId(id)`
+      // throws on anything that is not a 24-char hex string.
+      filter._id = {
+        $in: ids.filter(isObjectId).map((id) => new Types.ObjectId(id)),
+      };
     } else if (!all) {
       filter.enabled = true;
     }

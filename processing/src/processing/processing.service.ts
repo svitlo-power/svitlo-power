@@ -28,6 +28,8 @@ export interface ReconcileResult {
   changed: SnapshotSection[];
   parity: number | null;
   mismatches: number;
+  /** True when this caller's request was folded into an earlier build. */
+  coalesced: boolean;
   reason?: string;
 }
 
@@ -48,6 +50,7 @@ export class ProcessingService
   private inFlight: Promise<ReconcileResult> | null = null;
   private lastResult: ReconcileResult | null = null;
   private lastBuildAt: number | null = null;
+  private followUpRequested = false;
   private startedAt = Date.now();
 
   constructor(
@@ -94,6 +97,7 @@ export class ProcessingService
         changed: [],
         parity: null,
         mismatches: 0,
+        coalesced: false,
         reason: "exception",
       };
     }
@@ -123,19 +127,47 @@ export class ProcessingService
         changed: [],
         parity: null,
         mismatches: 0,
+        coalesced: false,
         reason: "disabled",
       };
     }
     this.metrics.refreshRequest(reason);
     if (this.inFlight) {
       this.metrics.refreshCoalescedCount();
-      return this.inFlight;
+      // A request that arrives mid-build joins that build, which started
+      // before the request. Queue a follow-up so a refresh after a config
+      // change cannot return a snapshot that predates it.
+      this.followUpRequested = true;
+      return { ...this.lastResultOrEmpty(), coalesced: true };
     }
     const run = this.runReconcile(reason).finally(() => {
       this.inFlight = null;
+      if (this.followUpRequested) {
+        this.followUpRequested = false;
+        void this.reconcile("follow-up").catch((error: Error) =>
+          this.logger.error(
+            `Follow-up reconciliation failed: ${error.message}`,
+          ),
+        );
+      }
     });
     this.inFlight = run;
     return run;
+  }
+
+  private lastResultOrEmpty(): ReconcileResult {
+    return (
+      this.lastResult ?? {
+        built: false,
+        published: false,
+        epoch: this.epoch,
+        version: 0,
+        changed: [],
+        parity: null,
+        mismatches: 0,
+        coalesced: false,
+      }
+    );
   }
 
   private async runReconcile(reason: string): Promise<ReconcileResult> {
@@ -149,6 +181,7 @@ export class ProcessingService
         changed: [],
         parity: null,
         mismatches: 0,
+        coalesced: false,
         reason: "no-lease",
       };
     }
@@ -178,6 +211,7 @@ export class ProcessingService
         changed: [],
         parity: null,
         mismatches: 0,
+        coalesced: false,
         reason: "validation",
       };
     }
@@ -198,6 +232,7 @@ export class ProcessingService
       changed,
       parity: comparison.compared ? comparison.parity : null,
       mismatches: comparison.mismatches,
+      coalesced: false,
       reason: publish.published ? undefined : publish.reason,
     };
     this.lastResult = result;
