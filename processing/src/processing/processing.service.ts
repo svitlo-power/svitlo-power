@@ -47,6 +47,7 @@ export class ProcessingService
   private lastSnapshot: DashboardSnapshot | null = null;
   private inFlight: Promise<ReconcileResult> | null = null;
   private lastResult: ReconcileResult | null = null;
+  private lastBuildAt: number | null = null;
   private startedAt = Date.now();
 
   constructor(
@@ -58,7 +59,15 @@ export class ProcessingService
     private readonly publisher: ShadowPublisher,
     private readonly comparator: ShadowComparator,
     private readonly metrics: MetricsService,
-  ) {}
+  ) {
+    // The epoch is cached per process, so it has to be re-seeded whenever the
+    // lease is (re)acquired: another replica may have written a newer epoch
+    // while this one was a standby, and every publish would then be rejected
+    // as `epoch-stale` until a restart.
+    this.lease.onAcquired(() => {
+      this.epoch = 0;
+    });
+  }
 
   async onApplicationBootstrap(): Promise<void> {
     if (!this.config.shadowModeEnabled) {
@@ -177,11 +186,7 @@ export class ProcessingService
     const publish = await this.publisher.publish(snapshot);
     if (publish.published) {
       this.lastSnapshot = snapshot;
-      this.metrics.setSnapshotState(
-        snapshot.epoch,
-        snapshot.version,
-        Math.max(0, (Date.now() - Date.parse(snapshot.generatedAt)) / 1000),
-      );
+      this.lastBuildAt = Date.now();
     }
 
     const comparison = await this.comparator.compareWithProduction(snapshot);
@@ -196,6 +201,7 @@ export class ProcessingService
       reason: publish.published ? undefined : publish.reason,
     };
     this.lastResult = result;
+    this.lastBuildAt = Date.now();
     this.logger.log(
       `Shadow reconciliation (${reason}): version=${snapshot.version} changed=[${changed.join(",")}] parity=${result.parity === null ? "n/a" : result.parity.toFixed(4)}`,
     );
@@ -205,6 +211,9 @@ export class ProcessingService
   /** Health/metrics view of the most recent reconciliation. */
   status(): "healthy" | "unhealthy" {
     if (!this.config.shadowModeEnabled) return "healthy";
+    // A replica that does not hold the lease is a standby: it is not supposed
+    // to build, so failing readiness would make multi-replica deploys flap.
+    if (!this.lease.isHolder) return "healthy";
     if (this.lastResult === null)
       return this.epoch === 0 ? "unhealthy" : "healthy";
     return this.lastResult.built ? "healthy" : "unhealthy";
@@ -222,7 +231,10 @@ export class ProcessingService
             (Date.now() - Date.parse(this.lastSnapshot.generatedAt)) / 1000,
           )
         : null,
-      last_build_at: this.lastResult ? new Date().toISOString() : null,
+      last_build_at:
+        this.lastBuildAt === null
+          ? null
+          : new Date(this.lastBuildAt).toISOString(),
       parity: this.lastResult?.parity ?? null,
       changed_sections: this.lastResult?.changed ?? [],
     };

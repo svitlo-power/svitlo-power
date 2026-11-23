@@ -106,3 +106,47 @@ test("releasing a lease only deletes it for the holder", async () => {
   assert.equal(lease.isHolder, false);
   assert.equal(redis.store.has("shadow:lock:processing:dashboard:v1"), false);
 });
+
+test("a renewal error drops the lease instead of reporting it as held", async () => {
+  const redis = fakeRedis();
+  const lease = new ProcessingLease(redis as never, {
+    key: "shadow:lock:processing:dashboard:v1",
+    instanceId: "processing-1",
+  });
+  await lease.acquire();
+  assert.equal(lease.isHolder, true);
+
+  // The renewal command now fails, as it would after a Redis outage.
+  const originalEval = redis.eval.bind(redis);
+  redis.eval = (async (script: string, options: unknown) => {
+    if (script.includes("EXPIRE")) throw new Error("connection closed");
+    return (
+      originalEval as unknown as (s: string, o: unknown) => Promise<number>
+    )(script, options);
+  }) as never;
+
+  assert.equal(await lease.renew(), false);
+  assert.equal(lease.isHolder, false);
+});
+
+test("onAcquired listeners run on every acquisition, including re-acquisition", async () => {
+  const redis = fakeRedis();
+  let acquisitions = 0;
+  const lease = new ProcessingLease(redis as never, {
+    key: "shadow:lock:processing:dashboard:v1",
+    instanceId: "processing-1",
+  });
+  lease.onAcquired(() => {
+    acquisitions += 1;
+  });
+
+  await lease.acquire();
+  assert.equal(acquisitions, 1);
+
+  // Another instance steals the lease, then this one takes it back.
+  redis.store.set("shadow:lock:processing:dashboard:v1", "processing-other");
+  assert.equal(await lease.renew(), false);
+  redis.store.delete("shadow:lock:processing:dashboard:v1");
+  assert.equal(await lease.acquire(), true);
+  assert.equal(acquisitions, 2);
+});

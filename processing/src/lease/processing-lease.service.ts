@@ -29,6 +29,7 @@ export class ProcessingLease implements OnModuleDestroy {
   private token: string | null = null;
   private timer: NodeJS.Timeout | null = null;
   private stopped = false;
+  private readonly acquiredListeners: Array<() => void> = [];
 
   constructor(
     @Inject(REDIS_WRITER) private readonly redis: RedisClientType,
@@ -41,6 +42,14 @@ export class ProcessingLease implements OnModuleDestroy {
 
   get leaseToken(): string | null {
     return this.token;
+  }
+
+  /**
+   * Registers a callback that runs after every successful acquisition,
+   * including re-acquisitions after losing the lease.
+   */
+  onAcquired(listener: () => void): void {
+    this.acquiredListeners.push(listener);
   }
 
   /** One-shot acquisition attempt, used at startup and after losing the lease. */
@@ -62,6 +71,7 @@ export class ProcessingLease implements OnModuleDestroy {
     this.token = this.options.instanceId;
     this.logger.log(`Shadow lease acquired: ${this.token}`);
     this.options.onAcquired?.();
+    for (const listener of this.acquiredListeners) listener();
     this.startRenewing();
     return true;
   }
@@ -89,9 +99,13 @@ export class ProcessingLease implements OnModuleDestroy {
       });
       if (Number(result) === 1) return true;
     } catch (error) {
+      // Drop the token: after a Redis outage this instance no longer knows
+      // whether it still holds the lease, and the Lua fence would reject the
+      // next write anyway. Reporting `lease_held` here would be a lie.
       this.logger.warn(
-        `Shadow lease renewal failed: ${(error as Error).message}`,
+        `Shadow lease renewal failed, dropping the lease: ${(error as Error).message}`,
       );
+      this.lose();
       return false;
     }
     this.lose();
