@@ -29,7 +29,6 @@ import { ProcessingLease } from "./processing-lease.service.js";
           ttlSeconds: config.leaseTtlSeconds,
           renewIntervalSeconds: config.leaseRenewIntervalSeconds,
           onAcquired: () => {
-            logger.log(`Shadow lease acquired by ${instanceId}`);
             metrics.leaseAcquisition();
           },
           onLost: () => {

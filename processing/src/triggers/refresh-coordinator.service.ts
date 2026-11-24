@@ -26,7 +26,13 @@ export class RefreshCoordinator {
     private readonly processing: ProcessingService,
   ) {}
 
-  async request(reason: string): Promise<ReconcileResult> {
+  async request(
+    reason: string,
+    requestedBy?: string,
+  ): Promise<ReconcileResult> {
+    if (requestedBy) {
+      this.logger.log(`Refresh requested by ${requestedBy} (${reason})`);
+    }
     if (this.pending) {
       this.followers += 1;
       const pending = this.pending;

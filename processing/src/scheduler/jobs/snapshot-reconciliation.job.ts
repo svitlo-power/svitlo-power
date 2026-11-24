@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { CronJob } from "cron";
 import { ProcessingService } from "../../processing/processing.service.js";
 
 /**
@@ -16,14 +15,22 @@ export class SnapshotReconciliationJob {
 
   constructor(private readonly processing: ProcessingService) {}
 
-  /** Builds the cron job that drives the reconciliation interval. */
+  /**
+   * Builds the recurring task that drives the reconciliation interval.
+   *
+   * A `setInterval` is used rather than a cron expression: the configured
+   * value is a number of **seconds**, and a 5-field cron puts it in the
+   * minutes field, so `300` would silently mean "every hour at :00".
+   */
   schedule(
     intervalMs: number,
     run: (reason: string) => Promise<void>,
-  ): CronJob {
-    return new CronJob(`*/${Math.floor(intervalMs / 1000)} * * * *`, () => {
+  ): NodeJS.Timeout {
+    const timer = setInterval(() => {
       void run("scheduled");
-    });
+    }, intervalMs);
+    timer.unref?.();
+    return timer;
   }
 
   /**
@@ -44,7 +51,8 @@ export class SnapshotReconciliationJob {
     return this.running;
   }
 
-  private async runExclusive(reason: string): Promise<void> {
+  /** Runs one reconciliation unless the previous one is still in flight. */
+  async runExclusive(reason: string): Promise<void> {
     if (this.running) {
       this.logger.warn(`Skipping ${reason} reconciliation: already running`);
       return;

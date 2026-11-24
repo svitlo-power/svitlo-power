@@ -51,6 +51,8 @@ export class ProcessingService
   private lastResult: ReconcileResult | null = null;
   private lastBuildAt: number | null = null;
   private followUpRequested = false;
+  private followUpResolve: ((result: Promise<ReconcileResult>) => void) | null =
+    null;
   private startedAt = Date.now();
 
   constructor(
@@ -78,28 +80,14 @@ export class ProcessingService
       return;
     }
     this.startedAt = Date.now();
-    await this.lease.acquire();
-    this.lease.start();
     try {
+      // A transient Redis error during `SET NX` must not fail the bootstrap
+      // either: the scheduler retries and /health/ready reports the state.
+      await this.lease.acquire();
+      this.lease.start();
       await this.reconcile("startup");
     } catch (error) {
-      // A failed first build must not stop the container from booting: the
-      // scheduler and the refresh trigger retry, and /health/ready reports it.
-      this.logger.error(
-        `Startup reconciliation failed: ${(error as Error).message}`,
-      );
-      this.metrics.writeError("exception");
-      this.lastResult = {
-        built: false,
-        published: false,
-        epoch: this.epoch,
-        version: 0,
-        changed: [],
-        parity: null,
-        mismatches: 0,
-        coalesced: false,
-        reason: "exception",
-      };
+      this.recordFailure("startup", error as Error);
     }
   }
 
@@ -134,40 +122,59 @@ export class ProcessingService
     this.metrics.refreshRequest(reason);
     if (this.inFlight) {
       this.metrics.refreshCoalescedCount();
-      // A request that arrives mid-build joins that build, which started
-      // before the request. Queue a follow-up so a refresh after a config
-      // change cannot return a snapshot that predates it.
+      // A request that arrives mid-build would otherwise be answered with the
+      // snapshot from *before* the current build. Await a follow-up build that
+      // starts once the current one settles, so the caller cannot be told
+      // `accepted` with a version that predates its own change.
       this.followUpRequested = true;
-      return { ...this.lastResultOrEmpty(), coalesced: true };
+      return this.waitForFollowUp();
     }
-    const run = this.runReconcile(reason).finally(() => {
-      this.inFlight = null;
-      if (this.followUpRequested) {
-        this.followUpRequested = false;
-        void this.reconcile("follow-up").catch((error: Error) =>
-          this.logger.error(
-            `Follow-up reconciliation failed: ${error.message}`,
-          ),
-        );
-      }
-    });
+    const run = this.runReconcile(reason)
+      .catch((error: Error) => {
+        // Every failure path, not just startup, has to reach health and the
+        // write-error metric; otherwise a broken build looks like a healthy
+        // service until the next successful one.
+        this.recordFailure(reason, error);
+        throw error;
+      })
+      .finally(() => {
+        this.inFlight = null;
+        if (this.followUpRequested) {
+          this.followUpRequested = false;
+          const followUp = this.reconcile("follow-up");
+          this.followUpResolve?.(followUp);
+          this.followUpResolve = null;
+        }
+      });
     this.inFlight = run;
     return run;
   }
 
-  private lastResultOrEmpty(): ReconcileResult {
-    return (
-      this.lastResult ?? {
-        built: false,
-        published: false,
-        epoch: this.epoch,
-        version: 0,
-        changed: [],
-        parity: null,
-        mismatches: 0,
-        coalesced: false,
-      }
-    );
+  /** Records a failed reconciliation so health stops reporting the last success. */
+  private recordFailure(reason: string, error: Error): void {
+    this.logger.error(`Reconciliation (${reason}) failed: ${error.message}`);
+    this.metrics.writeError("exception");
+    this.lastResult = {
+      built: false,
+      published: false,
+      epoch: this.epoch,
+      version: 0,
+      changed: [],
+      parity: null,
+      mismatches: 0,
+      coalesced: false,
+      reason: "exception",
+    };
+  }
+
+  /**
+   * Resolves with the follow-up build that the in-flight build schedules for
+   * requests arriving mid-build.
+   */
+  private waitForFollowUp(): Promise<ReconcileResult> {
+    return new Promise<ReconcileResult>((resolve) => {
+      this.followUpResolve = resolve;
+    });
   }
 
   private async runReconcile(reason: string): Promise<ReconcileResult> {
@@ -220,7 +227,6 @@ export class ProcessingService
     const publish = await this.publisher.publish(snapshot);
     if (publish.published) {
       this.lastSnapshot = snapshot;
-      this.lastBuildAt = Date.now();
     }
 
     const comparison = await this.comparator.compareWithProduction(snapshot);

@@ -92,6 +92,16 @@ export class MetricsService {
     help: "Age difference between the compared production and shadow snapshots",
     registers: [this.registry],
   });
+  private readonly shadowLastComparison = new Gauge({
+    name: "processing_shadow_last_comparison_timestamp_seconds",
+    help: "Unix timestamp of the last completed shadow comparison",
+    registers: [this.registry],
+  });
+  private readonly shadowLastParity = new Gauge({
+    name: "processing_shadow_last_parity_rate",
+    help: "Parity of the last completed comparison; NaN when none has completed",
+    registers: [this.registry],
+  });
   private readonly leaseAcquired = new Counter({
     name: "processing_lease_acquired_total",
     help: "Times the shadow lease has been acquired",
@@ -158,6 +168,18 @@ export class MetricsService {
 
   setShadowParity(rate: number): void {
     this.shadowParity.set(rate);
+    this.shadowLastParity.set(rate);
+    this.shadowLastComparison.set(Date.now() / 1000);
+  }
+
+  /**
+   * Marks the parity gauge as stale without inventing a value.
+   *
+   * A skipped comparison leaves the previous parity in place, which would show
+   * healthy parity from hours ago; NaN makes the gap visible instead.
+   */
+  markShadowParityStale(): void {
+    this.shadowLastParity.set(Number.NaN);
   }
 
   setShadowSkew(seconds: number): void {

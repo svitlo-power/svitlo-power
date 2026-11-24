@@ -468,7 +468,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "dashboard_snapshot_age_seconds",
+          "expr": "dashboard_snapshot_age_seconds{job=\"svitlo-power-back-end\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }

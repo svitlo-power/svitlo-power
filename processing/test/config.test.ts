@@ -31,6 +31,32 @@ test("the environment validation rejects invalid values", () => {
   );
 });
 
+test("the environment validation rejects a renewal interval above the TTL", () => {
+  // A renewal at or above the TTL would let the lease expire between renewals.
+  assert.throws(
+    () =>
+      validateEnvironment({
+        PROCESSING_LEASE_TTL_SECONDS: "30",
+        PROCESSING_LEASE_RENEW_INTERVAL_SECONDS: "30",
+      }),
+    /PROCESSING_LEASE_RENEW_INTERVAL_SECONDS must be less than/,
+  );
+  assert.throws(
+    () =>
+      validateEnvironment({
+        PROCESSING_LEASE_TTL_SECONDS: "10",
+        PROCESSING_LEASE_RENEW_INTERVAL_SECONDS: "20",
+      }),
+    /PROCESSING_LEASE_RENEW_INTERVAL_SECONDS must be less than/,
+  );
+  assert.doesNotThrow(() =>
+    validateEnvironment({
+      PROCESSING_LEASE_TTL_SECONDS: "30",
+      PROCESSING_LEASE_RENEW_INTERVAL_SECONDS: "10",
+    }),
+  );
+});
+
 test("the environment validation keeps valid overrides", () => {
   const validated = validateEnvironment({
     PORT: "9000",

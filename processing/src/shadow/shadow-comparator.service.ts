@@ -119,6 +119,9 @@ export class ShadowComparator {
   ): ShadowComparison {
     if (reason !== undefined) {
       this.metrics.shadowComparison(reason);
+      // Do not leave the previous parity looking current: a skipped comparison
+      // must be visible as "no fresh sample", not as healthy parity.
+      this.metrics.markShadowParityStale();
       if (skewSeconds !== undefined) this.metrics.setShadowSkew(skewSeconds);
       return {
         compared: false,

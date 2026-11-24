@@ -42,7 +42,9 @@ export class HealthService {
 
   async readiness() {
     const checks = {
-      redis: await this.redisStatus(),
+      // `isConnected()` is the cheap local check; `ping()` adds a round trip but
+      // proves the server actually answers.
+      redis: toCheckStatus(this.redis.isConnected()),
       // A Mongo outage is otherwise only visible indirectly, through a failed
       // build; report the connection itself so the probe reacts immediately.
       mongo: toCheckStatus(this.mongo.readyState === 1),

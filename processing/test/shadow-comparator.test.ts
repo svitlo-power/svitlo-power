@@ -9,6 +9,7 @@ function metrics(): MetricsService {
   return {
     setShadowParity: noop,
     setShadowSkew: noop,
+    markShadowParityStale: noop,
     shadowMismatch: noop,
     shadowComparison: noop,
   } as unknown as MetricsService;

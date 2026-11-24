@@ -289,7 +289,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "dashboard_snapshot_age_seconds",
+          "expr": "dashboard_snapshot_age_seconds{job=\"svitlo-power-back-end\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -381,7 +381,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "dashboard_snapshot_version",
+          "expr": "dashboard_snapshot_version{job=\"svitlo-power-back-end\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -570,7 +570,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "sum by (reason) (rate(dashboard_refresh_requests_total[5m])) or on() vector(0)",
+          "expr": "sum by (reason) (rate(dashboard_refresh_requests_total{job=\"svitlo-power-back-end\"}[5m])) or on() vector(0)",
           "legendFormat": "{{reason}}",
           "refId": "A"
         }
@@ -662,7 +662,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total[1h])) or on() vector(0)",
+          "expr": "sum by (error_type) (increase(dashboard_snapshot_write_errors_total{job=\"svitlo-power-back-end\"}[1h])) or on() vector(0)",
           "legendFormat": "{{error_type}}",
           "refId": "A"
         }

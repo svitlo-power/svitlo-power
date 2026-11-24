@@ -41,7 +41,7 @@ export class RefreshController {
     const reason = body.reason ?? "manual";
     // `coalesced` is part of the result: reading a counter after the await
     // races with the coordinator resetting it in its `finally` block.
-    const result = await this.coordinator.request(reason);
+    const result = await this.coordinator.request(reason, body.requestedBy);
     return {
       accepted: true,
       epoch: result.epoch,

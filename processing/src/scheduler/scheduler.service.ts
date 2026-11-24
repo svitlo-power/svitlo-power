@@ -6,7 +6,6 @@ import {
   OnModuleDestroy,
 } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
-import { SchedulerRegistry } from "@nestjs/schedule";
 import { processingConfig } from "../config/processing.config.js";
 import { MetricsService } from "../metrics/metrics.service.js";
 import { SnapshotReconciliationJob } from "./jobs/snapshot-reconciliation.job.js";
@@ -24,12 +23,12 @@ export class SchedulerService
   implements OnApplicationBootstrap, OnModuleDestroy
 {
   private readonly logger = new Logger(SchedulerService.name);
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     @Inject(processingConfig.KEY)
     private readonly config: ConfigType<typeof processingConfig>,
     private readonly job: SnapshotReconciliationJob,
-    private readonly registry: SchedulerRegistry,
     private readonly metrics: MetricsService,
   ) {}
 
@@ -38,23 +37,20 @@ export class SchedulerService
       this.logger.log("Scheduler disabled: shadow mode is off");
       return;
     }
-    // Registered dynamically so PROCESSING_RECONCILIATION_INTERVAL_SECONDS is
-    // honoured instead of a hardcoded five-minute cron.
-    const job = this.job.schedule(
+    // Registered from the configured interval so
+    // PROCESSING_RECONCILIATION_INTERVAL_SECONDS is actually honoured.
+    this.timer = this.job.schedule(
       this.config.reconciliationIntervalMs,
       (reason) => this.runExclusive(reason),
     );
-    this.registry.addCronJob(RECONCILIATION_JOB_NAME, job);
-    job.start();
     this.logger.log(
       `Snapshot reconciliation scheduled every ${this.config.reconciliationIntervalMs / 1000}s`,
     );
   }
 
   onModuleDestroy(): void {
-    if (this.registry.doesExist("cron", RECONCILIATION_JOB_NAME)) {
-      this.registry.deleteCronJob(RECONCILIATION_JOB_NAME);
-    }
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
   }
 
   /**

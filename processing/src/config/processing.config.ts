@@ -69,7 +69,7 @@ export function validateEnvironment(
   ) {
     throw new Error("PROCESSING_LOG_LEVEL must be a valid Pino level");
   }
-  return {
+  const result: Record<string, unknown> = {
     ...env,
     PORT: positiveInteger(env, "PORT", 8100),
     METRICS_PORT: positiveInteger(env, "METRICS_PORT", 9095),
@@ -107,6 +107,17 @@ export function validateEnvironment(
     PROCESSING_LOG_LEVEL: logLevel,
     INTERNAL_API_TOKEN: String(env.INTERNAL_API_TOKEN ?? ""),
   };
+
+  const ttl = Number(result.PROCESSING_LEASE_TTL_SECONDS);
+  const renew = Number(result.PROCESSING_LEASE_RENEW_INTERVAL_SECONDS);
+  // A renewal interval at or above the TTL means the lease can expire between
+  // renewals, so the instance would lose the lease on a normal cycle.
+  if (renew >= ttl) {
+    throw new Error(
+      "PROCESSING_LEASE_RENEW_INTERVAL_SECONDS must be less than PROCESSING_LEASE_TTL_SECONDS",
+    );
+  }
+  return result;
 }
 
 export const processingConfig = registerAs(
