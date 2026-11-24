@@ -36,3 +36,31 @@ groups:
           description: Snapshot write failures occurred during the last five minutes.
         labels:
           severity: warning
+      - uid: processing-shadow-parity-stale
+        title: Shadow parity comparison is stale
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: time() - processing_shadow_last_comparison_timestamp_seconds{job="svitlo-power-processing"} > 900
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        annotations:
+          summary: Shadow parity has not been refreshed recently
+          description: No shadow comparison has completed in the last 15 minutes, so the parity reading is stale rather than healthy.
+        labels:
+          severity: warning

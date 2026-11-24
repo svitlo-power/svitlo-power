@@ -718,6 +718,104 @@
               "mode": "none"
             },
             "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 600
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "id": 16,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.1.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "time() - processing_shadow_last_comparison_timestamp_seconds{job=\"svitlo-power-processing\"}",
+          "legendFormat": "since last completed comparison",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Shadow parity freshness (skipped comparisons leave the parity gauge empty)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
               "mode": "off"
             }
           },
@@ -743,7 +841,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 35
       },
       "id": 8,
       "options": {
@@ -764,7 +862,7 @@
         {
           "editorMode": "code",
           "expr": "sum by (job_name, result) (rate(processing_job_executions_total[5m])) or on() vector(0)",
-          "legendFormat": "{{job}} / {{result}}",
+          "legendFormat": "{{job_name}} / {{result}}",
           "range": true,
           "refId": "A"
         }
@@ -837,7 +935,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 35
       },
       "id": 9,
       "options": {
@@ -858,7 +956,7 @@
         {
           "editorMode": "code",
           "expr": "histogram_quantile(0.95, sum by (le, job_name) (rate(processing_job_duration_seconds_bucket[5m])))",
-          "legendFormat": "{{job}}",
+          "legendFormat": "{{job_name}}",
           "range": true,
           "refId": "A"
         }
@@ -931,7 +1029,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 42
       },
       "id": 10,
       "options": {
@@ -1032,7 +1130,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 42
       },
       "id": 11,
       "options": {
@@ -1133,7 +1231,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 49
       },
       "id": 12,
       "options": {
@@ -1227,7 +1325,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 42
+        "y": 49
       },
       "id": 13,
       "options": {
@@ -1321,7 +1419,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 49
+        "y": 56
       },
       "id": 14,
       "options": {
@@ -1422,7 +1520,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 49
+        "y": 56
       },
       "id": 15,
       "options": {

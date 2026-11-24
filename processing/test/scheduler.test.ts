@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { SchedulerService } from "../src/scheduler/scheduler.service.js";
 import { SnapshotReconciliationJob } from "../src/scheduler/jobs/snapshot-reconciliation.job.js";
 import type { ProcessingService } from "../src/processing/processing.service.js";
+import type { MetricsService } from "../src/metrics/metrics.service.js";
 
 const TICK_MS = 20;
 
@@ -10,6 +12,17 @@ function job(processing: {
 }): SnapshotReconciliationJob {
   return new SnapshotReconciliationJob(
     processing as unknown as ProcessingService,
+  );
+}
+
+function scheduler(processing: {
+  reconcile: (reason: string) => Promise<unknown>;
+}): SchedulerService {
+  const noop = () => undefined;
+  return new SchedulerService(
+    { shadowModeEnabled: true, reconciliationIntervalMs: TICK_MS } as never,
+    job(processing),
+    { jobExecution: noop } as unknown as MetricsService,
   );
 }
 
@@ -42,7 +55,7 @@ test("the schedule fires on the configured interval, not on a cron minute", asyn
 
 test("runExclusive skips a tick while a build is still running", async () => {
   let release: (() => void) | undefined;
-  const instance = job({
+  const instance = scheduler({
     reconcile: () =>
       new Promise((resolve) => {
         release = () => resolve({ built: true, published: true });
@@ -50,6 +63,7 @@ test("runExclusive skips a tick while a build is still running", async () => {
   });
 
   const first = instance.runExclusive("scheduled");
+  // The second tick lands while the first build is still in flight.
   await instance.runExclusive("scheduled");
   assert.equal(instance.isRunning, true);
 
@@ -58,13 +72,15 @@ test("runExclusive skips a tick while a build is still running", async () => {
   assert.equal(instance.isRunning, false);
 });
 
-test("runExclusive swallows the error after recording it", async () => {
-  const instance = job({
+test("runExclusive records the error and clears the guard", async () => {
+  const instance = scheduler({
     reconcile: async () => {
       throw new Error("mongo down");
     },
   });
 
+  // The scheduler logs and records the failure rather than propagating it, so a
+  // failing tick cannot take the timer down with it.
   await instance.runExclusive("scheduled");
   assert.equal(instance.isRunning, false);
 });

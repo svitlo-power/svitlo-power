@@ -11,7 +11,6 @@ import { ProcessingService } from "../../processing/processing.service.js";
 @Injectable()
 export class SnapshotReconciliationJob {
   private readonly logger = new Logger(SnapshotReconciliationJob.name);
-  private running = false;
 
   constructor(private readonly processing: ProcessingService) {}
 
@@ -44,28 +43,5 @@ export class SnapshotReconciliationJob {
     this.logger.log(
       `Reconciliation job finished: built=${result.built} published=${result.published}`,
     );
-  }
-
-  /** Guards against overlapping executions of the same named job. */
-  get isRunning(): boolean {
-    return this.running;
-  }
-
-  /** Runs one reconciliation unless the previous one is still in flight. */
-  async runExclusive(reason: string): Promise<void> {
-    if (this.running) {
-      this.logger.warn(`Skipping ${reason} reconciliation: already running`);
-      return;
-    }
-    this.running = true;
-    try {
-      await this.run(reason);
-    } catch (error) {
-      this.logger.error(
-        `Reconciliation job failed: ${(error as Error).message}`,
-      );
-    } finally {
-      this.running = false;
-    }
   }
 }

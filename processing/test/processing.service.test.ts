@@ -134,8 +134,10 @@ test("re-acquiring the lease resets the cached epoch", async () => {
 test("a failed build is reflected in the reported status", async () => {
   const { service } = harness({ buildError: new Error("mongo down") });
 
-  // The startup path catches the failure and records it for health reporting.
+  // Startup kicks the first build off without awaiting it, so that a slow Mongo
+  // cannot keep /health/live from binding; the failure still has to reach health.
   await service.onApplicationBootstrap();
+  await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(service.status(), "unhealthy");
   assert.equal(service.details().last_build_at, null);
 });
@@ -227,6 +229,114 @@ test("a request arriving mid-build awaits the follow-up build", async () => {
   // The follower receives the follow-up build's own result, not a flag on the
   // leader's stale one.
   assert.equal(followerResult.coalesced, false);
+});
+
+/**
+ * Builds a service whose first build is held open until `release()` is called,
+ * so several requests can be made to arrive during the same build.
+ */
+function serviceWithHeldFirstBuild(onBuild?: (attempt: number) => void) {
+  let release: (() => void) | undefined;
+  let builds = 0;
+  const state = { holder: true, listeners: [] as Array<() => void> };
+  const lease = {
+    get isHolder() {
+      return state.holder;
+    },
+    get leaseToken() {
+      return "processing-1";
+    },
+    acquire: async () => true,
+    start: () => undefined,
+    release: async () => undefined,
+    onAcquired: (listener: () => void) => {
+      state.listeners.push(listener);
+    },
+  } as unknown as ProcessingLease;
+
+  const builder = {
+    build: async () => {
+      builds += 1;
+      const attempt = builds;
+      onBuild?.(attempt);
+      if (attempt === 1) {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+      }
+      return {
+        snapshot: snapshot(attempt),
+        timing: { startedAt: 0, finishedAt: 1, durationSeconds: 0.001 },
+      };
+    },
+  } as unknown as SnapshotBuilder;
+
+  const service = new ProcessingService(
+    { shadowModeEnabled: true } as never,
+    lease,
+    builder,
+    {
+      validate: () => ({ valid: true, errors: [] }),
+    } as unknown as SnapshotValidator,
+    {
+      initialiseVersionKeys: async () => EPOCH,
+      nextVersion: async () => builds,
+      publish: async () => ({ published: true, reason: "ok" }),
+    } as unknown as ShadowPublisher,
+    {
+      compareWithProduction: async () => ({
+        compared: false,
+        matches: false,
+        parity: 0,
+        comparedFields: 0,
+        mismatches: 0,
+        reason: "no-baseline",
+      }),
+    } as unknown as ShadowComparator,
+    metrics(),
+  );
+
+  return {
+    service,
+    release: () => release?.(),
+    builds: () => builds,
+  };
+}
+
+test("every waiter during one build settles, not just the last one", async () => {
+  const { service, release } = serviceWithHeldFirstBuild();
+
+  const leader = service.reconcile("config-change");
+  // Let the leader reach its first await inside the builder.
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  // Two callers arrive during the same build: a single resolver slot would
+  // answer only the second one and leave the first pending forever.
+  const first = service.reconcile("scheduled");
+  const second = service.reconcile("scheduled");
+
+  release?.();
+  const results = await Promise.all([leader, first, second]);
+
+  assert.equal(results.length, 3);
+  // Both mid-build callers are answered by the one shared follow-up build.
+  assert.equal(results[1].version, 2);
+  assert.equal(results[2].version, 2);
+});
+
+test("a failing follow-up build rejects every waiter instead of hanging", async () => {
+  const { service, release } = serviceWithHeldFirstBuild((attempt) => {
+    if (attempt === 2) throw new Error("follow-up build failed");
+  });
+
+  const leader = service.reconcile("config-change");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const first = service.reconcile("scheduled");
+  const second = service.reconcile("scheduled");
+
+  release?.();
+  await leader;
+  await assert.rejects(first, /follow-up build failed/);
+  await assert.rejects(second, /follow-up build failed/);
 });
 
 test("a build failure outside startup is visible in health", async () => {

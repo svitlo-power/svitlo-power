@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
+  OnApplicationShutdown,
   OnModuleDestroy,
 } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
@@ -42,7 +43,7 @@ export interface ReconcileResult {
  */
 @Injectable()
 export class ProcessingService
-  implements OnApplicationBootstrap, OnModuleDestroy
+  implements OnApplicationBootstrap, OnApplicationShutdown, OnModuleDestroy
 {
   private readonly logger = new Logger(ProcessingService.name);
   private epoch = 0;
@@ -50,9 +51,19 @@ export class ProcessingService
   private inFlight: Promise<ReconcileResult> | null = null;
   private lastResult: ReconcileResult | null = null;
   private lastBuildAt: number | null = null;
-  private followUpRequested = false;
-  private followUpResolve: ((result: Promise<ReconcileResult>) => void) | null =
-    null;
+  /**
+   * Shared promise for the follow-up build that a mid-build request waits on.
+   *
+   * A single `resolve` slot would be overwritten by every caller that arrives
+   * during the same build, so all but the last would wait forever — and if the
+   * stuck waiter is the `RefreshCoordinator`, its `pending` never clears and
+   * every later `POST /internal/v1/snapshots/refresh` hangs with it.
+   */
+  private followUp: {
+    promise: Promise<ReconcileResult>;
+    resolve: (result: ReconcileResult) => void;
+    reject: (error: Error) => void;
+  } | null = null;
   private startedAt = Date.now();
 
   constructor(
@@ -85,10 +96,22 @@ export class ProcessingService
       // either: the scheduler retries and /health/ready reports the state.
       await this.lease.acquire();
       this.lease.start();
-      await this.reconcile("startup");
     } catch (error) {
       this.recordFailure("startup", error as Error);
+      return;
     }
+    // The first build is deliberately *not* awaited here: `onApplicationBootstrap`
+    // runs before the HTTP server binds, so a slow Mongo would leave
+    // /health/live unreachable for the whole build. The scheduler owns the
+    // recurring cadence and /health/ready reports the outcome.
+    void this.reconcile("startup").catch(() => undefined);
+  }
+
+  async onApplicationShutdown(): Promise<void> {
+    // A shutdown that lands mid-build would otherwise leave the follow-up
+    // promise (and every HTTP caller waiting on it) pending forever.
+    this.followUp?.reject(new Error("processing is shutting down"));
+    this.followUp = null;
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -126,7 +149,6 @@ export class ProcessingService
       // snapshot from *before* the current build. Await a follow-up build that
       // starts once the current one settles, so the caller cannot be told
       // `accepted` with a version that predates its own change.
-      this.followUpRequested = true;
       return this.waitForFollowUp();
     }
     const run = this.runReconcile(reason)
@@ -139,12 +161,15 @@ export class ProcessingService
       })
       .finally(() => {
         this.inFlight = null;
-        if (this.followUpRequested) {
-          this.followUpRequested = false;
-          const followUp = this.reconcile("follow-up");
-          this.followUpResolve?.(followUp);
-          this.followUpResolve = null;
-        }
+        const followUp = this.followUp;
+        if (!followUp) return;
+        this.followUp = null;
+        // Every waiter shares this one promise, so a failing follow-up rejects
+        // all of them instead of leaving the rest pending.
+        void this.reconcile("follow-up").then(
+          followUp.resolve,
+          followUp.reject,
+        );
       });
     this.inFlight = run;
     return run;
@@ -170,11 +195,20 @@ export class ProcessingService
   /**
    * Resolves with the follow-up build that the in-flight build schedules for
    * requests arriving mid-build.
+   *
+   * The promise is created once per in-flight build and shared by every caller,
+   * so no waiter can be starved by a later one overwriting a resolver slot.
    */
   private waitForFollowUp(): Promise<ReconcileResult> {
-    return new Promise<ReconcileResult>((resolve) => {
-      this.followUpResolve = resolve;
+    if (this.followUp) return this.followUp.promise;
+    let resolve!: (result: ReconcileResult) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<ReconcileResult>((res, rej) => {
+      resolve = res;
+      reject = rej;
     });
+    this.followUp = { promise, resolve, reject };
+    return promise;
   }
 
   private async runReconcile(reason: string): Promise<ReconcileResult> {

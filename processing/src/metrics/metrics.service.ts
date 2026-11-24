@@ -97,11 +97,6 @@ export class MetricsService {
     help: "Unix timestamp of the last completed shadow comparison",
     registers: [this.registry],
   });
-  private readonly shadowLastParity = new Gauge({
-    name: "processing_shadow_last_parity_rate",
-    help: "Parity of the last completed comparison; NaN when none has completed",
-    registers: [this.registry],
-  });
   private readonly leaseAcquired = new Counter({
     name: "processing_lease_acquired_total",
     help: "Times the shadow lease has been acquired",
@@ -170,21 +165,23 @@ export class MetricsService {
 
   setShadowParity(rate: number): void {
     this.shadowParity.set(rate);
-    this.shadowLastParity.set(rate);
     this.shadowLastComparison.set(Date.now() / 1000);
   }
 
   /**
-   * Marks the parity gauge as stale without inventing a value.
+   * Marks the parity sample as stale without inventing a value.
    *
    * A skipped comparison leaves the previous parity in place, which would show
-   * healthy parity from hours ago. The gauge is set to 0 and the freshness
-   * timestamp is left alone, so `age` alerts and a 0 reading together make the
-   * gap visible. (The Prometheus client renders `NaN` as `Nan`, which the
-   * scrape rejects outright, so it cannot be used here.)
+   * healthy parity from hours ago. The gauge is set to `NaN` — Prometheus
+   * parses sample values with `strconv.ParseFloat`, which accepts `nan` in any
+   * case, so the series keeps its identity but has no numeric value — and the
+   * freshness timestamp is left alone. That keeps `0` meaning "0% parity", so a
+   * future `parity < X` alert cannot fire on a skipped comparison, while
+   * `time() - processing_shadow_last_comparison_timestamp_seconds` shows the
+   * gap.
    */
   markShadowParityStale(): void {
-    this.shadowLastParity.set(0);
+    this.shadowParity.set(Number.NaN);
   }
 
   setShadowSkew(seconds: number): void {

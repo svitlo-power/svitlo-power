@@ -60,7 +60,10 @@ export class RefreshCoordinator {
             this.pending = null;
           });
       }, this.config.refreshCoalesceMs);
-      this.debounceTimer.unref?.();
+      // Deliberately *not* `unref()`ed: the timer is short (hundreds of
+      // milliseconds) and is always followed by a build, so it must keep the
+      // event loop alive. Unref'd, a test that awaits the coalesced callers can
+      // see the loop drain first and cancel them.
     });
 
     return this.pending;

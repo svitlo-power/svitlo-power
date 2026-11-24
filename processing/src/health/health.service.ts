@@ -42,8 +42,10 @@ export class HealthService {
 
   async readiness() {
     const checks = {
-      // `isConnected()` is the cheap local check; `ping()` adds a round trip but
-      // proves the server actually answers.
+      // `isConnected()` is enough here: it reflects the socket state the client
+      // already tracks, so a dropped connection fails the probe without paying
+      // for a `ping()` round trip on every poll. The detailed `/health` report
+      // still pings Redis when someone actually looks at it.
       redis: toCheckStatus(this.redis.isConnected()),
       // A Mongo outage is otherwise only visible indirectly, through a failed
       // build; report the connection itself so the probe reacts immediately.

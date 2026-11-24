@@ -24,6 +24,14 @@ export class SchedulerService
 {
   private readonly logger = new Logger(SchedulerService.name);
   private timer: NodeJS.Timeout | null = null;
+  /**
+   * Overlap guard for the recurring tick.
+   *
+   * It lives here rather than in the job because this is the code production
+   * actually runs: a guard on a `runExclusive` that nothing calls would let
+   * every tick that lands during a build fall through to the follow-up path.
+   */
+  private running = false;
 
   constructor(
     @Inject(processingConfig.KEY)
@@ -58,10 +66,11 @@ export class SchedulerService
    * build never overlaps with the next tick.
    */
   async runExclusive(reason: string): Promise<void> {
-    if (this.job.isRunning) {
+    if (this.running) {
       this.logger.warn(`Skipping ${reason} reconciliation: already running`);
       return;
     }
+    this.running = true;
     const startedAt = Date.now();
     try {
       await this.job.run(reason);
@@ -79,6 +88,13 @@ export class SchedulerService
       this.logger.error(
         `Scheduled reconciliation failed: ${(error as Error).message}`,
       );
+    } finally {
+      this.running = false;
     }
+  }
+
+  /** Overlap guard state, exposed for diagnostics and tests. */
+  get isRunning(): boolean {
+    return this.running;
   }
 }

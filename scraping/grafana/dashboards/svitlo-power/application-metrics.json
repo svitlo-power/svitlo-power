@@ -473,12 +473,12 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(dashboard_snapshot_build_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(dashboard_snapshot_build_duration_seconds_bucket{job=\"svitlo-power-back-end\"}[5m])))",
           "legendFormat": "{{job}}",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(dashboard_snapshot_publish_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(dashboard_snapshot_publish_duration_seconds_bucket{job=\"svitlo-power-back-end\"}[5m])))",
           "legendFormat": "{{job}} publish",
           "refId": "B"
         }
