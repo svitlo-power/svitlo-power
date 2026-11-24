@@ -763,7 +763,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (job, result) (rate(processing_job_executions_total[5m])) or on() vector(0)",
+          "expr": "sum by (job_name, result) (rate(processing_job_executions_total[5m])) or on() vector(0)",
           "legendFormat": "{{job}} / {{result}}",
           "range": true,
           "refId": "A"
@@ -857,7 +857,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(processing_job_duration_seconds_bucket[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, job_name) (rate(processing_job_duration_seconds_bucket[5m])))",
           "legendFormat": "{{job}}",
           "range": true,
           "refId": "A"

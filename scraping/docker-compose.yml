@@ -16,7 +16,7 @@ services:
       - app_network
 
   cadvisor:
-    image: ghcr.io/google/cadvisor:v0.49.0
+    image: ghcr.io/google/cadvisor:latest
     restart: unless-stopped
     command:
       - -docker_only

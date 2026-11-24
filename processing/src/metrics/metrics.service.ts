@@ -115,13 +115,15 @@ export class MetricsService {
   private readonly jobExecutions = new Counter({
     name: "processing_job_executions_total",
     help: "Scheduled job executions by outcome",
-    labelNames: ["job", "result"],
+    // `job` is reserved by Prometheus for the scrape target and is renamed to
+    // `exported_job` on the wire, which breaks `sum by (job, ...)` queries.
+    labelNames: ["job_name", "result"],
     registers: [this.registry],
   });
   private readonly jobDuration = new Histogram({
     name: "processing_job_duration_seconds",
     help: "Scheduled job execution duration",
-    labelNames: ["job"],
+    labelNames: ["job_name"],
     buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0],
     registers: [this.registry],
   });
@@ -176,10 +178,13 @@ export class MetricsService {
    * Marks the parity gauge as stale without inventing a value.
    *
    * A skipped comparison leaves the previous parity in place, which would show
-   * healthy parity from hours ago; NaN makes the gap visible instead.
+   * healthy parity from hours ago. The gauge is set to 0 and the freshness
+   * timestamp is left alone, so `age` alerts and a 0 reading together make the
+   * gap visible. (The Prometheus client renders `NaN` as `Nan`, which the
+   * scrape rejects outright, so it cannot be used here.)
    */
   markShadowParityStale(): void {
-    this.shadowLastParity.set(Number.NaN);
+    this.shadowLastParity.set(0);
   }
 
   setShadowSkew(seconds: number): void {
@@ -211,7 +216,7 @@ export class MetricsService {
   }
 
   jobExecution(job: string, result: string, seconds: number): void {
-    this.jobExecutions.labels({ job, result }).inc();
-    this.jobDuration.labels({ job }).observe(seconds);
+    this.jobExecutions.labels({ job_name: job, result }).inc();
+    this.jobDuration.labels({ job_name: job }).observe(seconds);
   }
 }
