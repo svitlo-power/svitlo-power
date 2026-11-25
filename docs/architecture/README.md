@@ -28,6 +28,7 @@ This directory contains the complete specification set for the incremental migra
 | [snapshot-schema.json](snapshot-schema.json) | JSON Schema (draft-2020-12) for DashboardSnapshot v1 — buildings, config, outagesSchedules |
 | [redis-conventions.md](redis-conventions.md) | Redis key/channel naming, Lua scripts for atomic write + lease fence, monitoring |
 | [internal-app-api.md](internal-app-api.md) | Private app domain API contract and consumer configuration |
+| [../operations/phase5-cutover.md](../operations/phase5-cutover.md) | Phase 5 cutover and rollback procedure (flags, verification, freshness gate) |
 
 ## ADR Reference
 
@@ -68,7 +69,7 @@ Week 10+:  Phase 6 (Capabilities, one per week)
 5. **Capability-by-Capability** — Each background job moved independently with rollback
 6. **Host Separation Last** — After APIs and auth are separated
 7. **Epoch + Version** — Handles Redis flush/failover gracefully; consumers accept lower version when epoch increases
-8. **HTTP Refresh** — Not Pub/Sub request/reply; BFFs call `POST /internal/v1/snapshots/refresh`
+8. **HTTP Refresh** — Not Pub/Sub request/reply; BFFs call `POST /internal/v1/snapshots/refresh`. Phase 5 adds a one-way "data changed" pub/sub hint from the legacy back-end, which is fire-and-forget and never a command.
 9. **Backward-Compatible SSE** — Keep unnamed events for `onmessage`; add named events for new clients
 10. **No Code Removal Until Phase 9** — Legacy calculation code stays runnable for rollback
 
