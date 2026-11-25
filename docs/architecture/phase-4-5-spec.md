@@ -158,6 +158,9 @@ class ShadowComparator {
 | `processing_shadow_mismatch_total` | Counter | < 0.1% of builds |
 | `processing_shadow_comparisons_total` | Counter | — |
 | `processing_shadow_comparison_skew_seconds` | Gauge | — |
+| `processing_shadow_last_comparison_timestamp_seconds` | Gauge | `time() - metric` < 900s |
+| `processing_shadow_mode_enabled` | Gauge | — |
+| `processing_shadow_lease_held` | Gauge | — |
 | `dashboard_snapshot_build_duration_seconds` | Histogram | p99 < 10s |
 | `dashboard_snapshot_publish_duration_seconds` | Histogram | p99 < 30s |
 
@@ -165,6 +168,16 @@ The `dashboard_snapshot_*` and `dashboard_refresh_*` names are shared with the
 legacy Python producer, so every panel and alert must filter on
 `job="svitlo-power-processing"` until the cutover. The shadow-only metrics carry
 a `processing_shadow_` prefix and never collide.
+
+`processing_shadow_parity_rate` is exported as `NaN` until the first comparison
+completes and is set back to `NaN` whenever a comparison is skipped, so `0` only
+ever means a real 0% parity and a `parity < X` alert cannot fire on a skipped
+comparison. Freshness is read from
+`processing_shadow_last_comparison_timestamp_seconds` instead, which is seeded
+with the process start time while shadow mode is enabled. The
+`processing-shadow-parity-stale` alert is scoped to instances that are supposed
+to compare (`processing_shadow_mode_enabled` and `processing_shadow_lease_held`
+both 1), and `processing-down` covers a target that stops being scraped.
 
 ### 7. Empty-Cache Rebuild Test
 - On startup with empty Redis: build snapshot, verify it matches production

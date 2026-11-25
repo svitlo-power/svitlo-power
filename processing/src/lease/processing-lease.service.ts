@@ -7,6 +7,7 @@ import {
   LUA_LEASE_RENEW_SCRIPT,
 } from "../shared.js";
 import { REDIS_WRITER } from "../tokens.js";
+import { MetricsService } from "../metrics/metrics.service.js";
 
 export interface LeaseOptions {
   key: string;
@@ -34,6 +35,7 @@ export class ProcessingLease implements OnModuleDestroy {
   constructor(
     @Inject(REDIS_WRITER) private readonly redis: RedisClientType,
     private readonly options: LeaseOptions,
+    private readonly metrics: MetricsService,
   ) {}
 
   get isHolder(): boolean {
@@ -70,6 +72,7 @@ export class ProcessingLease implements OnModuleDestroy {
     }
     this.token = this.options.instanceId;
     this.logger.log(`Shadow lease acquired: ${this.token}`);
+    this.metrics.setShadowLeaseHeld(true);
     this.options.onAcquired?.();
     for (const listener of this.acquiredListeners) listener();
     this.startRenewing();
@@ -116,6 +119,9 @@ export class ProcessingLease implements OnModuleDestroy {
     this.stopRenewing();
     const token = this.token;
     this.token = null;
+    // Reported here rather than through `onLost`: a graceful release is not a
+    // lost lease, and the gauge must not keep claiming otherwise.
+    this.metrics.setShadowLeaseHeld(false);
     if (token === null) return;
     try {
       await this.redis.eval(LUA_LEASE_RELEASE_SCRIPT, {
@@ -139,6 +145,7 @@ export class ProcessingLease implements OnModuleDestroy {
     if (this.token === null) return;
     this.logger.warn("Shadow lease lost");
     this.token = null;
+    this.metrics.setShadowLeaseHeld(false);
     this.options.onLost?.();
   }
 

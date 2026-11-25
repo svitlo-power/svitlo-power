@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
-  OnApplicationShutdown,
   OnModuleDestroy,
 } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
@@ -43,7 +42,7 @@ export interface ReconcileResult {
  */
 @Injectable()
 export class ProcessingService
-  implements OnApplicationBootstrap, OnApplicationShutdown, OnModuleDestroy
+  implements OnApplicationBootstrap, OnModuleDestroy
 {
   private readonly logger = new Logger(ProcessingService.name);
   private epoch = 0;
@@ -64,6 +63,17 @@ export class ProcessingService
     resolve: (result: ReconcileResult) => void;
     reject: (error: Error) => void;
   } | null = null;
+  /**
+   * Set in `onModuleDestroy`, which Nest runs *before* the Redis clients are
+   * closed and before the HTTP server stops accepting requests.
+   *
+   * `onApplicationShutdown` runs last — after the lease is released and both
+   * Redis clients have `quit()` — so rejecting waiters there would race the
+   * in-flight build's `finally`, which would then start a follow-up against
+   * closed connections and answer the waiters with a Redis error instead of the
+   * shutdown reason.
+   */
+  private shuttingDown = false;
   private startedAt = Date.now();
 
   constructor(
@@ -107,14 +117,13 @@ export class ProcessingService
     void this.reconcile("startup").catch(() => undefined);
   }
 
-  async onApplicationShutdown(): Promise<void> {
-    // A shutdown that lands mid-build would otherwise leave the follow-up
-    // promise (and every HTTP caller waiting on it) pending forever.
+  async onModuleDestroy(): Promise<void> {
+    // Reject before the lease is released and before Redis closes, so waiters
+    // learn the real reason instead of a connection error from the follow-up
+    // build the `finally` would otherwise start.
+    this.shuttingDown = true;
     this.followUp?.reject(new Error("processing is shutting down"));
     this.followUp = null;
-  }
-
-  async onModuleDestroy(): Promise<void> {
     await this.lease.release();
   }
 
@@ -143,6 +152,12 @@ export class ProcessingService
       };
     }
     this.metrics.refreshRequest(reason);
+    if (this.shuttingDown) {
+      // The HTTP server is still accepting requests while the modules are being
+      // destroyed; failing fast beats starting a build against closing
+      // connections.
+      throw new Error("processing is shutting down");
+    }
     if (this.inFlight) {
       this.metrics.refreshCoalescedCount();
       // A request that arrives mid-build would otherwise be answered with the
@@ -164,6 +179,12 @@ export class ProcessingService
         const followUp = this.followUp;
         if (!followUp) return;
         this.followUp = null;
+        if (this.shuttingDown) {
+          // The process is going away: a follow-up would run against Redis
+          // connections that are already closing.
+          followUp.reject(new Error("processing is shutting down"));
+          return;
+        }
         // Every waiter shares this one promise, so a failing follow-up rejects
         // all of them instead of leaving the rest pending.
         void this.reconcile("follow-up").then(
@@ -173,6 +194,11 @@ export class ProcessingService
       });
     this.inFlight = run;
     return run;
+  }
+
+  /** Resolves once the current build (if any) has settled. Used by tests. */
+  async inFlightSettled(): Promise<void> {
+    await this.inFlight;
   }
 
   /** Records a failed reconciliation so health stops reporting the last success. */

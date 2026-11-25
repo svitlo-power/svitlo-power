@@ -92,11 +92,29 @@ export class MetricsService {
     help: "Age difference between the compared production and shadow snapshots",
     registers: [this.registry],
   });
-  private readonly shadowLastComparison = new Gauge({
-    name: "processing_shadow_last_comparison_timestamp_seconds",
-    help: "Unix timestamp of the last completed shadow comparison",
+  private readonly shadowModeEnabled = new Gauge({
+    name: "processing_shadow_mode_enabled",
+    help: "1 when shadow mode is enabled on this instance, 0 otherwise",
     registers: [this.registry],
   });
+  private readonly shadowLeaseHeld = new Gauge({
+    name: "processing_shadow_lease_held",
+    help: "1 while this instance holds the shadow lease, 0 otherwise",
+    registers: [this.registry],
+  });
+  /**
+   * Timestamp gauge behind `shadowLastComparison`, created on first write.
+   *
+   * A registered gauge is exported as `0`, and an epoch-0 timestamp makes
+   * `time() - ts` exceed any freshness threshold. While shadow mode is off the
+   * series is therefore absent rather than misleading, and the alert's `and`
+   * filters keep it out of the rule anyway.
+   *
+   * The gauge is cached per registry because `@prometheus-io/client` keeps a
+   * module-level metric registry: a second `MetricsService` (tests, or a second
+   * app in one process) cannot register the same name again.
+   */
+  private shadowLastComparisonGauges = new WeakMap<Registry, Gauge<string>>();
   private readonly leaseAcquired = new Counter({
     name: "processing_lease_acquired_total",
     help: "Times the shadow lease has been acquired",
@@ -127,6 +145,18 @@ export class MetricsService {
     @Inject(processingConfig.KEY) config: ConfigType<typeof processingConfig>,
   ) {
     collectDefaultMetrics({ register: this.registry });
+    // An unset gauge is exported as `0`, not as a missing series, so both
+    // shadow gauges have to be seeded explicitly: otherwise "no sample yet"
+    // reads as 0% parity and as an epoch-0 comparison timestamp, which is what
+    // made the freshness alert fire on every restart and on every standby.
+    this.shadowParity.set(Number.NaN);
+    this.shadowModeEnabled.set(config.shadowModeEnabled ? 1 : 0);
+    this.shadowLeaseHeld.set(0);
+    if (config.shadowModeEnabled) {
+      // A replica that is expected to compare but has not yet completed one is
+      // only "not stale" for the first 15 minutes after it starts.
+      this.markShadowComparisonTimestamp(Date.now() / 1000);
+    }
     new Gauge({
       name: "service_version_info",
       help: "Service version information",
@@ -165,7 +195,36 @@ export class MetricsService {
 
   setShadowParity(rate: number): void {
     this.shadowParity.set(rate);
-    this.shadowLastComparison.set(Date.now() / 1000);
+    this.markShadowComparisonTimestamp(Date.now() / 1000);
+  }
+
+  /**
+   * Records when the last comparison completed.
+   *
+   * The gauge is created on first write so that a deployment with shadow mode
+   * off exports no series at all instead of an epoch-0 one.
+   */
+  private markShadowComparisonTimestamp(seconds: number): void {
+    let gauge = this.shadowLastComparisonGauges.get(this.registry);
+    if (!gauge) {
+      gauge = new Gauge({
+        name: "processing_shadow_last_comparison_timestamp_seconds",
+        help: "Unix timestamp of the last completed shadow comparison, or of process start while shadow mode is enabled",
+        registers: [this.registry],
+      });
+      this.shadowLastComparisonGauges.set(this.registry, gauge);
+    }
+    gauge.set(seconds);
+  }
+
+  /**
+   * Publishes whether this instance currently holds the shadow lease.
+   *
+   * The freshness alert needs it: only the lease holder is supposed to compare,
+   * so a standby must not look like a stalled replica.
+   */
+  setShadowLeaseHeld(held: boolean): void {
+    this.shadowLeaseHeld.set(held ? 1 : 0);
   }
 
   /**
@@ -179,6 +238,9 @@ export class MetricsService {
    * future `parity < X` alert cannot fire on a skipped comparison, while
    * `time() - processing_shadow_last_comparison_timestamp_seconds` shows the
    * gap.
+   *
+   * The constructor seeds the same value, so "no sample yet" and "skipped" are
+   * indistinguishable and `0` only ever means a real 0% parity.
    */
   markShadowParityStale(): void {
     this.shadowParity.set(Number.NaN);

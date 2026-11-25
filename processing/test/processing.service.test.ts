@@ -233,7 +233,7 @@ test("a request arriving mid-build awaits the follow-up build", async () => {
 
 /**
  * Builds a service whose first build is held open until `release()` is called,
- * so several requests can be made to arrive during the same build.
+ * optionally announcing when the builder is entered.
  */
 function serviceWithHeldFirstBuild(onBuild?: (attempt: number) => void) {
   let release: (() => void) | undefined;
@@ -400,4 +400,49 @@ test("a build failure outside startup is visible in health", async () => {
 
   await assert.rejects(service.reconcile("scheduled"), /mongo query failed/);
   assert.equal(service.status(), "unhealthy");
+});
+
+test("onApplicationBootstrap resolves while the first build is still held", async () => {
+  let releaseFirst!: () => void;
+  const firstBuildStarted = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const { service, release } = serviceWithHeldFirstBuild(() => {
+    releaseFirst();
+  });
+
+  // `onApplicationBootstrap` runs before the HTTP server binds, so awaiting the
+  // first build here would leave /health/live unreachable for the whole build.
+  await service.onApplicationBootstrap();
+  await firstBuildStarted;
+  assert.equal(service.details().last_build_at, null);
+
+  const settled = service.inFlightSettled();
+  release?.();
+  await settled;
+  assert.ok(service.details().last_build_at !== null);
+});
+
+test("a request arriving after the shutdown started fails fast", async () => {
+  const { service } = harness();
+  await service.onModuleDestroy();
+
+  await assert.rejects(service.reconcile("scheduled"), /shutting down/);
+});
+
+test("a shutdown mid-build rejects the waiters and starts no follow-up", async () => {
+  const { service, release, builds } = serviceWithHeldFirstBuild();
+
+  const leader = service.reconcile("config-change");
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const follower = service.reconcile("scheduled");
+
+  await service.onModuleDestroy();
+  release?.();
+
+  await leader;
+  // The waiter must learn the real reason: a follow-up started after the Redis
+  // clients close would reject it with a connection error instead.
+  await assert.rejects(follower, /shutting down/);
+  assert.equal(builds(), 1);
 });

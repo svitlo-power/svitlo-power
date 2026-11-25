@@ -78,9 +78,27 @@ a `processing_shadow_` prefix and never collide:
 | `processing_shadow_mismatch_total` | Counter | Mismatches by `section`/`field` |
 | `processing_shadow_comparisons_total` | Counter | Comparisons by outcome |
 | `processing_shadow_comparison_skew_seconds` | Gauge | Age gap between the compared snapshots |
+| `processing_shadow_last_comparison_timestamp_seconds` | Gauge | Unix time of the last completed comparison, or of process start while shadow mode is on |
+| `processing_shadow_mode_enabled` | Gauge | 1 when shadow mode is on for this instance |
+| `processing_shadow_lease_held` | Gauge | 1 while this instance holds the shadow lease |
 | `processing_lease_acquired_total` | Counter | Lease acquisitions |
 | `processing_lease_lost_total` | Counter | Lease losses |
 | `processing_job_executions_total` | Counter | Scheduled job outcomes |
+
+`processing_shadow_parity_rate` has no numeric value until the first comparison
+completes, and is set back to `NaN` whenever a comparison is skipped (no
+baseline yet, or the two snapshots are further apart than
+`PROCESSING_COMPARISON_MAX_SKEW_SECONDS`). `0` therefore only ever means a real
+0% parity, so a `parity < X` alert cannot fire on a skipped comparison; use
+`processing_shadow_last_comparison_timestamp_seconds` to tell "stale" from
+"healthy".
+
+Two alerts watch this: `processing-shadow-parity-stale` fires when the lease
+holder has not completed a comparison for 15 minutes, and `processing-down`
+fires when the target cannot be scraped. The freshness rule is scoped to
+instances that are supposed to compare (`processing_shadow_mode_enabled` and
+`processing_shadow_lease_held`), so a standby replica or a shadow-mode-off
+deployment stays quiet.
 
 ## Development
 

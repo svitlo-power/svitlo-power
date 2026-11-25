@@ -773,7 +773,8 @@
           "refId": "A"
         }
       ],
-      "title": "Shadow parity freshness (skipped comparisons leave the parity gauge empty)",
+      "title": "Shadow parity freshness",
+      "description": "Seconds since the last completed shadow comparison. A skipped comparison leaves the parity gauge without a numeric value, so a gap here is the signal that the parity reading is stale rather than healthy.",
       "type": "timeseries"
     },
     {
