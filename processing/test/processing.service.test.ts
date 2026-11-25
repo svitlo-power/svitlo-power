@@ -5,6 +5,7 @@ import type { ProcessingLease } from "../src/lease/processing-lease.service.js";
 import type { SnapshotBuilder } from "../src/snapshot/snapshot.builder.js";
 import type { SnapshotValidator } from "../src/snapshot/snapshot.validator.js";
 import type { ShadowPublisher } from "../src/shadow/shadow-publisher.service.js";
+import type { SnapshotPublisher } from "../src/snapshot/snapshot-publisher.service.js";
 import type { ShadowComparator } from "../src/shadow/shadow-comparator.service.js";
 import type { MetricsService } from "../src/metrics/metrics.service.js";
 import type { DashboardSnapshot } from "../src/shared.js";
@@ -37,6 +38,7 @@ interface HarnessOptions {
   holder?: boolean;
   publishReason?: string;
   buildError?: Error;
+  publishEnabled?: boolean;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -96,7 +98,10 @@ function harness(options: HarnessOptions = {}) {
   } as unknown as ShadowComparator;
 
   const service = new ProcessingService(
-    { shadowModeEnabled: true } as never,
+    {
+      shadowModeEnabled: true,
+      publishEnabled: options.publishEnabled,
+    } as never,
     lease,
     builder,
     validator,
@@ -120,6 +125,103 @@ test("a replica without the lease reports no-lease and stays healthy", async () 
   // Standby replicas must not fail readiness, or multi-replica deploys flap.
   assert.equal(service.status(), "healthy");
   assert.equal(service.details().lease_held, false);
+});
+
+test("the cutover flag is reported in the health details", async () => {
+  const { service } = harness();
+  // The harness config only enables shadow mode, so the instance must not claim
+  // to own the production keys.
+  assert.equal(service.details().publish_enabled, undefined);
+
+  const publishing = harness({ publishEnabled: true });
+  assert.equal(publishing.service.details().publish_enabled, true);
+});
+
+test("after the cutover the production keys own the epoch and the write", async () => {
+  const state = { holder: true, listeners: [] as Array<() => void> };
+  const lease = {
+    get isHolder() {
+      return state.holder;
+    },
+    get leaseToken() {
+      return "processing-1";
+    },
+    acquire: async () => true,
+    start: () => undefined,
+    release: async () => undefined,
+    onAcquired: (listener: () => void) => {
+      state.listeners.push(listener);
+    },
+  } as unknown as ProcessingLease;
+
+  const calls: string[] = [];
+  const productionPublisher = {
+    initialiseVersionKeys: async () => {
+      calls.push("production:epoch");
+      return EPOCH;
+    },
+    nextVersion: async () => {
+      calls.push("production:version");
+      return 7;
+    },
+    publish: async () => {
+      calls.push("production:publish");
+      return { published: true, reason: "ok" };
+    },
+  };
+  const shadowPublisher = {
+    initialiseVersionKeys: async () => {
+      calls.push("shadow:epoch");
+      return EPOCH;
+    },
+    nextVersion: async () => {
+      calls.push("shadow:version");
+      return 1;
+    },
+    publish: async () => {
+      calls.push("shadow:publish");
+      return { published: true, reason: "ok" };
+    },
+  };
+
+  const service = new ProcessingService(
+    { shadowModeEnabled: true, publishEnabled: true } as never,
+    lease,
+    {
+      build: async () => ({
+        snapshot: snapshot(7),
+        timing: { startedAt: 0, finishedAt: 1, durationSeconds: 0.001 },
+      }),
+    } as unknown as SnapshotBuilder,
+    {
+      validate: () => ({ valid: true, errors: [] }),
+    } as unknown as SnapshotValidator,
+    shadowPublisher as unknown as ShadowPublisher,
+    {
+      compareWithProduction: async () => ({
+        compared: false,
+        matches: false,
+        parity: 0,
+        comparedFields: 0,
+        mismatches: 0,
+        reason: "no-baseline",
+      }),
+    } as unknown as ShadowComparator,
+    metrics(),
+    productionPublisher as unknown as SnapshotPublisher,
+  );
+
+  const result = await service.reconcile("startup");
+
+  assert.equal(result.published, true);
+  assert.equal(result.version, 7);
+  // Writing to the shadow namespace after the cutover would leave the BFFs on a
+  // snapshot nobody updates.
+  assert.deepEqual(calls, [
+    "production:epoch",
+    "production:version",
+    "production:publish",
+  ]);
 });
 
 test("re-acquiring the lease resets the cached epoch", async () => {

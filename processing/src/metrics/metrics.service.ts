@@ -102,6 +102,11 @@ export class MetricsService {
     help: "1 while this instance holds the shadow lease, 0 otherwise",
     registers: [this.registry],
   });
+  private readonly publishEnabled = new Gauge({
+    name: "processing_publish_enabled",
+    help: "1 when this instance publishes to the production snapshot keys, 0 otherwise",
+    registers: [this.registry],
+  });
   /**
    * Timestamp gauge behind `shadowLastComparison`, created on first write.
    *
@@ -152,6 +157,7 @@ export class MetricsService {
     this.shadowParity.set(Number.NaN);
     this.shadowModeEnabled.set(config.shadowModeEnabled ? 1 : 0);
     this.shadowLeaseHeld.set(0);
+    this.publishEnabled.set(config.publishEnabled ? 1 : 0);
     if (config.shadowModeEnabled) {
       // A replica that is expected to compare but has not yet completed one is
       // only "not stale" for the first 15 minutes after it starts.

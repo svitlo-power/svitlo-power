@@ -27,6 +27,7 @@ Python producer, which stays authoritative.
 | `MONGO_DB` | `svitlo-power` | MongoDB database name |
 | `REDIS_URI` | `redis://svitlo-power-rds:6379/0` | Redis connection string |
 | `FEATURE_PROCESSING_SHADOW_MODE` | `false` | Enables the shadow snapshot flow |
+| `FEATURE_PROCESSING_PUBLISH_ENABLED` | `false` | Phase 5 cutover: publish to the production snapshot keys instead of `shadow:` keys (requires shadow mode) |
 | `PROCESSING_RECONCILIATION_INTERVAL_SECONDS` | `300` | Safety-net reconciliation cadence |
 | `PROCESSING_REFRESH_COALESCE_MS` | `500` | Refresh debounce window |
 | `PROCESSING_COMPARISON_MAX_SKEW_SECONDS` | `120` | Maximum tolerated age gap between the compared snapshots |
@@ -61,6 +62,26 @@ shadow:meta:dashboard:version
 The production snapshot key is only ever read, for comparison. The legacy
 producer keeps publishing to the production keys until the Phase 5 cutover.
 
+### Phase 5 cutover
+
+Setting `FEATURE_PROCESSING_PUBLISH_ENABLED=true` (with shadow mode still on)
+switches the destination from the `shadow:` namespace to the production keys:
+
+```
+cache:dashboard:v1:global
+cache:dashboard:v1:invalidations
+lock:processing:dashboard:v1
+meta:dashboard:epoch
+meta:dashboard:version:next
+meta:dashboard:version
+```
+
+The write is the same Lua script the legacy producer uses — lease fencing plus
+compare-and-set on `(epoch, committed version)` — so exactly one producer can
+ever write. Rollback is the reverse: set the flag back to `false`, let the
+processor release the lease, then re-enable
+`FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` on the legacy back-end.
+
 The service is a read-only MongoDB consumer: `autoIndex` and `autoCreate` are
 disabled, so the indexes declared on the shared schemas are never built against
 the Python-owned collections.
@@ -81,6 +102,7 @@ a `processing_shadow_` prefix and never collide:
 | `processing_shadow_last_comparison_timestamp_seconds` | Gauge | Unix time of the last completed comparison, or of process start while shadow mode is on |
 | `processing_shadow_mode_enabled` | Gauge | 1 when shadow mode is on for this instance |
 | `processing_shadow_lease_held` | Gauge | 1 while this instance holds the shadow lease |
+| `processing_publish_enabled` | Gauge | 1 when this instance publishes to the production snapshot keys |
 | `processing_lease_acquired_total` | Counter | Lease acquisitions |
 | `processing_lease_lost_total` | Counter | Lease losses |
 | `processing_job_executions_total` | Counter | Scheduled job outcomes |
