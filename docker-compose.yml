@@ -123,7 +123,7 @@ services:
       - STATE_PATH=/app/state.json
       - HEALTH_PORT=9099
     volumes:
-      - ./clients.json:/app/clients.json
+      - ./grid-reporter/clients.json:/app/clients.json
       - ./grid-reporter/state.json:/app/state.json
     expose:
       - "9099"
