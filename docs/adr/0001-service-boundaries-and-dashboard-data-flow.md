@@ -20,7 +20,7 @@ and mobile interfaces independently.
 
 ### Services and responsibilities
 
-Create a **Processing Service**, deployed as `svitlo-power-processor` and
+Create a **Processing Service**, deployed as `svitlo-power-processing` and
 implemented under `core/processing/`. It owns background and data-producing
 work:
 

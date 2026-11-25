@@ -9,6 +9,7 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - "app-back-end/**"
+      - "processing/**"
       - "app-back-end-legacy/**"
       - "package.json"
       - "package-lock.json"
@@ -26,6 +27,7 @@ on:
       - "sse-back-end/**"
       - "grid-reporter/**"
       - "app-back-end/**"
+      - "processing/**"
       - "app-back-end-legacy/**"
       - "package.json"
       - "package-lock.json"
@@ -107,6 +109,9 @@ jobs:
       - name: Build app-back-end image
         run: docker compose build svitlo-power-app-back-end svitlo-power-app-back-end-tests
 
+      - name: Build processing image
+        run: docker compose build svitlo-power-processing svitlo-power-processing-tests
+
       - name: Build legacy app-back-end rollback image
         run: docker build -f app-back-end-legacy/Dockerfile -t svitlo-power-app-back-end-legacy:test .
 
@@ -128,6 +133,14 @@ jobs:
           rm -f test_output_app_backend.txt
           docker compose --profile tests run --rm --no-TTY svitlo-power-app-back-end-tests \
             | tee test_output_app_backend.txt
+
+      - name: Run processing tests in docker
+        id: tests-processing
+        run: |
+          set -euo pipefail
+          rm -f test_output_processing.txt
+          docker compose --profile tests run --rm --no-TTY svitlo-power-processing-tests \
+            | tee test_output_processing.txt
 
       - name: Generate Docker Test Summary
         if: always()
@@ -217,8 +230,27 @@ jobs:
               fi
               echo ""
             fi
+            # Process processing tests
+            if [ -s test_output_processing.txt ]; then
+              echo "### Processing Tests"
+              echo ""
+              sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" test_output_processing.txt > test_output_processing.clean.txt
 
-            if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ]; then
+              PASSED=$(grep -oE "pass [0-9]+" test_output_processing.clean.txt | tail -1 | grep -oE "[0-9]+$")
+              FAILED=$(grep -oE "fail [0-9]+" test_output_processing.clean.txt | tail -1 | grep -oE "[0-9]+$")
+              SKIPPED=$(grep -oE "skipped [0-9]+" test_output_processing.clean.txt | tail -1 | grep -oE "[0-9]+$")
+              DURATION=$(grep -oE "duration_ms [0-9.]+" test_output_processing.clean.txt | tail -1 | awk '{printf "%.2fs", $2 / 1000}')
+
+              echo "| Result | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed   | ${PASSED:-0} |"
+              echo "| ❌ Failed   | ${FAILED:-0} |"
+              echo "| ⏭️ Skipped  | ${SKIPPED:-0} |"
+              echo "| ⏱️ Duration | ${DURATION:-n/a} |"
+              echo ""
+            fi
+
+            if [ ! -s test_output.txt ] && [ ! -s test_output_app_backend.txt ] && [ ! -s test_output_processing.txt ]; then
               echo "⚠️ No test output found."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
@@ -233,6 +265,7 @@ jobs:
           path: |
             test_output.txt
             test_output_app_backend.txt
+            test_output_processing.txt
           if-no-files-found: warn
           retention-days: 7
 

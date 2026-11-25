@@ -9,7 +9,7 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
-import { objectIdPattern } from "../dashboard/dashboard.dto.js";
+import { OBJECT_ID_PATTERN } from "@svitlo-power/shared-typescript";
 import { AcceptsAlias } from "../http/aliases.js";
 
 export class DeviceRegistrationDto {
@@ -59,6 +59,6 @@ export class DeviceSubscriptionsDto extends DeviceTokenDto {
   @ApiPropertyOptional({ type: [String], default: [] })
   @IsOptional()
   @IsArray()
-  @Matches(objectIdPattern, { each: true })
+  @Matches(OBJECT_ID_PATTERN, { each: true })
   buildings: string[] = [];
 }

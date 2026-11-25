@@ -1,0 +1,215 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { ProcessingLease } from "../src/lease/processing-lease.service.js";
+import type { MetricsService } from "../src/metrics/metrics.service.js";
+
+/**
+ * Records the lease-gauge transitions the alert rule depends on.
+ */
+function metrics() {
+  const held: boolean[] = [];
+  const recorder = {
+    held,
+    setShadowLeaseHeld: (value: boolean) => {
+      held.push(value);
+    },
+    leaseAcquisition: () => undefined,
+    leaseLoss: () => undefined,
+  };
+  return recorder as unknown as MetricsService & typeof recorder;
+}
+
+interface FakeRedis {
+  store: Map<string, string>;
+  setCalls: unknown[];
+  evalCalls: unknown[][];
+  set(...args: unknown[]): Promise<string | null>;
+  eval(...args: unknown[]): Promise<number>;
+}
+
+function fakeRedis(): FakeRedis {
+  const store = new Map<string, string>();
+  const setCalls: unknown[] = [];
+  const evalCalls: unknown[][] = [];
+  return {
+    store,
+    setCalls,
+    evalCalls,
+    async set(key: string, value: string, options?: { NX?: boolean }) {
+      setCalls.push([key, value, options]);
+      if (options?.NX && store.has(key)) return null;
+      store.set(key, value);
+      return "OK";
+    },
+    async eval(
+      script: string,
+      options: { keys: string[]; arguments: string[] },
+    ) {
+      evalCalls.push([script, options]);
+      const [key] = options.keys;
+      const [token, ttl] = options.arguments;
+      if (script.includes("EXPIRE")) {
+        if (store.get(key) !== token) return 0;
+        store.set(key, token);
+        return ttl ? 1 : 1;
+      }
+      if (store.get(key) !== token) return 0;
+      store.delete(key);
+      return 1;
+    },
+  };
+}
+
+test("a free lease is acquired and then renewed by its holder", async () => {
+  const redis = fakeRedis();
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    metrics(),
+  );
+
+  assert.equal(await lease.acquire(), true);
+  assert.equal(lease.isHolder, true);
+  assert.equal(
+    redis.store.get("shadow:lock:processing:dashboard:v1"),
+    "processing-1",
+  );
+
+  assert.equal(await lease.renew(), true);
+  assert.equal(lease.isHolder, true);
+});
+
+test("a lease held by another instance is not acquired", async () => {
+  const redis = fakeRedis();
+  redis.store.set("shadow:lock:processing:dashboard:v1", "processing-other");
+
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    metrics(),
+  );
+
+  assert.equal(await lease.acquire(), false);
+  assert.equal(lease.isHolder, false);
+});
+
+test("losing the lease clears local state and notifies the caller", async () => {
+  const redis = fakeRedis();
+  let losses = 0;
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+      onLost: () => {
+        losses += 1;
+      },
+    },
+    metrics(),
+  );
+
+  await lease.acquire();
+  // Another instance steals the lease.
+  redis.store.set("shadow:lock:processing:dashboard:v1", "processing-other");
+
+  assert.equal(await lease.renew(), false);
+  assert.equal(lease.isHolder, false);
+  assert.equal(losses, 1);
+});
+
+test("releasing a lease only deletes it for the holder", async () => {
+  const redis = fakeRedis();
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    metrics(),
+  );
+  await lease.acquire();
+  await lease.release();
+
+  assert.equal(lease.isHolder, false);
+  assert.equal(redis.store.has("shadow:lock:processing:dashboard:v1"), false);
+});
+
+test("a renewal error drops the lease instead of reporting it as held", async () => {
+  const redis = fakeRedis();
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    metrics(),
+  );
+  await lease.acquire();
+  assert.equal(lease.isHolder, true);
+
+  // The renewal command now fails, as it would after a Redis outage.
+  const originalEval = redis.eval.bind(redis);
+  redis.eval = (async (script: string, options: unknown) => {
+    if (script.includes("EXPIRE")) throw new Error("connection closed");
+    return (
+      originalEval as unknown as (s: string, o: unknown) => Promise<number>
+    )(script, options);
+  }) as never;
+
+  assert.equal(await lease.renew(), false);
+  assert.equal(lease.isHolder, false);
+});
+
+test("onAcquired listeners run on every acquisition, including re-acquisition", async () => {
+  const redis = fakeRedis();
+  let acquisitions = 0;
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    metrics(),
+  );
+  lease.onAcquired(() => {
+    acquisitions += 1;
+  });
+
+  await lease.acquire();
+  assert.equal(acquisitions, 1);
+
+  // Another instance steals the lease, then this one takes it back.
+  redis.store.set("shadow:lock:processing:dashboard:v1", "processing-other");
+  assert.equal(await lease.renew(), false);
+  redis.store.delete("shadow:lock:processing:dashboard:v1");
+  assert.equal(await lease.acquire(), true);
+  assert.equal(acquisitions, 2);
+});
+
+test("the lease gauge tracks acquisition, loss and release", async () => {
+  const redis = fakeRedis();
+  const gauge = metrics();
+  const lease = new ProcessingLease(
+    redis as never,
+    {
+      key: "shadow:lock:processing:dashboard:v1",
+      instanceId: "processing-1",
+    },
+    gauge,
+  );
+
+  await lease.acquire();
+  assert.deepEqual(gauge.held, [true]);
+
+  // A graceful release is not a lost lease, but the gauge must still drop: the
+  // freshness alert would otherwise keep counting this instance as the replica
+  // that is supposed to compare.
+  await lease.release();
+  assert.deepEqual(gauge.held, [true, false]);
+});

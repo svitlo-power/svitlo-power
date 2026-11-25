@@ -12,14 +12,11 @@ import {
   InternalApiClient,
   PowerLogs,
 } from "../shared.js";
+import { isObjectId } from "@svitlo-power/shared-typescript";
 import { parseIsoDateTime } from "../http/iso-date.js";
 import { SnapshotService } from "../snapshots/snapshot.service.js";
 import { INTERNAL_API } from "../tokens.js";
-import {
-  BuildingIdsDto,
-  objectIdPattern,
-  PowerLogsDto,
-} from "./dashboard.dto.js";
+import { BuildingIdsDto, PowerLogsDto } from "./dashboard.dto.js";
 
 export interface MobileDashboardConfig {
   title: DashboardConfig["title"];
@@ -69,7 +66,7 @@ export class DashboardService {
     buildingId: string,
     body: PowerLogsDto,
   ): Promise<PowerLogs> {
-    if (!objectIdPattern.test(buildingId)) {
+    if (!isObjectId(buildingId)) {
       // Same shape as FastAPI's path-parameter validation error.
       throw new UnprocessableEntityException({
         detail: [

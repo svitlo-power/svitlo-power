@@ -178,6 +178,52 @@ services:
       - web_network
     restart: "no"
 
+  svitlo-power-processing:
+    build:
+      context: .
+      dockerfile: processing/Dockerfile
+    image: ${REGISTRY_URL}/svitlo-power-processing:${TAG:-latest}
+    restart: always
+    env_file: .env
+    environment:
+      - FEATURE_PROCESSING_SHADOW_MODE=${FEATURE_PROCESSING_SHADOW_MODE:-false}
+      # The app reads PORT/METRICS_PORT from the shared .env; pin them so a
+      # value meant for another service cannot move the listener.
+      - PORT=8100
+      - METRICS_PORT=9095
+    expose:
+      - "8100"
+      - "9095"
+    ports:
+      - "127.0.0.1:${PROCESSING_PORT:-8100}:8100"
+      - "127.0.0.1:${PROCESSING_METRICS_PORT:-9095}:9095"
+    networks:
+      - web_network
+    labels:
+      io.hass.type: "addon"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8100/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      svitlo-power-rds:
+        condition: service_healthy
+    stop_signal: SIGINT
+    stop_grace_period: 15s
+
+  svitlo-power-processing-tests:
+    build:
+      context: .
+      dockerfile: processing/Dockerfile
+      target: test
+    image: ${REGISTRY_URL}/svitlo-power-processing-tests:${TAG:-latest}
+    profiles: ["tests"]
+    networks:
+      - web_network
+    restart: "no"
+
   svitlo-power-grid-reporter-tests:
     image: ${REGISTRY_URL}/svitlo-power-grid-reporter:${TAG:-latest}
     profiles: ["tests"]

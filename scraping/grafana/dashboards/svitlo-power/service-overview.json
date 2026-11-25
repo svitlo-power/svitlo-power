@@ -19,7 +19,20 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": 4,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["svitlo-power"],
+      "targetBlank": false,
+      "title": "Processing (Shadow)",
+      "tooltip": "Open the processing shadow-mode dashboard",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
   "panels": [
     {
       "datasource": {
@@ -62,9 +75,7 @@
         "orientation": "vertical",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -173,7 +184,7 @@
         },
         {
           "editorMode": "code",
-          "expr": "rate(label_replace(container_cpu_usage_seconds_total{id!=\"/\",id=~\".*(front-end|admin-front-end).*\"}, \"container\", \"$1\", \"id\", \"^.*/([^/]+?)$\")[5m]) * 100",
+          "expr": "label_replace(rate(container_cpu_usage_seconds_total{id!=\"/\",id=~\".*(front-end|admin-front-end).*\"}[5m]), \"container\", \"$1\", \"id\", \"^.*/([^/]+?)$\") * 100",
           "legendFormat": "{{container}}",
           "range": true,
           "refId": "B"
@@ -457,7 +468,7 @@
       "pluginVersion": "12.1.1",
       "targets": [
         {
-          "expr": "dashboard_snapshot_age_seconds",
+          "expr": "dashboard_snapshot_age_seconds{job=\"svitlo-power-back-end\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -653,10 +664,7 @@
   "preload": false,
   "refresh": "15s",
   "schemaVersion": 41,
-  "tags": [
-    "svitlo-power",
-    "prometheus"
-  ],
+  "tags": ["svitlo-power", "prometheus"],
   "templating": {
     "list": []
   },

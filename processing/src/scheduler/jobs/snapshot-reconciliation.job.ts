@@ -1,0 +1,47 @@
+import { Injectable, Logger } from "@nestjs/common";
+import { ProcessingService } from "../../processing/processing.service.js";
+
+/**
+ * Safety-net reconciliation job.
+ *
+ * `@nestjs/schedule` is in-process, so every replica triggers this job; the
+ * Redis lease inside `ProcessingService` guarantees only one replica actually
+ * builds and publishes.
+ */
+@Injectable()
+export class SnapshotReconciliationJob {
+  private readonly logger = new Logger(SnapshotReconciliationJob.name);
+
+  constructor(private readonly processing: ProcessingService) {}
+
+  /**
+   * Builds the recurring task that drives the reconciliation interval.
+   *
+   * A `setInterval` is used rather than a cron expression: the configured
+   * value is a number of **seconds**, and a 5-field cron puts it in the
+   * minutes field, so `300` would silently mean "every hour at :00".
+   */
+  schedule(
+    intervalMs: number,
+    run: (reason: string) => Promise<void>,
+  ): NodeJS.Timeout {
+    const timer = setInterval(() => {
+      void run("scheduled");
+    }, intervalMs);
+    timer.unref?.();
+    return timer;
+  }
+
+  /**
+   * Runs one reconciliation, recording duration and outcome.
+   *
+   * Errors propagate: the scheduler records the `result="error"` outcome and
+   * logs them, so swallowing them here would hide failed builds.
+   */
+  async run(reason: string): Promise<void> {
+    const result = await this.processing.reconcile(reason);
+    this.logger.log(
+      `Reconciliation job finished: built=${result.built} published=${result.published}`,
+    );
+  }
+}

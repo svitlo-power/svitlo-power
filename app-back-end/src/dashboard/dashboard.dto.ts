@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsArray, IsOptional, IsString, Matches } from "class-validator";
+import { OBJECT_ID_PATTERN } from "@svitlo-power/shared-typescript";
 import { AcceptsAlias } from "../http/aliases.js";
 
-export const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+export const objectIdPattern = OBJECT_ID_PATTERN;
 
 export class BuildingIdsDto {
   @ApiProperty({ type: [String], example: ["507f1f77bcf86cd799439011"] })

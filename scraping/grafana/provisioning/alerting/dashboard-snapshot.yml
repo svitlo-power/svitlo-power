@@ -36,3 +36,68 @@ groups:
           description: Snapshot write failures occurred during the last five minutes.
         labels:
           severity: warning
+      # Shadow mode is off by default, and a standby replica never compares, so
+      # an unqualified freshness rule would fire 24/7 on every instance that is
+      # not supposed to compare. `processing_shadow_mode_enabled` scopes the
+      # rule to the replicas that are, and the lease gauge keeps a standby that
+      # has shadow mode on (multi-replica deploys) out of it as well.
+      - uid: processing-shadow-parity-stale
+        title: Shadow parity comparison is stale
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: (time() - processing_shadow_last_comparison_timestamp_seconds{job="svitlo-power-processing"} > 900) and on(instance) (processing_shadow_mode_enabled{job="svitlo-power-processing"} == 1) and on(instance) (processing_shadow_lease_held{job="svitlo-power-processing"} == 1)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: OK
+        execErrState: Alerting
+        # One late tick must not page: the reconciliation interval is 300s, so a
+        # single missed build is normal.
+        for: 5m
+        annotations:
+          summary: Shadow parity has not been refreshed recently
+          description: The lease holder has not completed a shadow comparison in the last 15 minutes, so the parity reading is stale rather than healthy.
+        labels:
+          severity: warning
+      # Without this, a dead container takes the freshness rule quiet instead of
+      # red: its series disappear and `noDataState: OK` swallows that.
+      - uid: processing-down
+        title: Processing service is down
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: up{job="svitlo-power-processing"} == 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: Processing service is not being scraped
+          description: Prometheus cannot scrape svitlo-power-processing, so no shadow snapshot is being produced or compared.
+        labels:
+          severity: warning

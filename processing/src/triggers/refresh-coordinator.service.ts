@@ -1,0 +1,71 @@
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { ConfigType } from "@nestjs/config";
+import { processingConfig } from "../config/processing.config.js";
+import {
+  ProcessingService,
+  ReconcileResult,
+} from "../processing/processing.service.js";
+
+/**
+ * Coalesces refresh requests.
+ *
+ * A burst of triggers inside the debounce window produces a single build; every
+ * caller receives the resulting snapshot coordinates, matching the legacy
+ * producer's leader/follower behaviour.
+ */
+@Injectable()
+export class RefreshCoordinator {
+  private readonly logger = new Logger(RefreshCoordinator.name);
+  private pending: Promise<ReconcileResult> | null = null;
+  private debounceTimer: NodeJS.Timeout | null = null;
+  private followers = 0;
+
+  constructor(
+    @Inject(processingConfig.KEY)
+    private readonly config: ConfigType<typeof processingConfig>,
+    private readonly processing: ProcessingService,
+  ) {}
+
+  async request(
+    reason: string,
+    requestedBy?: string,
+  ): Promise<ReconcileResult> {
+    if (requestedBy) {
+      this.logger.log(`Refresh requested by ${requestedBy} (${reason})`);
+    }
+    if (this.pending) {
+      this.followers += 1;
+      const pending = this.pending;
+      // The leader's result carries `coalesced: false`; every follower folded
+      // into that build reports `coalesced: true`.
+      return pending.then((result) => ({ ...result, coalesced: true }));
+    }
+
+    // `reject` must be wired up: a failing build has to surface to the HTTP
+    // caller (and to Node's unhandled-rejection guard) instead of leaving every
+    // coalesced caller waiting on a promise that never settles.
+    this.pending = new Promise<ReconcileResult>((resolve, reject) => {
+      this.debounceTimer = setTimeout(() => {
+        this.debounceTimer = null;
+        void this.processing
+          .reconcile(reason)
+          .then(resolve, reject)
+          .finally(() => {
+            if (this.followers > 0) {
+              this.logger.log(
+                `Coalesced ${this.followers} refresh request(s) into one build`,
+              );
+              this.followers = 0;
+            }
+            this.pending = null;
+          });
+      }, this.config.refreshCoalesceMs);
+      // Deliberately *not* `unref()`ed: the timer is short (hundreds of
+      // milliseconds) and is always followed by a build, so it must keep the
+      // event loop alive. Unref'd, a test that awaits the coalesced callers can
+      // see the loop drain first and cancel them.
+    });
+
+    return this.pending;
+  }
+}
