@@ -110,6 +110,7 @@ def register(_: Settings, injector: Injector):
             await service.update(region["id"], provider["id"])
             snapshot_service = injector.get(DashboardSnapshotService)
             await snapshot_service.refresh_and_publish()
+            await snapshot_service.notify_data_changed("outages-change")
 
     scheduler.add_job(
         id            = 'update_outages_schedule',

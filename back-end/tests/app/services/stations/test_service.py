@@ -354,3 +354,25 @@ class TestStationsServiceSyncStationsData:
         service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
         await service.sync_stations_data()
         mock_stations_data_repo.add_station_data.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mutations_notify_processing_after_the_cutover(self):
+        """Every mutation that used to publish inline must notify Processing."""
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_station_connections = MagicMock()
+        mock_stations_repo = MagicMock()
+        mock_stations_data_repo = MagicMock()
+        mock_stations_repo.edit_station = AsyncMock()
+        mock_station_connections.get_connections = MagicMock(return_value=[])
+        mock_stations_repo.get_stations = AsyncMock(return_value=[])
+        mock_snapshot_service = AsyncMock()
+
+        service = StationsService(mock_events, mock_station_connections, mock_stations_repo, mock_stations_data_repo, mock_snapshot_service)
+        await service.edit_station("station-id", True, 1, 10.5, "alias")
+        await service.sync_stations(None)
+        await service.sync_stations_data()
+
+        assert mock_snapshot_service.notify_data_changed.await_count == 3
+        for call in mock_snapshot_service.notify_data_changed.await_args_list:
+            assert call.args == ("station-change",)

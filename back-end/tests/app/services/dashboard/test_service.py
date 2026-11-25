@@ -1735,3 +1735,70 @@ class TestDashboardServiceGetPowerLogsWithData:
 
         assert result is not None
 
+
+
+class TestDashboardServiceSnapshotTrigger:
+    """Every dashboard mutation must notify Processing after the cutover."""
+
+    @staticmethod
+    def _service(settings=None):
+        from app.services.dashboard.service import set_snapshot_service
+
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_settings = settings or AsyncMock()
+        mock_settings.get_number = AsyncMock(return_value=25)
+        service = DashboardService(
+            mock_events, MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+            MagicMock(), mock_settings,
+        )
+        snapshot_service = AsyncMock()
+        set_snapshot_service(snapshot_service)
+        return service, snapshot_service
+
+    @pytest.mark.asyncio
+    async def test_save_config_notifies_processing(self):
+        settings = AsyncMock()
+        settings.get_number = AsyncMock(return_value=25)
+        settings.get_localizable_text = AsyncMock(
+            return_value=LocalizableValue({"en": "Test"})
+        )
+        settings.get_boolean = AsyncMock(return_value=False)
+        settings.get_value = AsyncMock(side_effect=[25, 902])
+        settings.get_text = AsyncMock(return_value="queue1")
+        settings.bulk_update = AsyncMock(
+            return_value={"dashboard_title": True, "dashboard_outages_schedule_enabled": True}
+        )
+        service, snapshot_service = self._service(settings)
+
+        await service.save_config(SaveDashboardConfigRequest(
+            title=LocalizableValue({"en": "Test"}),
+            enableOutagesSchedule=False,
+        ))
+
+        snapshot_service.notify_data_changed.assert_awaited_once_with("config-change")
+
+    @pytest.mark.asyncio
+    async def test_building_mutations_notify_processing(self):
+        service, snapshot_service = self._service()
+        service._dashboard.get_building = AsyncMock(return_value=None)
+        service._dashboard.create_building = AsyncMock(return_value=PydanticObjectId())
+        service._dashboard.delete_building = AsyncMock(return_value=None)
+        service._dashboard.get_buildings = AsyncMock(return_value=[])
+        service._dashboard.reorder_buildings = AsyncMock()
+
+        request = SaveBuildingRequest(
+            name=LocalizableValue({"en": "Building"}),
+            color="#FF0000",
+            stationId=None,
+            reportUserIds=[],
+            enabled=True,
+            order=1,
+        )
+        await service.create_building(request)
+        # edit_building/delete_building return early when the building does
+        # not exist, so only the create path reaches the notification.
+        await service.edit_building(PydanticObjectId(), request)
+        await service.delete_building(PydanticObjectId())
+
+        snapshot_service.notify_data_changed.assert_awaited_once_with("buildings-change")

@@ -106,6 +106,7 @@ This document summarizes the implementation of Phase 0: Establish migration base
 | Flag | Env Variable | Controls |
 |------|--------------|----------|
 | `DASHBOARD_SNAPSHOT_PUBLISH` | `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` | Phase 1: Snapshot publishing |
+| `PROCESSING_CUTOVER` | `FEATURE_PROCESSING_CUTOVER` | Phase 5: Legacy back-end publishes refresh hints instead of snapshots |
 | `APP_BACKEND_REDIS_READS` | `FEATURE_APP_BACKEND_REDIS_READS` | Phase 2: App-backend Redis reads |
 | `BACKEND_SSE_REDIS` | `FEATURE_BACKEND_SSE_REDIS` | Phase 3: Backend SSE via Redis |
 | `APP_BACKEND_SSE_REDIS` | `FEATURE_APP_BACKEND_SSE_REDIS` | Phase 3: App-backend SSE via Redis |

@@ -78,6 +78,17 @@ class DashboardService(ReadOnlyDashboardService):
             if snapshot_service:
                 await snapshot_service.refresh_and_publish()
 
+    async def _notify_snapshot_changed(self, reason: str) -> None:
+        """Tell Processing that dashboard data changed.
+
+        After the cutover the legacy producer no longer publishes, so the
+        in-process refresh above is a no-op and Processing has to be triggered
+        explicitly.
+        """
+        snapshot_service = self._get_snapshot_service()
+        if snapshot_service:
+            await snapshot_service.notify_data_changed(reason)
+
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         schedule = config.outages_schedule
         updates = {
@@ -100,6 +111,7 @@ class DashboardService(ReadOnlyDashboardService):
             )
         await self._broadcast_if_enabled("dashboard_config_updated")
         await self._refresh_snapshot_if_enabled()
+        await self._notify_snapshot_changed("config-change")
         return await self.get_config()
 
     async def edit_building(
@@ -124,6 +136,7 @@ class DashboardService(ReadOnlyDashboardService):
             await self._dashboard.edit_building(building)
             await self._broadcast_if_enabled("buildings_updated")
             await self._refresh_snapshot_if_enabled()
+            await self._notify_snapshot_changed("buildings-change")
             return building_id
 
         return None
@@ -146,6 +159,7 @@ class DashboardService(ReadOnlyDashboardService):
         building_id = await self._dashboard.create_building(building)
         await self._broadcast_if_enabled("buildings_updated")
         await self._refresh_snapshot_if_enabled()
+        await self._notify_snapshot_changed("buildings-change")
         return building_id
 
     async def delete_building(self, building_id: PydanticObjectId) -> bool:
@@ -156,5 +170,6 @@ class DashboardService(ReadOnlyDashboardService):
             await self._dashboard.reorder_buildings(remaining_buildings)
             await self._broadcast_if_enabled("buildings_updated")
             await self._refresh_snapshot_if_enabled()
+            await self._notify_snapshot_changed("buildings-change")
             return True
         return False

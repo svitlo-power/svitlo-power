@@ -406,3 +406,55 @@ class TestExtDeviceServiceCheckPings:
         service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
         await service.check_pings()
         mock_ext_data_repo.add_ext_data.assert_called_once()
+
+
+class TestExtDeviceServiceSnapshotTrigger:
+    @pytest.mark.asyncio
+    async def test_grid_state_change_notifies_processing(self):
+        """A reporter state change must notify Processing exactly once."""
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_events.broadcast_private = AsyncMock()
+        mock_ext_device_repo = MagicMock()
+        mock_ext_device_repo.get_ext_device = AsyncMock(return_value=None)
+        mock_ext_device_repo.add_device = AsyncMock()
+        user = User(name="testuser", password="hashed", is_active=True, is_reporter=False)
+        mock_users_repo = MagicMock()
+        mock_users_repo.get_user = AsyncMock(return_value=user)
+        mock_ext_data_repo = MagicMock()
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(return_value=None)
+        mock_ext_data_repo.add_ext_data = AsyncMock()
+
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
+
+        await service.process_ping_request(
+            DevicePingRequest(
+                macAddress="00:11:22:33:44:55",
+                fwVersion="1.0.0",
+                fsVersion="2.0.0",
+                uptime=3600,
+            ),
+            "testuser",
+        )
+
+        mock_snapshot_service.notify_data_changed.assert_awaited_once_with("station-change")
+
+    @pytest.mark.asyncio
+    async def test_unchanged_grid_state_does_not_notify_processing(self):
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_ext_device_repo = MagicMock()
+        mock_users_repo = MagicMock()
+        mock_ext_data_repo = MagicMock()
+        mock_ext_data_repo.get_last_ext_data_by_user_id = AsyncMock(
+            return_value=ExtData(user_id=PydanticObjectId(), grid_state=True)
+        )
+
+        mock_snapshot_service = AsyncMock()
+        service = ExtDeviceService(mock_events, mock_ext_device_repo, mock_users_repo, mock_ext_data_repo, mock_snapshot_service)
+
+        await service._update_grid_state(PydanticObjectId(), active=True, now=datetime.now(timezone.utc))
+
+        # Nothing changed, so there is nothing for Processing to rebuild.
+        mock_snapshot_service.notify_data_changed.assert_not_awaited()

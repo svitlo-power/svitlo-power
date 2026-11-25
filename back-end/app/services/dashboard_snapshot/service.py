@@ -30,6 +30,10 @@ from shared.services.events.service import EventsService
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.settings.service import SettingsService
+from shared.services.dashboard_snapshot.triggers import (
+    SNAPSHOT_REFRESH_CHANNEL,
+    build_refresh_notification,
+)
 from app.repositories import (
     IDashboardRepository,
     IStationsRepository,
@@ -145,6 +149,42 @@ class DashboardSnapshotService:
     @property
     def is_publish_enabled(self) -> bool:
         return feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
+
+    @property
+    def is_refresh_trigger_enabled(self) -> bool:
+        """Whether this instance should notify Processing about mutations.
+
+        The trigger is gated on the cutover flag: while the legacy producer is
+        still the publisher there is nothing to notify, and after a rollback the
+        re-enabled publisher must not be fed notifications it no longer needs.
+        """
+        return feature_flags.is_enabled(FeatureFlag.PROCESSING_CUTOVER)
+
+    async def notify_data_changed(
+        self,
+        reason: str,
+        changed_sections: list[str] | None = None,
+    ) -> None:
+        """Publishes a fire-and-forget "data changed" hint to Processing.
+
+        The domain write must never fail because Processing is unreachable, so
+        every error is swallowed and logged. The payload is a hint only:
+        Processing re-reads MongoDB and rebuilds.
+        """
+        if not self.is_refresh_trigger_enabled:
+            return
+        try:
+            await self._redis.publish(
+                SNAPSHOT_REFRESH_CHANNEL,
+                json.dumps(
+                    build_refresh_notification(
+                        reason=reason,
+                        changed_sections=changed_sections,
+                    )
+                ),
+            )
+        except Exception as e:
+            logger.warning("Unable to publish snapshot refresh trigger: %s", e)
 
     async def start(self) -> None:
         """Initialize epoch, acquire lease, and publish initial snapshot."""

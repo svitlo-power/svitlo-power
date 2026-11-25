@@ -84,6 +84,7 @@ class StationsService(BaseService):
             charge_target_soc     = charge_target_soc,
         )
         await self._snapshot_service.refresh_and_publish()
+        await self._snapshot_service.notify_data_changed("station-change")
 
     async def sync_stations(self, connection_ids: List[PydanticObjectId] | None = None):
         for connection in self._station_connections.get_connections():
@@ -100,6 +101,7 @@ class StationsService(BaseService):
             for station in stations.station_list:
                 await self._stations.add_station(station, connection.id)
         await self._snapshot_service.refresh_and_publish()
+        await self._snapshot_service.notify_data_changed("station-change")
 
     async def sync_stations_data(self):
         stations = await self._stations.get_stations()
@@ -116,3 +118,4 @@ class StationsService(BaseService):
             await self._stations_data.add_station_data(station, station_data)
         await self.broadcast_public("station_data_updated")
         await self._snapshot_service.refresh_and_publish()
+        await self._snapshot_service.notify_data_changed("station-change")

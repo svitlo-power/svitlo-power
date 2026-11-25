@@ -56,6 +56,31 @@ Response: `{ "accepted": true, "epoch": 1700000000000, "version": 43 }` (or curr
 
 Producer coalesces concurrent requests server-side (500ms window).
 
+## Data Changed Notification (Pub/Sub, Phase 5)
+
+The HTTP trigger above is request/reply and stays the authoritative path. Phase 5
+adds a **one-way** notification for the legacy back-end, which used to call
+`refresh_and_publish()` inline from in-process mutation sites that Processing
+cannot reach.
+
+- **Channel**: `processing:triggers:snapshot-refresh` (versioned, separate from
+  the invalidation channel above)
+- **Direction**: back-end → Processing only; Processing never replies
+- **Delivery**: fire and forget, at least once; duplicates are harmless because
+  the build is idempotent and version allocation is monotonic
+- **Coalescing**: bursts fold into one build (`PROCESSING_REFRESH_COALESCE_MS`)
+
+Payload — a **hint, never state**:
+
+```json
+{ "reason": "buildings-change", "changedSections": ["buildings"], "source": "back-end" }
+```
+
+Processing re-reads MongoDB and rebuilds; the payload is only used as a metric
+label and log field. The publisher is gated on
+`FEATURE_PROCESSING_CUTOVER` so it is inert before the cutover and disabled
+again on rollback.
+
 ## Atomic Write Lua Script (with Lease Fencing & CAS)
 
 ```lua
