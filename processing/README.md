@@ -46,6 +46,29 @@ Python producer, which stays authoritative.
 | `GET /health` | Detailed health report |
 | `POST /internal/v1/snapshots/refresh` | Coalesced refresh trigger |
 
+## Refresh triggers
+
+Snapshots are rebuilt from three sources, all of which fold into one build
+through `RefreshCoordinator`:
+
+| Source | Mechanism |
+|---|---|
+| BFF cache miss / admin action | `POST /internal/v1/snapshots/refresh` |
+| Legacy back-end mutation | Redis pub/sub on `processing:triggers:snapshot-refresh` |
+| Safety net | Reconciliation cron (`PROCESSING_RECONCILIATION_INTERVAL_SECONDS`) |
+
+The pub/sub path exists because the legacy back-end used to call
+`refresh_and_publish()` inline from about a dozen in-process sites; after the
+cutover those calls cannot reach Processing. The back-end publishes a hint:
+
+```json
+{ "reason": "buildings-change", "changedSections": ["buildings"], "source": "back-end" }
+```
+
+The payload is a hint, never state: Processing re-reads MongoDB and rebuilds.
+Delivery is at least once, publishing is fire and forget, and bursts are
+coalesced, so a slow Processing cannot fail an admin write.
+
 ## Shadow isolation
 
 Every key the service writes is derived from the `shadow:` prefix:
@@ -103,6 +126,10 @@ a `processing_shadow_` prefix and never collide:
 | `processing_shadow_mode_enabled` | Gauge | 1 when shadow mode is on for this instance |
 | `processing_shadow_lease_held` | Gauge | 1 while this instance holds the shadow lease |
 | `processing_publish_enabled` | Gauge | 1 when this instance publishes to the production snapshot keys |
+| `processing_refresh_notifications_total` | Counter | "Data changed" notifications received, by `reason` |
+| `processing_refresh_notification_errors_total` | Counter | Notifications whose rebuild failed, by `reason` |
+| `processing_refresh_acknowledged_version` | Gauge | Snapshot version that acknowledged the last notification |
+| `processing_refresh_acknowledged_timestamp_seconds` | Gauge | Unix time of the last acknowledged notification |
 | `processing_lease_acquired_total` | Counter | Lease acquisitions |
 | `processing_lease_lost_total` | Counter | Lease losses |
 | `processing_job_executions_total` | Counter | Scheduled job outcomes |

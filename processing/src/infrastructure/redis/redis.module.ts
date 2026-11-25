@@ -2,7 +2,7 @@ import { Logger, Module } from "@nestjs/common";
 import { ConfigType } from "@nestjs/config";
 import { createClient, RedisClientType } from "redis";
 import { processingConfig } from "../../config/processing.config.js";
-import { REDIS_READER, REDIS_WRITER } from "../../tokens.js";
+import { REDIS_READER, REDIS_SUBSCRIBER, REDIS_WRITER } from "../../tokens.js";
 import { RedisConnections } from "./redis-connections.service.js";
 
 function createRedisClient(url: string, clientName: string): RedisClientType {
@@ -36,8 +36,20 @@ function createRedisClient(url: string, clientName: string): RedisClientType {
         return client;
       },
     },
+    {
+      // A subscriber-mode client cannot run ordinary commands, so it needs its
+      // own connection. It is created lazily by the module that uses it so a
+      // deployment that never subscribes does not open a third socket.
+      provide: REDIS_SUBSCRIBER,
+      inject: [processingConfig.KEY],
+      useFactory: async (config: ConfigType<typeof processingConfig>) => {
+        const client = createRedisClient(config.redisUrl, "subscriber");
+        await client.connect();
+        return client;
+      },
+    },
     RedisConnections,
   ],
-  exports: [REDIS_READER, REDIS_WRITER, RedisConnections],
+  exports: [REDIS_READER, REDIS_WRITER, REDIS_SUBSCRIBER, RedisConnections],
 })
 export class RedisModule {}
