@@ -1,4 +1,6 @@
 """Tests for the Phase 5 snapshot refresh trigger contract."""
+import pytest
+
 from shared.services.dashboard_snapshot.triggers import (
     REFRESH_REASONS,
     SNAPSHOT_REFRESH_CHANNEL,
@@ -44,6 +46,12 @@ class TestBuildRefreshNotification:
         )
 
     def test_source_can_be_overridden(self):
-        assert build_refresh_notification("manual", source="back-end-2")["source"] == (
-            "back-end-2"
-        )
+        assert build_refresh_notification(
+            "station-change", source="back-end-2"
+        )["source"] == "back-end-2"
+
+    def test_unknown_reason_is_rejected(self):
+        # `reason` becomes a metric label on the Processing side, so an unknown
+        # value must not leak through as a new series.
+        with pytest.raises(ValueError):
+            build_refresh_notification("manual")

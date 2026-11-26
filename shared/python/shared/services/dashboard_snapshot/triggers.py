@@ -26,7 +26,14 @@ def build_refresh_notification(
     source: str = "back-end",
     changed_sections: list[str] | None = None,
 ) -> dict:
-    """Builds the pub/sub payload for one mutation."""
+    """Builds the pub/sub payload for one mutation.
+
+    ``reason`` becomes a metric label on the Processing side, so an unknown
+    value is rejected here rather than silently creating a new series (or being
+    folded into ``other`` far from the call site).
+    """
+    if reason not in REFRESH_REASONS:
+        raise ValueError(f"Unknown refresh reason: {reason!r}")
     notification: dict = {"reason": reason, "source": source}
     if changed_sections:
         notification["changedSections"] = changed_sections

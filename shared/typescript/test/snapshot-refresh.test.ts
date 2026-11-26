@@ -86,3 +86,18 @@ test("non-string changedSections entries are discarded", () => {
     },
   );
 });
+
+test("an unknown reason is folded into other to bound metric cardinality", () => {
+  // `reason` becomes a metric label, so an arbitrary string from anything that
+  // can PUBLISH to the channel would create an unbounded series.
+  assert.deepEqual(
+    parseSnapshotRefreshNotification(
+      JSON.stringify({ reason: "typo-reason", source: "back-end" }),
+    ),
+    {
+      reason: "other",
+      source: "back-end",
+      changedSections: undefined,
+    },
+  );
+});

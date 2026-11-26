@@ -67,12 +67,20 @@ export function parseSnapshotRefreshNotification(
   const { reason, source } = candidate;
   if (typeof reason !== "string" || reason.length === 0) return null;
   if (typeof source !== "string" || source.length === 0) return null;
+  // `reason` becomes a metric label, so an unknown value would create an
+  // unbounded series for anything that can PUBLISH to the channel. Fold it into
+  // a fixed `other` bucket instead.
+  const normalisedReason = (
+    SNAPSHOT_REFRESH_REASONS as readonly string[]
+  ).includes(reason)
+    ? reason
+    : "other";
   const changedSections = Array.isArray(candidate.changedSections)
     ? candidate.changedSections.filter(
         (section): section is string => typeof section === "string",
       )
     : undefined;
-  return { reason, source, changedSections };
+  return { reason: normalisedReason, source, changedSections };
 }
 
 export const SHADOW_PREFIX = "shadow:";
