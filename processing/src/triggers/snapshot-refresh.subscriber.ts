@@ -112,9 +112,18 @@ export class SnapshotRefreshSubscriber
         notification.reason,
         notification.source,
       );
-      // The acknowledgement gauge is about the lag between a notification and
-      // the version that answered it, so it is stamped when the build settles.
-      this.metrics.setRefreshAcknowledgement(result.version, Date.now() / 1000);
+      // Only a published version acknowledges a hint. A standby replica
+      // (`no-lease`), a validation failure or a CAS/lease rejection all settle
+      // with `published: false` and version 0; stamping the gauge for those
+      // would report a version that was never written and hide a broken path.
+      if (result.published) {
+        this.metrics.setRefreshAcknowledgement(
+          result.version,
+          Date.now() / 1000,
+        );
+      } else {
+        this.metrics.refreshNotificationError(notification.reason);
+      }
     } catch (error) {
       this.metrics.refreshNotificationError(notification.reason);
       this.logger.error(

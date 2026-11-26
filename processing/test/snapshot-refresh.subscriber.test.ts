@@ -14,6 +14,7 @@ interface Harness {
   errors: string[];
   acknowledgements: Array<{ version: number; seconds: number }>;
   failWith?: Error;
+  published?: boolean;
 }
 
 class FakeRedis extends EventEmitter {
@@ -66,7 +67,7 @@ function harness(options: { shadowModeEnabled?: boolean } = {}): Harness {
       if (state.failWith) throw state.failWith;
       return {
         built: true,
-        published: true,
+        published: state.published ?? true,
         epoch: 1,
         version: 2,
         changed: [],
@@ -178,6 +179,22 @@ test("a failed build is recorded without an unhandled rejection", async () => {
 
   assert.deepEqual(state.errors, ["station-change"]);
   assert.deepEqual(state.acknowledgements, []);
+});
+
+test("an unpublished result is counted as an error and not acknowledged", async () => {
+  // A standby replica (no-lease) or a CAS/lease rejection settles with
+  // `published: false`; stamping the acknowledgement gauge for those would
+  // report a version that was never written.
+  const state = harness();
+  state.published = false;
+  await state.instance.onApplicationBootstrap();
+
+  await state.instance.handleMessage(
+    JSON.stringify({ reason: "station-change", source: "back-end" }),
+  );
+
+  assert.deepEqual(state.acknowledgements, []);
+  assert.deepEqual(state.errors, ["station-change"]);
 });
 
 test("a notification arriving during shutdown is ignored", async () => {
