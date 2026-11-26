@@ -70,6 +70,19 @@ The payload is a hint, never state: Processing re-reads MongoDB and rebuilds.
 Delivery is at least once, publishing is fire and forget, and bursts are
 coalesced, so a slow Processing cannot fail an admin write.
 
+### This path is transitional
+
+The pub/sub hop exists only because the mutation and the rebuild live in
+different processes during Phase 5. Phase 6.2 moves admin CRUD into Processing
+and Phase 6.3 moves the schedulers, so the mutation and the rebuild end up in
+the same process and the notification is no longer needed at all: the mutation
+path calls `RefreshCoordinator.request()` directly, exactly as the legacy
+back-end called `refresh_and_publish()` inline.
+
+The channel is therefore **deleted in Phase 6**, not migrated onto a general
+event bus. Until then it is the only mechanism that keeps snapshot age under the
+60 s exit gate while the legacy back-end still owns the writes.
+
 ## Shadow isolation
 
 Every key the service writes is derived from the `shadow:` prefix:

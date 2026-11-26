@@ -81,6 +81,12 @@ label and log field. The publisher is gated on
 `FEATURE_PROCESSING_CUTOVER` so it is inert before the cutover and disabled
 again on rollback.
 
+**This channel is transitional and is deleted in Phase 6.** It exists only
+because the mutation and the rebuild are in different processes during Phase 5.
+Once Phase 6.2 moves admin CRUD into Processing, the mutation path calls the
+refresh coordinator directly and no notification is needed — the channel is not
+migrated onto a general event bus.
+
 ## Atomic Write Lua Script (with Lease Fencing & CAS)
 
 ```lua

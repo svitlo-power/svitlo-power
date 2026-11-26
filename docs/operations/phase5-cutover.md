@@ -72,3 +72,15 @@ timings in the [cutover checklist](migration-thresholds.md).
 A subscription that receives nothing looks identical to "no data changed", so
 `processing_refresh_notifications_total` and the acknowledgement gauges are the
 signals that distinguish the two.
+
+## Retirement in Phase 6
+
+The pub/sub trigger is transitional. Phase 6.2 moves admin CRUD into Processing
+and Phase 6.3 moves the schedulers, after which the mutation and the snapshot
+rebuild are in the same process: the mutation path calls
+`RefreshCoordinator.request()` directly and the channel is deleted.
+
+Until then the channel is the only thing keeping snapshot age under the 60 s exit
+gate while the legacy back-end still owns the writes, so it must not be removed
+early. Removing it requires `FEATURE_PROCESSING_CUTOVER` to be off and the
+legacy publisher to be re-enabled, i.e. a full rollback.
