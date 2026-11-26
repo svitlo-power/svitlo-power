@@ -59,9 +59,14 @@ export class SnapshotRefreshSubscriber
       // `message` event: node-redis v4+ removed that event, so a listener
       // attached with `on("message")` never fires and every hint would be
       // silently dropped.
-      await this.subscriber.subscribe(SNAPSHOT_REFRESH_CHANNEL, (raw) => {
-        void this.handleMessage(raw);
-      });
+      //
+      // The callback signature is `(message, channel)` — the payload first.
+      await this.subscriber.subscribe(
+        SNAPSHOT_REFRESH_CHANNEL,
+        (raw: string) => {
+          void this.handleMessage(raw);
+        },
+      );
     } catch (error) {
       // A subscription that cannot be established must not stop the service:
       // the HTTP trigger and the reconciliation cron still refresh snapshots.
