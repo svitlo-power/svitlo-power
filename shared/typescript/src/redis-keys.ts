@@ -30,7 +30,12 @@ export const SNAPSHOT_REFRESH_CHANNEL = "processing:triggers:snapshot-refresh";
 export interface SnapshotRefreshNotification {
   /** Why the data changed; used as a metric label and log field. */
   reason: string;
-  /** Optional snapshot sections the publisher believes changed. */
+  /**
+   * Optional snapshot sections the publisher believes changed.
+   *
+   * Reserved: no caller sets it and Processing ignores it. Kept in the contract
+   * so a future consumer can use it without a payload change.
+   */
   changedSections?: string[];
   /** Process that published the notification, for example `back-end`. */
   source: string;

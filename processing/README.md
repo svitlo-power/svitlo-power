@@ -28,7 +28,6 @@ Python producer, which stays authoritative.
 | `REDIS_URI` | `redis://svitlo-power-rds:6379/0` | Redis connection string |
 | `FEATURE_PROCESSING_SHADOW_MODE` | `false` | Enables the shadow snapshot flow |
 | `FEATURE_PROCESSING_PUBLISH_ENABLED` | `false` | Phase 5 cutover: publish to the production snapshot keys instead of `shadow:` keys (requires shadow mode) |
-| `FEATURE_PROCESSING_CUTOVER` | back-end | `false` | Phase 5: legacy back-end publishes refresh hints instead of snapshots |
 | `PROCESSING_RECONCILIATION_INTERVAL_SECONDS` | `300` | Safety-net reconciliation cadence |
 | `PROCESSING_REFRESH_COALESCE_MS` | `500` | Refresh debounce window |
 | `PROCESSING_COMPARISON_MAX_SKEW_SECONDS` | `120` | Maximum tolerated age gap between the compared snapshots |

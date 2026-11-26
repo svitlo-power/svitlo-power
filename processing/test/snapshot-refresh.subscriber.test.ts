@@ -149,12 +149,12 @@ test("a message on another channel is ignored", async () => {
   // The callback is per-channel, so a foreign channel never reaches it; the
   // guard is covered directly below.
   state.subscriber.deliver(
-    JSON.stringify({ reason: "manual", source: "back-end" }),
+    JSON.stringify({ reason: "station-change", source: "back-end" }),
   );
   await new Promise((resolve) => setImmediate(resolve));
 
   assert.deepEqual(state.requests, [
-    { reason: "manual", requestedBy: "back-end" },
+    { reason: "station-change", requestedBy: "back-end" },
   ]);
 });
 
@@ -203,7 +203,7 @@ test("a notification arriving during shutdown is ignored", async () => {
   state.instance.onModuleDestroy();
 
   await state.instance.handleMessage(
-    JSON.stringify({ reason: "manual", source: "back-end" }),
+    JSON.stringify({ reason: "station-change", source: "back-end" }),
   );
 
   assert.deepEqual(state.requests, []);

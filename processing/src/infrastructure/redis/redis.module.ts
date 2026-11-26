@@ -38,8 +38,10 @@ function createRedisClient(url: string, clientName: string): RedisClientType {
     },
     {
       // A subscriber-mode client cannot run ordinary commands, so it needs its
-      // own connection. It is created lazily by the module that uses it so a
-      // deployment that never subscribes does not open a third socket.
+      // own connection. It connects eagerly here (like the reader and writer),
+      // so every deployment opens a third socket; a failed connect fails module
+      // init, and the subscriber's own try/catch around subscribe() only covers
+      // the subscription step, not the connection.
       provide: REDIS_SUBSCRIBER,
       inject: [processingConfig.KEY],
       useFactory: async (config: ConfigType<typeof processingConfig>) => {
