@@ -210,6 +210,64 @@ test("after the cutover the active publisher owns the epoch and the write", asyn
   ]);
 });
 
+test("after the cutover the comparison is skipped so parity is not self-reported", async () => {
+  const state = { holder: true, listeners: [] as Array<() => void> };
+  const lease = {
+    get isHolder() {
+      return state.holder;
+    },
+    get leaseToken() {
+      return "processing-1";
+    },
+    acquire: async () => true,
+    start: () => undefined,
+    release: async () => undefined,
+    onAcquired: (listener: () => void) => {
+      state.listeners.push(listener);
+    },
+  } as unknown as ProcessingLease;
+
+  let compared = 0;
+  const service = new ProcessingService(
+    { shadowModeEnabled: true, publishEnabled: true } as never,
+    lease,
+    {
+      build: async () => ({
+        snapshot: snapshot(7),
+        timing: { startedAt: 0, finishedAt: 1, durationSeconds: 0.001 },
+      }),
+    } as unknown as SnapshotBuilder,
+    {
+      validate: () => ({ valid: true, errors: [] }),
+    } as unknown as SnapshotValidator,
+    {
+      initialiseVersionKeys: async () => EPOCH,
+      nextVersion: async () => 7,
+      publish: async () => ({ published: true, reason: "ok" }),
+    } as unknown as SnapshotPublisherLike,
+    {
+      compareWithProduction: async () => {
+        compared += 1;
+        return {
+          compared: true,
+          matches: true,
+          parity: 1,
+          comparedFields: 1,
+          mismatches: 0,
+        };
+      },
+    } as unknown as ShadowComparator,
+    metrics(),
+  );
+
+  const result = await service.reconcile("startup");
+
+  // Comparing with the production key Processing just wrote would always report
+  // parity 1.0, so the comparison is skipped and parity is reported as n/a.
+  assert.equal(compared, 0);
+  assert.equal(result.parity, null);
+});
+
 test("re-acquiring the lease resets the cached epoch", async () => {
   const { service, state } = harness();
   await service.reconcile("startup");

@@ -298,7 +298,13 @@ export class ProcessingService
       this.lastSnapshot = snapshot;
     }
 
-    const comparison = await this.comparator.compareWithProduction(snapshot);
+    // After the cutover Processing owns the production key, so comparing with
+    // it would compare the snapshot with itself: parity is always 1.0 and the
+    // parity/staleness alerts read healthy whatever the build produces. Skip
+    // the comparison and export parity as "not available" instead.
+    const comparison = this.config.publishEnabled
+      ? { compared: false, parity: 0, mismatches: 0 }
+      : await this.comparator.compareWithProduction(snapshot);
     const result: ReconcileResult = {
       built: true,
       published: publish.published,

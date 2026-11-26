@@ -150,11 +150,13 @@ a `processing_shadow_` prefix and never collide:
 
 `processing_shadow_parity_rate` has no numeric value until the first comparison
 completes, and is set back to `NaN` whenever a comparison is skipped (no
-baseline yet, or the two snapshots are further apart than
-`PROCESSING_COMPARISON_MAX_SKEW_SECONDS`). `0` therefore only ever means a real
-0% parity, so a `parity < X` alert cannot fire on a skipped comparison; use
+baseline yet, the two snapshots are further apart than
+`PROCESSING_COMPARISON_MAX_SKEW_SECONDS`, or the cutover is done and Processing
+owns the production key). `0` therefore only ever means a real 0% parity, so a
+`parity < X` alert cannot fire on a skipped comparison; use
 `processing_shadow_last_comparison_timestamp_seconds` to tell "stale" from
-"healthy".
+"healthy". After the cutover the comparison is always skipped, so parity and the
+parity/staleness alerts are meaningless.
 
 Two alerts watch this: `processing-shadow-parity-stale` fires when the lease
 holder has not completed a comparison for 15 minutes, and `processing-down`
