@@ -473,7 +473,16 @@ class DashboardSnapshotService:
             return False
 
     async def refresh_and_publish(self) -> DashboardSnapshot:
-        """Build and publish a fresh snapshot."""
+        """Build and publish a fresh snapshot.
+
+        After the cutover the legacy producer no longer owns the snapshot, so
+        this is a no-op: the caller publishes a hint to Processing instead. The
+        early return keeps the hot mutation paths from building a snapshot that
+        is immediately thrown away (doubling the Mongo load) and from blocking
+        the hint if the unused build raises.
+        """
+        if not self.is_publish_enabled:
+            return self._last_snapshot
         # Allocate version via INCR on the version allocator key
         version = await self._redis.incr(VERSION_NEXT_KEY)
         snapshot = await self.build_snapshot(version=version)

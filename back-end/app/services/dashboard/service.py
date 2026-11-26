@@ -82,8 +82,8 @@ class DashboardService(ReadOnlyDashboardService):
         """Tell Processing that dashboard data changed.
 
         After the cutover the legacy producer no longer publishes, so the
-        in-process refresh above is a no-op and Processing has to be triggered
-        explicitly.
+        in-process ``refresh_and_publish()`` above is a no-op and Processing has
+        to be triggered explicitly.
         """
         snapshot_service = self._get_snapshot_service()
         if snapshot_service:
