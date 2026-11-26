@@ -55,12 +55,13 @@ export class SnapshotRefreshSubscriber
       return;
     }
     try {
-      // The listener argument is required by the client's typings even though
-      // messages are consumed through the `message` event below.
-      await this.subscriber.subscribe(
-        SNAPSHOT_REFRESH_CHANNEL,
-        () => undefined,
-      );
+      // The payload is delivered through the subscribe callback, not the
+      // `message` event: node-redis v4+ removed that event, so a listener
+      // attached with `on("message")` never fires and every hint would be
+      // silently dropped.
+      await this.subscriber.subscribe(SNAPSHOT_REFRESH_CHANNEL, (raw) => {
+        void this.handleMessage(raw);
+      });
     } catch (error) {
       // A subscription that cannot be established must not stop the service:
       // the HTTP trigger and the reconciliation cron still refresh snapshots.
@@ -69,11 +70,6 @@ export class SnapshotRefreshSubscriber
       );
       return;
     }
-    this.subscriber.on("message", (channel, raw) => {
-      if (channel === SNAPSHOT_REFRESH_CHANNEL) {
-        void this.handleMessage(raw);
-      }
-    });
     this.logger.log(`Listening on ${SNAPSHOT_REFRESH_CHANNEL}`);
   }
 

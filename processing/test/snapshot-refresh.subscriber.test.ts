@@ -20,10 +20,24 @@ class FakeRedis extends EventEmitter {
   readonly subscribed: string[] = [];
   readonly unsubscribed: string[] = [];
   subscribeError?: Error;
+  /** Messages delivered to the subscribe callback, as node-redis v4+ does. */
+  readonly received: string[] = [];
 
-  async subscribe(channel: string): Promise<void> {
+  async subscribe(
+    channel: string,
+    listener?: (raw: string) => void,
+  ): Promise<void> {
     if (this.subscribeError) throw this.subscribeError;
     this.subscribed.push(channel);
+    this.listener = listener;
+  }
+
+  private listener?: (raw: string) => void;
+
+  /** Simulates the server pushing one message to this subscriber. */
+  deliver(raw: string): void {
+    this.received.push(raw);
+    this.listener?.(raw);
   }
 
   async unsubscribe(channel: string): Promise<void> {
@@ -109,9 +123,7 @@ test("a notification becomes a coalesced refresh request", async () => {
   const state = harness();
   await state.instance.onApplicationBootstrap();
 
-  state.subscriber.emit(
-    "message",
-    SNAPSHOT_REFRESH_CHANNEL,
+  state.subscriber.deliver(
     JSON.stringify({
       reason: "buildings-change",
       changedSections: ["buildings"],
@@ -133,14 +145,16 @@ test("a message on another channel is ignored", async () => {
   const state = harness();
   await state.instance.onApplicationBootstrap();
 
-  state.subscriber.emit(
-    "message",
-    "cache:dashboard:v1:invalidations",
+  // The callback is per-channel, so a foreign channel never reaches it; the
+  // guard is covered directly below.
+  state.subscriber.deliver(
     JSON.stringify({ reason: "manual", source: "back-end" }),
   );
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.deepEqual(state.requests, []);
+  assert.deepEqual(state.requests, [
+    { reason: "manual", requestedBy: "back-end" },
+  ]);
 });
 
 test("an unusable payload is counted and dropped", async () => {
