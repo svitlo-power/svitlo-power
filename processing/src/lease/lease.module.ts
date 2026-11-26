@@ -6,9 +6,21 @@ import { processingConfig } from "../config/processing.config.js";
 import { RedisModule } from "../infrastructure/redis/redis.module.js";
 import { MetricsModule } from "../metrics/metrics.module.js";
 import { MetricsService } from "../metrics/metrics.service.js";
-import { SHADOW_LEASE_KEY } from "../shared.js";
+import { LEASE_KEY, SHADOW_LEASE_KEY } from "../shared.js";
 import { PROCESSING_LEASE, REDIS_WRITER } from "../tokens.js";
 import { ProcessingLease } from "./processing-lease.service.js";
+
+/**
+ * Chooses the lease namespace for the configured mode.
+ *
+ * The key must match the namespace the instance writes to: the Lua write script
+ * fences on the production lease key, so holding the shadow one after the
+ * cutover would reject every publish as `lease-lost` while the instance still
+ * reports `lease_held`.
+ */
+export function leaseKeyFor(publishEnabled: boolean): string {
+  return publishEnabled ? LEASE_KEY : SHADOW_LEASE_KEY;
+}
 
 @Module({
   imports: [RedisModule, MetricsModule],
@@ -26,7 +38,7 @@ import { ProcessingLease } from "./processing-lease.service.js";
         return new ProcessingLease(
           redis,
           {
-            key: SHADOW_LEASE_KEY,
+            key: leaseKeyFor(config.publishEnabled),
             instanceId,
             ttlSeconds: config.leaseTtlSeconds,
             renewIntervalSeconds: config.leaseRenewIntervalSeconds,
