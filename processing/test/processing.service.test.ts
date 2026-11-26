@@ -4,8 +4,7 @@ import { ProcessingService } from "../src/processing/processing.service.js";
 import type { ProcessingLease } from "../src/lease/processing-lease.service.js";
 import type { SnapshotBuilder } from "../src/snapshot/snapshot.builder.js";
 import type { SnapshotValidator } from "../src/snapshot/snapshot.validator.js";
-import type { ShadowPublisher } from "../src/shadow/shadow-publisher.service.js";
-import type { SnapshotPublisher } from "../src/snapshot/snapshot-publisher.service.js";
+import type { SnapshotPublisherLike } from "../src/processing/processing.service.js";
 import type { ShadowComparator } from "../src/shadow/shadow-comparator.service.js";
 import type { MetricsService } from "../src/metrics/metrics.service.js";
 import type { DashboardSnapshot } from "../src/shared.js";
@@ -84,7 +83,7 @@ function harness(options: HarnessOptions = {}) {
       published: options.publishReason === undefined,
       reason: options.publishReason ?? "ok",
     }),
-  } as unknown as ShadowPublisher;
+  } as unknown as SnapshotPublisherLike;
 
   const comparator = {
     compareWithProduction: async () => ({
@@ -137,7 +136,7 @@ test("the cutover flag is reported in the health details", async () => {
   assert.equal(publishing.service.details().publish_enabled, true);
 });
 
-test("after the cutover the production keys own the epoch and the write", async () => {
+test("after the cutover the active publisher owns the epoch and the write", async () => {
   const state = { holder: true, listeners: [] as Array<() => void> };
   const lease = {
     get isHolder() {
@@ -155,6 +154,8 @@ test("after the cutover the production keys own the epoch and the write", async 
   } as unknown as ProcessingLease;
 
   const calls: string[] = [];
+  // The module hands the service the production publisher once the cutover is
+  // on; the service must write through it and never touch the shadow namespace.
   const productionPublisher = {
     initialiseVersionKeys: async () => {
       calls.push("production:epoch");
@@ -166,20 +167,6 @@ test("after the cutover the production keys own the epoch and the write", async 
     },
     publish: async () => {
       calls.push("production:publish");
-      return { published: true, reason: "ok" };
-    },
-  };
-  const shadowPublisher = {
-    initialiseVersionKeys: async () => {
-      calls.push("shadow:epoch");
-      return EPOCH;
-    },
-    nextVersion: async () => {
-      calls.push("shadow:version");
-      return 1;
-    },
-    publish: async () => {
-      calls.push("shadow:publish");
       return { published: true, reason: "ok" };
     },
   };
@@ -196,7 +183,7 @@ test("after the cutover the production keys own the epoch and the write", async 
     {
       validate: () => ({ valid: true, errors: [] }),
     } as unknown as SnapshotValidator,
-    shadowPublisher as unknown as ShadowPublisher,
+    productionPublisher as unknown as SnapshotPublisherLike,
     {
       compareWithProduction: async () => ({
         compared: false,
@@ -208,7 +195,6 @@ test("after the cutover the production keys own the epoch and the write", async 
       }),
     } as unknown as ShadowComparator,
     metrics(),
-    productionPublisher as unknown as SnapshotPublisher,
   );
 
   const result = await service.reconcile("startup");
@@ -301,7 +287,7 @@ test("a request arriving mid-build awaits the follow-up build", async () => {
       initialiseVersionKeys: async () => EPOCH,
       nextVersion: async () => builds,
       publish: async () => ({ published: true, reason: "ok" }),
-    } as unknown as ShadowPublisher,
+    } as unknown as SnapshotPublisherLike,
     {
       compareWithProduction: async () => ({
         compared: false,
@@ -384,7 +370,7 @@ function serviceWithHeldFirstBuild(onBuild?: (attempt: number) => void) {
       initialiseVersionKeys: async () => EPOCH,
       nextVersion: async () => builds,
       publish: async () => ({ published: true, reason: "ok" }),
-    } as unknown as ShadowPublisher,
+    } as unknown as SnapshotPublisherLike,
     {
       compareWithProduction: async () => ({
         compared: false,
@@ -483,7 +469,7 @@ test("a build failure outside startup is visible in health", async () => {
       initialiseVersionKeys: async () => EPOCH,
       nextVersion: async () => attempts,
       publish: async () => ({ published: true, reason: "ok" }),
-    } as unknown as ShadowPublisher,
+    } as unknown as SnapshotPublisherLike,
     {
       compareWithProduction: async () => ({
         compared: false,
