@@ -141,6 +141,10 @@ class TestRegister:
             902,
         )
         mock_snapshot_service.refresh_and_publish.assert_awaited_once()
+        # One hint per run, not per region/provider iteration.
+        mock_snapshot_service.notify_data_changed.assert_awaited_once_with(
+            "outages-change"
+        )
 
     def test_update_outages_schedule_job_skips_missing_or_incomplete_config(self):
         service = MagicMock()
