@@ -47,6 +47,7 @@ export const SNAPSHOT_REFRESH_REASONS = [
   "buildings-change",
   "station-change",
   "outages-change",
+  "cache-miss",
 ] as const;
 
 export type SnapshotRefreshReason = (typeof SNAPSHOT_REFRESH_REASONS)[number];

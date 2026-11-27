@@ -887,3 +887,35 @@ class TestHandleRefreshRequest:
         assert result["version"] == 1
 
         assert result["coalesced"] is False
+
+    @pytest.mark.asyncio
+    async def test_cache_miss_forwards_a_hint_when_publishing_is_off(self):
+        # After the cutover the legacy producer is off and `_last_snapshot` is
+        # None (start() skips the build). The endpoint must forward a hint to
+        # Processing and return 200-shaped data, not dereference None -> 500.
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = MagicMock()
+        service._redis.incr = AsyncMock()
+        service._last_snapshot = None
+        service.notify_data_changed = AsyncMock()
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        try:
+            result = await service.handle_refresh_request(
+                reason="cache-miss", requested_by="bff"
+            )
+        finally:
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service.notify_data_changed.assert_awaited_once_with("cache-miss")
+        assert result == {"accepted": True, "coalesced": False}

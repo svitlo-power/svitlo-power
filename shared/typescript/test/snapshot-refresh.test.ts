@@ -20,7 +20,13 @@ test("the refresh channel is versioned and separate from the invalidation channe
 test("the documented reasons are all accepted by the trigger endpoint", () => {
   assert.deepEqual(
     [...SNAPSHOT_REFRESH_REASONS],
-    ["config-change", "buildings-change", "station-change", "outages-change"],
+    [
+      "config-change",
+      "buildings-change",
+      "station-change",
+      "outages-change",
+      "cache-miss",
+    ],
   );
 });
 

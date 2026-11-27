@@ -18,6 +18,7 @@ REFRESH_REASONS = (
     "buildings-change",
     "station-change",
     "outages-change",
+    "cache-miss",
 )
 
 

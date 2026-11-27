@@ -21,6 +21,7 @@ class TestSnapshotRefreshChannel:
             "buildings-change",
             "station-change",
             "outages-change",
+            "cache-miss",
         )
 
 

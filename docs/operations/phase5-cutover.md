@@ -60,7 +60,15 @@ trigger path can be verified before the producer moves.
 4. **Enable the Processing publisher**
    `FEATURE_PROCESSING_PUBLISH_ENABLED=true` on `processing`, then restart
    `processing`.
-5. **Verify**
+5. **Repoint the BFF cache-miss refresh at Processing**
+   Set `APP_BACKEND_SNAPSHOT_REFRESH_URL` to
+   `http://svitlo-power-processing:8100/internal/v1/snapshots/refresh` on both
+   BFFs and restart them. Processing guards `/internal` with
+   `InternalTokenGuard`, so `INTERNAL_API_TOKEN` must match Processing's
+   `INTERNAL_API_TOKEN`. Until this is done the back-end forwards cache misses to
+   Processing as hints (the `cache-miss` reason), so the path still works, just
+   through one extra hop.
+6. **Verify**
    - `processing_publish_enabled` is `1` and the lease holder is `processing-*`.
    - `dashboard_snapshot_version` from `job="svitlo-power-processing"`
      increments **and matches the production key** (`GET meta:dashboard:version`);
@@ -72,10 +80,10 @@ trigger path can be verified before the producer moves.
      fall back to the per-request Mongo path.
    - `processing_refresh_notifications_total` increases while exercising admin
      CRUD, station sync and the outage schedule refresh.
-6. **Freshness gate** - `dashboard_snapshot_age_seconds < 60` continuously while
+7. **Freshness gate** - `dashboard_snapshot_age_seconds < 60` continuously while
    the triggers above are exercised. The pub/sub path must be the one producing
    the refreshes, not the 300 s reconciliation cron.
-7. **Monitor for 30 min** before closing the change.
+8. **Monitor for 30 min** before closing the change.
 
 ### After the cutover
 

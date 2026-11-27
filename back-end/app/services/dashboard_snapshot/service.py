@@ -472,14 +472,16 @@ class DashboardSnapshotService:
             DASHBOARD_SNAPSHOT_WRITE_ERRORS.labels(error_type="exception").inc()
             return False
 
-    async def refresh_and_publish(self) -> DashboardSnapshot:
+    async def refresh_and_publish(self) -> Optional[DashboardSnapshot]:
         """Build and publish a fresh snapshot.
 
         After the cutover the legacy producer no longer owns the snapshot, so
         this is a no-op: the caller publishes a hint to Processing instead. The
         early return keeps the hot mutation paths from building a snapshot that
         is immediately thrown away (doubling the Mongo load) and from blocking
-        the hint if the unused build raises.
+        the hint if the unused build raises. Returns ``None`` when publishing is
+        off (including before the first build), so callers must not dereference
+        the result.
         """
         if not self.is_publish_enabled:
             return self._last_snapshot
@@ -536,8 +538,18 @@ class DashboardSnapshotService:
     async def handle_refresh_request(
         self, reason: str, requested_by: str
     ) -> dict:
-        """Handle an HTTP refresh request with server-side coalescing."""
+        """Handle an HTTP refresh request with server-side coalescing.
+
+        After the cutover the legacy producer no longer publishes, so a cache
+        miss is forwarded to Processing as a hint instead of building a throwaway
+        snapshot (which would 500 on the ``None`` result and leave the snapshot
+        stale until the 300 s cron).
+        """
         DASHBOARD_REFRESH_REQUESTS.labels(reason=reason).inc()
+
+        if not self.is_publish_enabled:
+            await self.notify_data_changed(reason)
+            return {"accepted": True, "coalesced": False}
 
         # Try to become the leader for this refresh cycle.
         # The lock is never held while awaiting, avoiding deadlock with
