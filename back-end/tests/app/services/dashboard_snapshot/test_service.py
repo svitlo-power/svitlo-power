@@ -919,3 +919,31 @@ class TestHandleRefreshRequest:
 
         service.notify_data_changed.assert_awaited_once_with("cache-miss")
         assert result == {"accepted": True, "coalesced": False}
+
+
+    @pytest.mark.asyncio
+    async def test_manual_refresh_request_maps_to_cache_miss_when_publishing_is_off(self):
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = MagicMock()
+        service.notify_data_changed = AsyncMock()
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        try:
+            result = await service.handle_refresh_request(
+                reason="manual", requested_by="admin"
+            )
+        finally:
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service.notify_data_changed.assert_awaited_once_with("cache-miss")
+        assert result == {"accepted": True, "coalesced": False}

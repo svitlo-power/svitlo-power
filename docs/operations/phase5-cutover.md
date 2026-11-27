@@ -26,13 +26,15 @@ producer/trigger flags only where they belong:
 
 | Flag | Set on | Notes |
 |---|---|---|
-| `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` | `back-end` | Legacy producer. Must be `false` everywhere else. |
+| `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` | `back-end`, both BFFs | Legacy producer (`true` before cutover, `false` after). Must be `false` on `processing`. |
 | `FEATURE_PROCESSING_CUTOVER` | `back-end` | Legacy hint publisher. |
-| `FEATURE_PROCESSING_PUBLISH_ENABLED` | `processing` | Production producer. |
+| `FEATURE_PROCESSING_PUBLISH_ENABLED` | `processing`, `back-end`, both BFFs | Production producer. Both BFFs and `back-end` read it to keep snapshot reads and public events active once `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` is `false`. |
 | `FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS` | both BFFs | Stays `true` across the cutover: reads follow either producer. |
 
-Because the BFF read gate now accepts either producer, the BFFs keep serving the
-dashboard from Redis after the cutover without a flag change.
+Because the BFF read gate and `back-end` public-event gate now accept either
+producer, both BFFs keep serving from Redis and `back-end` keeps emitting
+per-entity events once `FEATURE_PROCESSING_PUBLISH_ENABLED=true` is visible to
+them.
 
 Exactly one producer may hold the lease `lock:processing:dashboard:v1` at any
 time. Never enable both publishers.
@@ -58,16 +60,17 @@ trigger path can be verified before the producer moves.
    - `lock:processing:dashboard:v1` is released (`GET` returns nil). This
      depends on a graceful stop; after a crash, wait out the 30 s lease TTL.
 4. **Enable the Processing publisher**
-   `FEATURE_PROCESSING_PUBLISH_ENABLED=true` on `processing`, then restart
-   `processing`.
+   `FEATURE_PROCESSING_PUBLISH_ENABLED=true` on `processing`, `back-end`, and
+   both BFFs, then restart `processing` (and `back-end` so its public
+   dashboard events keep flowing).
 5. **Repoint the BFF cache-miss refresh at Processing**
    Set `APP_BACKEND_SNAPSHOT_REFRESH_URL` to
    `http://svitlo-power-processing:8100/internal/v1/snapshots/refresh` on both
-   BFFs and restart them. Processing guards `/internal` with
-   `InternalTokenGuard`, so `INTERNAL_API_TOKEN` must match Processing's
-   `INTERNAL_API_TOKEN`. Until this is done the back-end forwards cache misses to
-   Processing as hints (the `cache-miss` reason), so the path still works, just
-   through one extra hop.
+   BFFs and restart them (this also picks up `FEATURE_PROCESSING_PUBLISH_ENABLED=true`).
+   Processing guards `/internal` with `InternalTokenGuard`, so
+   `INTERNAL_API_TOKEN` must match Processing's `INTERNAL_API_TOKEN`. Until this
+   is done the back-end forwards cache misses to Processing as hints (the
+   `cache-miss` reason), so the path still works, just through one extra hop.
 6. **Verify**
    - `processing_publish_enabled` is `1` and the lease holder is `processing-*`.
    - `dashboard_snapshot_version` from `job="svitlo-power-processing"`

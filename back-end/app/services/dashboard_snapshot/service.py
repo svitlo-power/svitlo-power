@@ -31,6 +31,7 @@ from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.settings.service import SettingsService
 from shared.services.dashboard_snapshot.triggers import (
+    REFRESH_REASONS,
     SNAPSHOT_REFRESH_CHANNEL,
     build_refresh_notification,
 )
@@ -548,7 +549,8 @@ class DashboardSnapshotService:
         DASHBOARD_REFRESH_REQUESTS.labels(reason=reason).inc()
 
         if not self.is_publish_enabled:
-            await self.notify_data_changed(reason)
+            forwarded_reason = reason if reason in REFRESH_REASONS else "cache-miss"
+            await self.notify_data_changed(forwarded_reason)
             return {"accepted": True, "coalesced": False}
 
         # Try to become the leader for this refresh cycle.

@@ -15,6 +15,7 @@ interface Harness {
   acknowledgements: Array<{ version: number; seconds: number }>;
   failWith?: Error;
   published?: boolean;
+  reason?: string;
 }
 
 class FakeRedis extends EventEmitter {
@@ -74,6 +75,7 @@ function harness(options: { shadowModeEnabled?: boolean } = {}): Harness {
         parity: null,
         mismatches: 0,
         coalesced: false,
+        reason: state.reason,
       };
     },
   } as unknown as RefreshCoordinator;
@@ -142,22 +144,6 @@ test("a notification becomes a coalesced refresh request", async () => {
   assert.ok(state.acknowledgements[0].seconds > 0);
 });
 
-test("a message on another channel is ignored", async () => {
-  const state = harness();
-  await state.instance.onApplicationBootstrap();
-
-  // The callback is per-channel, so a foreign channel never reaches it; the
-  // guard is covered directly below.
-  state.subscriber.deliver(
-    JSON.stringify({ reason: "station-change", source: "back-end" }),
-  );
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.deepEqual(state.requests, [
-    { reason: "station-change", requestedBy: "back-end" },
-  ]);
-});
-
 test("an unusable payload is counted and dropped", async () => {
   const state = harness();
   await state.instance.onApplicationBootstrap();
@@ -182,9 +168,9 @@ test("a failed build is recorded without an unhandled rejection", async () => {
 });
 
 test("an unpublished result is counted as an error and not acknowledged", async () => {
-  // A standby replica (no-lease) or a CAS/lease rejection settles with
-  // `published: false`; stamping the acknowledgement gauge for those would
-  // report a version that was never written.
+  // A validation failure or a CAS/lease rejection settles with `published: false`;
+  // stamping the acknowledgement gauge for those would report a version that was
+  // never written.
   const state = harness();
   state.published = false;
   await state.instance.onApplicationBootstrap();
@@ -195,6 +181,20 @@ test("an unpublished result is counted as an error and not acknowledged", async 
 
   assert.deepEqual(state.acknowledgements, []);
   assert.deepEqual(state.errors, ["station-change"]);
+});
+
+test("a no-lease standby result is not counted as an error or acknowledged", async () => {
+  const state = harness();
+  state.published = false;
+  state.reason = "no-lease";
+  await state.instance.onApplicationBootstrap();
+
+  await state.instance.handleMessage(
+    JSON.stringify({ reason: "station-change", source: "back-end" }),
+  );
+
+  assert.deepEqual(state.acknowledgements, []);
+  assert.deepEqual(state.errors, []);
 });
 
 test("a notification arriving during shutdown is ignored", async () => {
