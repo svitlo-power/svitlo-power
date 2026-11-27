@@ -103,18 +103,28 @@ trigger path can be verified before the producer moves.
 
 ## Rollback (< 2 min)
 
-Every step is a restart.
+Every step is a restart. Steps 3 and 4 are both back-end flags, so they go in a
+single `back-end` restart.
 
 1. `FEATURE_PROCESSING_PUBLISH_ENABLED=false` on `processing`, then restart
    `processing`; the processor releases the lease and stops writing.
 2. Verify the lease is free and `dashboard_snapshot_version` stopped moving.
-3. `FEATURE_PROCESSING_CUTOVER=false` on `back-end`, then restart `back-end` so
-   the re-enabled legacy publisher is not fed hints it no longer needs.
-4. `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH=true` on `back-end`, then restart
-   `back-end`; the legacy producer re-acquires the lease and publishes on the
-   next trigger (or `POST /internal/v1/snapshots/refresh` for an immediate
-   build).
+3. **In one `back-end` restart:** set `FEATURE_PROCESSING_CUTOVER=false` (stop
+   feeding hints to a publisher that is going away) **and**
+   `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH=true` (the legacy producer re-acquires the
+   lease and publishes on the next trigger, or
+   `POST /internal/v1/snapshots/refresh` for an immediate build).
+4. If step 5 of the cutover repointed `APP_BACKEND_SNAPSHOT_REFRESH_URL` at
+   Processing, set it back to
+   `http://svitlo-power-back-end:5005/internal/v1/snapshots/refresh` on both BFFs
+   in the same restart.
 5. Verify snapshot age returns to `< 60s` and both BFFs receive notifications.
+
+**Expected gap.** Between step 1 and step 3 nobody writes the production keys,
+so the snapshot ages. The BFFs keep serving the last snapshot until it is older
+than `APP_BACKEND_REDIS_DASHBOARD_STALE_THRESHOLD_SECONDS` (300 s), after which
+they fall back to live reads for the remainder of the gap. Keep the gap under
+300 s; if it will be longer, accept the temporary live-read load.
 
 Rehearse both directions in staging on the day of the cutover and record the
 timings in the [cutover checklist](migration-thresholds.md).
