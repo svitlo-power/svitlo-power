@@ -27,6 +27,9 @@ def test_dashboard_snapshot_reads_require_compatible_modes(
         FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH: feature_flags.is_enabled(
             FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH
         ),
+        FeatureFlag.PROCESSING_PUBLISH_ENABLED: feature_flags.is_enabled(
+            FeatureFlag.PROCESSING_PUBLISH_ENABLED
+        ),
         FeatureFlag.DEYE_POLLING_PROCESSING: feature_flags.is_enabled(
             FeatureFlag.DEYE_POLLING_PROCESSING
         ),
@@ -38,9 +41,57 @@ def test_dashboard_snapshot_reads_require_compatible_modes(
         feature_flags.set_enabled(
             FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, publishing_enabled
         )
+        # The legacy publisher is off in this scenario; only the reader flag and
+        # the deye flag vary.
+        feature_flags.set_enabled(FeatureFlag.PROCESSING_PUBLISH_ENABLED, False)
         feature_flags.set_enabled(
             FeatureFlag.DEYE_POLLING_PROCESSING, deye_processing
         )
+        assert dashboard_snapshot_reads_enabled() is expected
+    finally:
+        for flag, enabled in flags.items():
+            feature_flags.set_enabled(flag, enabled)
+
+
+@pytest.mark.parametrize(
+    ("reader_enabled", "legacy_publish", "processing_publish", "expected"),
+    [
+        # After the Phase 5 cutover the legacy publisher is off but Processing
+        # publishes, so the BFF must keep reading the snapshot from Redis.
+        (True, False, True, True),
+        (True, True, False, True),
+        (True, False, False, False),
+        (False, False, True, False),
+    ],
+)
+def test_dashboard_snapshot_reads_follow_either_producer(
+    reader_enabled, legacy_publish, processing_publish, expected
+):
+    flags = {
+        FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS: feature_flags.is_enabled(
+            FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS
+        ),
+        FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH: feature_flags.is_enabled(
+            FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH
+        ),
+        FeatureFlag.PROCESSING_PUBLISH_ENABLED: feature_flags.is_enabled(
+            FeatureFlag.PROCESSING_PUBLISH_ENABLED
+        ),
+        FeatureFlag.DEYE_POLLING_PROCESSING: feature_flags.is_enabled(
+            FeatureFlag.DEYE_POLLING_PROCESSING
+        ),
+    }
+    try:
+        feature_flags.set_enabled(
+            FeatureFlag.APP_BACKEND_DASHBOARD_SNAPSHOT_READS, reader_enabled
+        )
+        feature_flags.set_enabled(
+            FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, legacy_publish
+        )
+        feature_flags.set_enabled(
+            FeatureFlag.PROCESSING_PUBLISH_ENABLED, processing_publish
+        )
+        feature_flags.set_enabled(FeatureFlag.DEYE_POLLING_PROCESSING, False)
         assert dashboard_snapshot_reads_enabled() is expected
     finally:
         for flag, enabled in flags.items():

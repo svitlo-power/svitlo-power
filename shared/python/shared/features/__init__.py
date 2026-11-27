@@ -23,6 +23,8 @@ class FeatureFlag(str, Enum):
     # Phase 4-5: Processing service
     PROCESSING_SHADOW_MODE = "processing_shadow_mode"
     PROCESSING_CUTOVER = "processing_cutover"
+    # Phase 5: Processing publishes the snapshot to the production keys
+    PROCESSING_PUBLISH_ENABLED = "processing_publish_enabled"
     # Phase 6: Capability migration
     MESSAGE_PREVIEW_PROCESSING = "message_preview_processing"
     ADMIN_CRUD_PROCESSING = "admin_crud_processing"

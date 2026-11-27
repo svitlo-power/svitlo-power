@@ -119,7 +119,11 @@ export const appConfig = registerAs("app", (): AppConfiguration => ({
   ),
   snapshotReadsEnabled:
     process.env.FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS === "true" &&
-    process.env.FEATURE_DASHBOARD_SNAPSHOT_PUBLISH === "true" &&
+    // A snapshot producer exists once either the legacy back-end or Processing
+    // publishes. Gating on the legacy flag alone would turn reads off at the
+    // Phase 5 cutover, sending every client back to the per-request Mongo path.
+    (process.env.FEATURE_DASHBOARD_SNAPSHOT_PUBLISH === "true" ||
+      process.env.FEATURE_PROCESSING_PUBLISH_ENABLED === "true") &&
     process.env.FEATURE_DEYE_POLLING_PROCESSING !== "true",
   apiDocsEnabled:
     process.env.API_DOCS_ENABLED === "true" &&

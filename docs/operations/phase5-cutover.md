@@ -20,6 +20,20 @@ Phase 9); only the publish flag moves.
 (`FeatureFlags._load_from_env` on the back-end, `registerAs` on Processing), so
 each step below is a service restart, not a runtime toggle.
 
+**Which service each flag is set on.** `docker-compose.yml` loads the same
+`.env` into every service, so a flag set in `.env` reaches all of them. Set the
+producer/trigger flags only where they belong:
+
+| Flag | Set on | Notes |
+|---|---|---|
+| `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` | `back-end` | Legacy producer. Must be `false` everywhere else. |
+| `FEATURE_PROCESSING_CUTOVER` | `back-end` | Legacy hint publisher. |
+| `FEATURE_PROCESSING_PUBLISH_ENABLED` | `processing` | Production producer. |
+| `FEATURE_APP_BACKEND_DASHBOARD_SNAPSHOT_READS` | both BFFs | Stays `true` across the cutover: reads follow either producer. |
+
+Because the BFF read gate now accepts either producer, the BFFs keep serving the
+dashboard from Redis after the cutover without a flag change.
+
 Exactly one producer may hold the lease `lock:processing:dashboard:v1` at any
 time. Never enable both publishers.
 
@@ -53,6 +67,9 @@ trigger path can be verified before the producer moves.
      the gauge is also exported for the shadow publisher, so a value that only
      increments is not enough.
    - `cache:dashboard:v1:invalidations` notifications flow to both BFFs.
+   - **BFFs still serve from Redis:** each BFF's snapshot-hit metric keeps
+     increasing (or `/health/dashboard-snapshot` stays fresh). Reads must not
+     fall back to the per-request Mongo path.
    - `processing_refresh_notifications_total` increases while exercising admin
      CRUD, station sync and the outage schedule refresh.
 6. **Freshness gate** - `dashboard_snapshot_age_seconds < 60` continuously while
