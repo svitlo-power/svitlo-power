@@ -63,12 +63,23 @@ class DashboardService(ReadOnlyDashboardService):
         return _snapshot_service
     
     def _should_publish_snapshot(self) -> bool:
-        """Check if dashboard snapshot publishing is enabled via feature flag."""
+        """Whether the legacy back-end is the active snapshot producer."""
         return feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
-    
+
+    def _snapshot_producer_active(self) -> bool:
+        """Whether any producer is writing the snapshot the clients read.
+
+        After the Phase 5 cutover the legacy producer is off but Processing
+        publishes, so the public dashboard events must keep flowing. Gating them
+        on the legacy flag alone would silence them at the cutover.
+        """
+        return self._should_publish_snapshot() or feature_flags.is_enabled(
+            FeatureFlag.PROCESSING_PUBLISH_ENABLED
+        )
+
     async def _broadcast_if_enabled(self, event_type: str, data: dict = None):
-        """Broadcast event only if snapshot publishing is enabled."""
-        if self._should_publish_snapshot():
+        """Broadcast a public dashboard event while a snapshot producer exists."""
+        if self._snapshot_producer_active():
             await self.broadcast_public(event_type, data)
 
     async def _refresh_snapshot_if_enabled(self) -> None:

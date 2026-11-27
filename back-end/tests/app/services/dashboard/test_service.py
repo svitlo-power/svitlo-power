@@ -1802,3 +1802,32 @@ class TestDashboardServiceSnapshotTrigger:
         await service.delete_building(PydanticObjectId())
 
         snapshot_service.notify_data_changed.assert_awaited_once_with("buildings-change")
+
+    @pytest.mark.asyncio
+    async def test_public_events_flow_when_only_processing_publishes(self):
+        # After the cutover the legacy producer is off but Processing publishes;
+        # the per-entity events must keep flowing or clients only see changes on
+        # reload.
+        service, _ = self._service()
+        service._dashboard.get_building = AsyncMock(return_value=None)
+        service._dashboard.create_building = AsyncMock(return_value=PydanticObjectId())
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        feature_flags.set_enabled(FeatureFlag.PROCESSING_PUBLISH_ENABLED, True)
+        try:
+            await service.create_building(
+                SaveBuildingRequest(
+                    name=LocalizableValue({"en": "Building"}),
+                    color="#FF0000",
+                    stationId=None,
+                    reportUserIds=[],
+                    enabled=True,
+                    order=1,
+                )
+            )
+        finally:
+            feature_flags.set_enabled(FeatureFlag.PROCESSING_PUBLISH_ENABLED, False)
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service._events.broadcast_public.assert_awaited_once_with(
+            "buildings_updated", None
+        )

@@ -93,11 +93,13 @@ trigger path can be verified before the producer moves.
   `processing_publish_enabled == 1`, so it stays quiet after the cutover; a
   dedicated `processing-snapshot-freshness` alert watches
   `dashboard_snapshot_age_seconds` on the Processing producer instead.
-- **The UI event mode switches off.** `dashboardUpdatedEventEnabled` is only set
-  while `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` is on, and only the legacy producer
-  sends `dashboard_updated`. After the cutover the front-end falls back to
-  per-entity events. Sending `dashboard_updated` from Processing is planned for a
-  later phase.
+- **The UI event mode switches off, but per-entity events keep flowing.**
+  `dashboardUpdatedEventEnabled` is only set while
+  `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` is on, and only the legacy producer sends
+  `dashboard_updated`. After the cutover the front-end falls back to the
+  per-entity `dashboard_config_updated` / `buildings_updated` events, which the
+  back-end now sends whenever any producer is active (not only the legacy one).
+  Sending `dashboard_updated` from Processing is planned for a later phase.
 
 ## Rollback (< 2 min)
 
