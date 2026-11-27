@@ -89,7 +89,10 @@ trigger path can be verified before the producer moves.
 
 - **Parity is meaningless.** Processing now owns the production key, so the
   shadow comparison is skipped and `processing_shadow_parity_rate` is exported
-  as `NaN`. Do not read parity or the parity/staleness alerts after the cutover.
+  as `NaN`. The `processing-shadow-parity-stale` alert excludes
+  `processing_publish_enabled == 1`, so it stays quiet after the cutover; a
+  dedicated `processing-snapshot-freshness` alert watches
+  `dashboard_snapshot_age_seconds` on the Processing producer instead.
 - **The UI event mode switches off.** `dashboardUpdatedEventEnabled` is only set
   while `FEATURE_DASHBOARD_SNAPSHOT_PUBLISH` is on, and only the legacy producer
   sends `dashboard_updated`. After the cutover the front-end falls back to
