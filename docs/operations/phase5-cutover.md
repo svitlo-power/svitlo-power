@@ -1,4 +1,4 @@
-﻿# Phase 5 Cutover Runbook
+# Phase 5 Cutover Runbook
 
 Moves snapshot ownership from the legacy Python `back-end` to
 `svitlo-power-processing`. The legacy calculation code stays in place (removed in

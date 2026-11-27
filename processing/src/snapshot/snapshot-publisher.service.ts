@@ -1,7 +1,5 @@
-﻿import { Inject, Injectable, Logger } from "@nestjs/common";
-import { ConfigType } from "@nestjs/config";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { RedisClientType } from "redis";
-import { processingConfig } from "../config/processing.config.js";
 import { REDIS_WRITER } from "../tokens.js";
 import { MetricsService } from "../metrics/metrics.service.js";
 import {
@@ -47,8 +45,6 @@ export class SnapshotPublisher extends BaseSnapshotPublisher {
   constructor(
     @Inject(REDIS_WRITER) redis: RedisClientType,
     @Inject(PROCESSING_LEASE) lease: ProcessingLease,
-    @Inject(processingConfig.KEY)
-    config: ConfigType<typeof processingConfig>,
     metrics: MetricsService,
   ) {
     super(redis, lease, metrics);

@@ -248,7 +248,7 @@ export class ProcessingService
 
   private async runReconcile(reason: string): Promise<ReconcileResult> {
     if (!this.lease.isHolder && !(await this.lease.acquire())) {
-      this.logger.warn("Skipping reconciliation: shadow lease not held");
+      this.logger.warn("Skipping reconciliation: lease not held");
       return {
         built: false,
         published: false,
@@ -303,7 +303,7 @@ export class ProcessingService
     // parity/staleness alerts read healthy whatever the build produces. Skip
     // the comparison and export parity as "not available" instead.
     const comparison = this.config.publishEnabled
-      ? { compared: false, parity: 0, mismatches: 0 }
+      ? { compared: false, parity: null, mismatches: 0 }
       : await this.comparator.compareWithProduction(snapshot);
     const result: ReconcileResult = {
       built: true,
@@ -319,7 +319,7 @@ export class ProcessingService
     this.lastResult = result;
     this.lastBuildAt = Date.now();
     this.logger.log(
-      `Shadow reconciliation (${reason}): version=${snapshot.version} changed=[${changed.join(",")}] parity=${result.parity === null ? "n/a" : result.parity.toFixed(4)}`,
+      `Snapshot reconciliation (${reason}): version=${snapshot.version} changed=[${changed.join(",")}] parity=${result.parity === null ? "n/a" : result.parity.toFixed(4)}`,
     );
     return result;
   }
@@ -369,6 +369,11 @@ export class ProcessingService
   details() {
     return {
       shadow_mode: this.config.shadowModeEnabled,
+      // Historical name kept for dashboard compatibility: after the cutover the
+      // instance is the production producer, not a shadow one.
+      shadow_mode_note: this.config.publishEnabled
+        ? "publishing to production keys"
+        : "shadow mode",
       publish_enabled: this.config.publishEnabled,
       lease_held: this.lease.isHolder,
       epoch: this.epoch,

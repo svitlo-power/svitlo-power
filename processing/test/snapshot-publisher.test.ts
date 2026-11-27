@@ -45,12 +45,7 @@ function publisher(
   const redis = {
     eval: async () => evalResult,
   };
-  return new SnapshotPublisher(
-    redis as never,
-    lease,
-    { publishEnabled: true } as never,
-    metrics(),
-  );
+  return new SnapshotPublisher(redis as never, lease, metrics());
 }
 
 test("a successful Lua result publishes the snapshot", async () => {
@@ -77,12 +72,7 @@ test("the write targets the production keys and the invalidation channel", async
       return [1, "ok", ""];
     },
   };
-  const instance = new SnapshotPublisher(
-    redis as never,
-    lease,
-    { publishEnabled: true } as never,
-    metrics(),
-  );
+  const instance = new SnapshotPublisher(redis as never, lease, metrics());
 
   await instance.publish(snapshot());
 
@@ -140,12 +130,7 @@ test("a Redis failure is reported as an exception", async () => {
       throw new Error("connection closed");
     },
   };
-  const instance = new SnapshotPublisher(
-    redis as never,
-    lease,
-    { publishEnabled: true } as never,
-    metrics(),
-  );
+  const instance = new SnapshotPublisher(redis as never, lease, metrics());
 
   const result = await instance.publish(snapshot());
   assert.equal(result.published, false);
@@ -184,12 +169,7 @@ function publisherWith(redis: FakeRedis): SnapshotPublisher {
       return "processing-1";
     },
   } as unknown as ProcessingLease;
-  return new SnapshotPublisher(
-    redis as never,
-    lease,
-    { publishEnabled: true } as never,
-    metrics(),
-  );
+  return new SnapshotPublisher(redis as never, lease, metrics());
 }
 
 test("version keys are seeded only when absent", async () => {

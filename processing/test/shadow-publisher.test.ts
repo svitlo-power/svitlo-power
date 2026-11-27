@@ -37,12 +37,7 @@ function publisher(
   const redis = {
     eval: async () => evalResult,
   };
-  return new ShadowPublisher(
-    redis as never,
-    lease,
-    { shadowModeEnabled: true } as never,
-    metrics(),
-  );
+  return new ShadowPublisher(redis as never, lease, metrics());
 }
 
 test("a successful Lua result publishes the snapshot", async () => {
@@ -96,12 +91,7 @@ test("a Redis failure is reported as an exception", async () => {
       throw new Error("connection closed");
     },
   };
-  const instance = new ShadowPublisher(
-    redis as never,
-    lease,
-    { shadowModeEnabled: true } as never,
-    metrics(),
-  );
+  const instance = new ShadowPublisher(redis as never, lease, metrics());
 
   const result = await instance.publish(snapshot());
   assert.equal(result.published, false);

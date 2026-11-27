@@ -121,6 +121,9 @@ export class SnapshotRefreshSubscriber
           result.version,
           Date.now() / 1000,
         );
+      } else if (result.reason === "no-lease") {
+        // A standby replica is not an error: with N replicas every hint would
+        // otherwise add N-1 "errors" indistinguishable from real failures.
       } else {
         this.metrics.refreshNotificationError(notification.reason);
       }
