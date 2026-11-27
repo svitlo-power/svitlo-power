@@ -22,6 +22,7 @@ class TestRegister:
         mock_settings.set_value = AsyncMock(return_value=None)
         mock_snapshot_service = MagicMock()
         mock_snapshot_service.refresh_and_publish = AsyncMock()
+        mock_snapshot_service.notify_data_changed = AsyncMock()
         injector.get.side_effect = lambda cls: (
             mock_service if cls is OutagesScheduleService
             else mock_settings if cls is SettingsService
@@ -106,6 +107,7 @@ class TestRegister:
 
         mock_snapshot_service = MagicMock()
         mock_snapshot_service.refresh_and_publish = AsyncMock()
+        mock_snapshot_service.notify_data_changed = AsyncMock()
 
         def get_side_effect(cls):
             if cls is OutagesScheduleService:
@@ -139,6 +141,10 @@ class TestRegister:
             902,
         )
         mock_snapshot_service.refresh_and_publish.assert_awaited_once()
+        # One hint per run, not per region/provider iteration.
+        mock_snapshot_service.notify_data_changed.assert_awaited_once_with(
+            "outages-change"
+        )
 
     def test_update_outages_schedule_job_skips_missing_or_incomplete_config(self):
         service = MagicMock()
@@ -225,3 +231,44 @@ class TestRegister:
 
         service.fetch_regions.assert_awaited_once()
         service.update.assert_not_awaited()
+
+class TestOutagesScheduleSnapshotTrigger:
+    @staticmethod
+    def _job():
+        injector = MagicMock()
+        scheduler = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.get_boolean = AsyncMock(return_value=True)
+        mock_settings.get_value = AsyncMock(side_effect=[25, 902])
+        mock_settings.set_value = AsyncMock(return_value=None)
+        mock_service = MagicMock()
+        mock_service.update = AsyncMock()
+        mock_service.fetch_regions = AsyncMock(return_value=[{
+            "id": 25,
+            "value": "Kyiv",
+            "dsos": [{"id": 902, "name": "Yasno"}],
+        }])
+        mock_snapshot_service = MagicMock()
+        mock_snapshot_service.refresh_and_publish = AsyncMock()
+        mock_snapshot_service.notify_data_changed = AsyncMock()
+        injector.get.side_effect = lambda cls: (
+            mock_service if cls is OutagesScheduleService
+            else mock_settings if cls is SettingsService
+            else mock_snapshot_service if cls is DashboardSnapshotService
+            else scheduler
+        )
+        register(MagicMock(), injector)
+        return scheduler.add_job.call_args.kwargs["func"], mock_snapshot_service
+
+    def test_a_schedule_update_notifies_processing(self):
+        from shared.features import feature_flags, FeatureFlag
+        feature_flags.set_enabled(FeatureFlag.ADMIN_CRUD_PROCESSING, False)
+
+        job, snapshot_service = self._job()
+        asyncio.run(job())
+
+        # The Yasno fetch is the legacy trigger path; after the cutover the
+        # in-process publish is a no-op and Processing needs the hint.
+        snapshot_service.notify_data_changed.assert_awaited_once_with(
+            "outages-change"
+        )

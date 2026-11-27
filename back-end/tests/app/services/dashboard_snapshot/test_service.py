@@ -318,6 +318,37 @@ class TestRefreshAndPublish:
             ),
         ]
 
+    @pytest.mark.asyncio
+    async def test_no_op_when_publishing_is_disabled(self):
+        # After the cutover the legacy producer must not build a snapshot that
+        # is thrown away (doubling Mongo load) or block the hint if the unused
+        # build raises.
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = MagicMock()
+        service._redis.incr = AsyncMock()
+        service.build_snapshot = AsyncMock()
+        service.publish_snapshot = AsyncMock()
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        try:
+            await service.refresh_and_publish()
+        finally:
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service._redis.incr.assert_not_awaited()
+        service.build_snapshot.assert_not_awaited()
+        service.publish_snapshot.assert_not_awaited()
+
     def test_changed_sections_reports_only_changed_building_summary(self):
         building = BuildingSnapshot(
             id="507f1f77bcf86cd799439011",
@@ -856,3 +887,63 @@ class TestHandleRefreshRequest:
         assert result["version"] == 1
 
         assert result["coalesced"] is False
+
+    @pytest.mark.asyncio
+    async def test_cache_miss_forwards_a_hint_when_publishing_is_off(self):
+        # After the cutover the legacy producer is off and `_last_snapshot` is
+        # None (start() skips the build). The endpoint must forward a hint to
+        # Processing and return 200-shaped data, not dereference None -> 500.
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = MagicMock()
+        service._redis.incr = AsyncMock()
+        service._last_snapshot = None
+        service.notify_data_changed = AsyncMock()
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        try:
+            result = await service.handle_refresh_request(
+                reason="cache-miss", requested_by="bff"
+            )
+        finally:
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service.notify_data_changed.assert_awaited_once_with("cache-miss")
+        assert result == {"accepted": True, "coalesced": False}
+
+
+    @pytest.mark.asyncio
+    async def test_manual_refresh_request_maps_to_cache_miss_when_publishing_is_off(self):
+        service = DashboardSnapshotService(
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            _MockSettings(),
+        )
+        service._redis = MagicMock()
+        service.notify_data_changed = AsyncMock()
+        feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, False)
+        try:
+            result = await service.handle_refresh_request(
+                reason="manual", requested_by="admin"
+            )
+        finally:
+            feature_flags.set_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH, True)
+
+        service.notify_data_changed.assert_awaited_once_with("cache-miss")
+        assert result == {"accepted": True, "coalesced": False}

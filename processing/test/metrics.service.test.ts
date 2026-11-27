@@ -6,6 +6,7 @@ function metrics(shadowModeEnabled: boolean): MetricsService {
   return new MetricsService({
     version: "0000.00.00",
     shadowModeEnabled,
+    publishEnabled: false,
   } as never);
 }
 
@@ -70,4 +71,26 @@ test("a skipped comparison leaves parity without a numeric value", async () => {
   // `0` must keep meaning "0% parity", so a skip cannot be read as a real
   // sample by a future `parity < X` alert.
   assert.equal(sample(body, "processing_shadow_parity_rate"), "Nan");
+});
+
+test("the publish gauge reports whether this instance owns the cutover", async () => {
+  const shadowOnly = new MetricsService({
+    version: "0000.00.00",
+    shadowModeEnabled: true,
+    publishEnabled: false,
+  } as never);
+  assert.equal(
+    sample(await shadowOnly.registry.metrics(), "processing_publish_enabled"),
+    "0",
+  );
+
+  const publishing = new MetricsService({
+    version: "0000.00.00",
+    shadowModeEnabled: true,
+    publishEnabled: true,
+  } as never);
+  assert.equal(
+    sample(await publishing.registry.metrics(), "processing_publish_enabled"),
+    "1",
+  );
 });

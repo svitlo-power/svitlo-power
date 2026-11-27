@@ -66,6 +66,26 @@ export class MetricsService {
     help: "Total number of coalesced refresh requests",
     registers: [this.registry],
   });
+  private readonly refreshNotifications = new Counter({
+    name: "processing_refresh_notifications_total",
+    help: "Snapshot refresh notifications received from the legacy back-end",
+    labelNames: ["reason"],
+    registers: [this.registry],
+  });
+  private readonly refreshNotificationErrors = new Counter({
+    name: "processing_refresh_notification_errors_total",
+    help: "Snapshot refresh notifications whose build failed",
+    labelNames: ["reason"],
+    registers: [this.registry],
+  });
+  /**
+   * Version that acknowledged the last notification, created on first write.
+   *
+   * Registered eagerly it would export `0`, which reads as "version 0 is
+   * current" instead of "no notification yet".
+   */
+  private refreshAcknowledgedVersion: Gauge<string> | null = null;
+  private refreshAcknowledgedAt: Gauge<string> | null = null;
 
   private readonly shadowParity = new Gauge({
     name: "processing_shadow_parity_rate",
@@ -100,6 +120,11 @@ export class MetricsService {
   private readonly shadowLeaseHeld = new Gauge({
     name: "processing_shadow_lease_held",
     help: "1 while this instance holds the shadow lease, 0 otherwise",
+    registers: [this.registry],
+  });
+  private readonly publishEnabled = new Gauge({
+    name: "processing_publish_enabled",
+    help: "1 when this instance publishes to the production snapshot keys, 0 otherwise",
     registers: [this.registry],
   });
   /**
@@ -152,6 +177,7 @@ export class MetricsService {
     this.shadowParity.set(Number.NaN);
     this.shadowModeEnabled.set(config.shadowModeEnabled ? 1 : 0);
     this.shadowLeaseHeld.set(0);
+    this.publishEnabled.set(config.publishEnabled ? 1 : 0);
     if (config.shadowModeEnabled) {
       // A replica that is expected to compare but has not yet completed one is
       // only "not stale" for the first 15 minutes after it starts.
@@ -191,6 +217,37 @@ export class MetricsService {
 
   refreshCoalescedCount(): void {
     this.refreshCoalesced.inc();
+  }
+
+  /** Counts a received "data changed" notification by its declared reason. */
+  refreshNotification(reason: string): void {
+    this.refreshNotifications.labels({ reason }).inc();
+  }
+
+  refreshNotificationError(reason: string): void {
+    this.refreshNotificationErrors.labels({ reason }).inc();
+  }
+
+  /**
+   * Records the version that acknowledged a notification.
+   *
+   * The pair of gauges is what makes a silently broken subscription visible: a
+   * subscription that receives nothing looks exactly like "no data changed"
+   * unless the acknowledged version and its timestamp are exported.
+   */
+  setRefreshAcknowledgement(version: number, seconds: number): void {
+    this.refreshAcknowledgedVersion ??= new Gauge({
+      name: "processing_refresh_acknowledged_version",
+      help: "Snapshot version that acknowledged the last refresh notification",
+      registers: [this.registry],
+    });
+    this.refreshAcknowledgedAt ??= new Gauge({
+      name: "processing_refresh_acknowledged_timestamp_seconds",
+      help: "Unix timestamp of the last acknowledged refresh notification",
+      registers: [this.registry],
+    });
+    this.refreshAcknowledgedVersion.set(version);
+    this.refreshAcknowledgedAt.set(seconds);
   }
 
   setShadowParity(rate: number): void {

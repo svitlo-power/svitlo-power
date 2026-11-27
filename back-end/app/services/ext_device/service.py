@@ -81,6 +81,7 @@ class ExtDeviceService(BaseService, IExtDeviceService):
         state_changed = await self._update_grid_state(user.id, active=True, now=datetime.now(timezone.utc))
         if state_changed:
             await self._snapshot_service.refresh_and_publish()
+            await self._snapshot_service.notify_data_changed("station-change")
 
 
     async def get_all_devices(self) -> list[ExtDeviceResponse]:
@@ -126,3 +127,4 @@ class ExtDeviceService(BaseService, IExtDeviceService):
             state_changed = await self._update_grid_state(user_id, active, now)
             if state_changed:
                 await self._snapshot_service.refresh_and_publish()
+                await self._snapshot_service.notify_data_changed("station-change")

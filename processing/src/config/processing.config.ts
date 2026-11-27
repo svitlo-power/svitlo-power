@@ -23,6 +23,13 @@ export interface ProcessingConfiguration {
   prettyLogs: boolean;
   /** Enables the shadow snapshot flow (build + compare + shadow writes). */
   shadowModeEnabled: boolean;
+  /**
+   * Enables publishing to the production snapshot keys (Phase 5 cutover).
+   *
+   * Requires `shadowModeEnabled`: the build, lease and comparison flow is the
+   * same, only the destination namespace changes.
+   */
+  publishEnabled: boolean;
   /** Interval between scheduled shadow reconciliations. */
   reconciliationIntervalMs: number;
   /** Debounce window that coalesces bursts of refresh requests. */
@@ -117,6 +124,17 @@ export function validateEnvironment(
       "PROCESSING_LEASE_RENEW_INTERVAL_SECONDS must be less than PROCESSING_LEASE_TTL_SECONDS",
     );
   }
+  // Publishing without shadow mode would mean building without the comparison
+  // and lease flow that makes the cutover safe, so the combination is refused
+  // at startup instead of silently doing nothing.
+  if (
+    result.FEATURE_PROCESSING_PUBLISH_ENABLED === "true" &&
+    result.FEATURE_PROCESSING_SHADOW_MODE !== "true"
+  ) {
+    throw new Error(
+      "FEATURE_PROCESSING_PUBLISH_ENABLED requires FEATURE_PROCESSING_SHADOW_MODE=true",
+    );
+  }
   return result;
 }
 
@@ -135,6 +153,7 @@ export const processingConfig = registerAs(
       process.env.PROCESSING_LOG_PRETTY === "true" &&
       process.env.NODE_ENV !== "production",
     shadowModeEnabled: process.env.FEATURE_PROCESSING_SHADOW_MODE === "true",
+    publishEnabled: process.env.FEATURE_PROCESSING_PUBLISH_ENABLED === "true",
     reconciliationIntervalMs:
       Number(process.env.PROCESSING_RECONCILIATION_INTERVAL_SECONDS ?? 300) *
       1000,

@@ -55,7 +55,7 @@ groups:
                 type: prometheus
                 uid: prometheus
               editorMode: code
-              expr: (time() - processing_shadow_last_comparison_timestamp_seconds{job="svitlo-power-processing"} > 900) and on(instance) (processing_shadow_mode_enabled{job="svitlo-power-processing"} == 1) and on(instance) (processing_shadow_lease_held{job="svitlo-power-processing"} == 1)
+              expr: (time() - processing_shadow_last_comparison_timestamp_seconds{job="svitlo-power-processing"} > 900) and on(instance) (processing_shadow_mode_enabled{job="svitlo-power-processing"} == 1) and on(instance) (processing_shadow_lease_held{job="svitlo-power-processing"} == 1) and on(instance) (processing_publish_enabled{job="svitlo-power-processing"} == 0)
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -99,5 +99,36 @@ groups:
         annotations:
           summary: Processing service is not being scraped
           description: Prometheus cannot scrape svitlo-power-processing, so no shadow snapshot is being produced or compared.
+        labels:
+          severity: warning
+      # After the cutover the shadow comparison is skipped (parity is NaN), so
+      # the parity-stale rule above no longer covers freshness. This rule watches
+      # the production snapshot age on the Processing producer instead.
+      - uid: processing-snapshot-freshness
+        title: Processing snapshot is stale after cutover
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: dashboard_snapshot_age_seconds{job="svitlo-power-processing"} > 60 and on(instance) (processing_publish_enabled{job="svitlo-power-processing"} == 1)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: Processing snapshot is older than the 60s freshness gate
+          description: The Processing producer holds the lease but the production snapshot has not been refreshed in over 60 seconds, so clients are reading a stale dashboard.
         labels:
           severity: warning

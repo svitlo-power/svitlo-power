@@ -4,6 +4,7 @@ import {
   LUA_LEASE_RENEW_SCRIPT,
   LUA_LEASE_RELEASE_SCRIPT,
   LUA_SHADOW_WRITE_SCRIPT,
+  LUA_WRITE_SCRIPT,
   SHADOW_EPOCH_KEY,
   SHADOW_INVALIDATION_CHANNEL,
   SHADOW_KEYS,
@@ -30,6 +31,16 @@ test("every shadow key is isolated from the production namespace", () => {
   assert.equal(SHADOW_EPOCH_KEY, "shadow:meta:dashboard:epoch");
   assert.equal(SHADOW_VERSION_NEXT_KEY, "shadow:meta:dashboard:version:next");
   assert.equal(SHADOW_VERSION_COMMITTED_KEY, "shadow:meta:dashboard:version");
+});
+
+test("the production write script fences on the lease and CASes on the version", () => {
+  assert.ok(LUA_WRITE_SCRIPT.includes("redis.call('GET', KEYS[3])"));
+  assert.ok(LUA_WRITE_SCRIPT.includes("'lease-lost'"));
+  assert.ok(LUA_WRITE_SCRIPT.includes("'epoch-stale'"));
+  assert.ok(LUA_WRITE_SCRIPT.includes("'version-stale'"));
+  // The production script must keep using the production key names it is
+  // handed, never a shadow literal.
+  assert.ok(!LUA_WRITE_SCRIPT.includes("shadow:"));
 });
 
 test("the shadow write script fences on the lease and CASes on the version", () => {

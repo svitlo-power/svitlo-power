@@ -108,8 +108,12 @@ def register(_: Settings, injector: Injector):
             if not enabled:
                 return
             await service.update(region["id"], provider["id"])
+            # One hint per run, not per region/provider iteration: the job
+            # handles a single configured region/provider, but a single notify
+            # after the update keeps the intent explicit and coalescing-friendly.
             snapshot_service = injector.get(DashboardSnapshotService)
             await snapshot_service.refresh_and_publish()
+            await snapshot_service.notify_data_changed("outages-change")
 
     scheduler.add_job(
         id            = 'update_outages_schedule',

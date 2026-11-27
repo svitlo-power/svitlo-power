@@ -199,3 +199,27 @@ class TestExtDataServiceDeleteExtData:
         result = await service.delete_ext_data(PydanticObjectId())
         assert result is False
         mock_events.broadcast_public.assert_not_called()
+
+
+class TestExtDataServiceSnapshotTrigger:
+    @pytest.mark.asyncio
+    async def test_mutations_notify_processing_after_the_cutover(self):
+        """Each ext-data mutation must notify Processing once."""
+        mock_events = MagicMock()
+        mock_events.broadcast_public = AsyncMock()
+        mock_ext_data_repo = MagicMock()
+        mock_ext_data_repo.add_ext_data = AsyncMock(return_value=PydanticObjectId())
+        mock_ext_data_repo.delete = AsyncMock(return_value=True)
+        user = User(name="testuser", password="hashed", is_active=True, is_reporter=False)
+        mock_users_repo = MagicMock()
+        mock_users_repo.get_user = AsyncMock(return_value=user)
+
+        mock_snapshot_service = AsyncMock()
+        service = ExtDataService(mock_events, mock_ext_data_repo, mock_users_repo, mock_snapshot_service)
+
+        await service.add_ext_data("testuser", True)
+        await service.delete_ext_data(PydanticObjectId())
+
+        assert mock_snapshot_service.notify_data_changed.await_count == 2
+        for call in mock_snapshot_service.notify_data_changed.await_args_list:
+            assert call.args == ("station-change",)

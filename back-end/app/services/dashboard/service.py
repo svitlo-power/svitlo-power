@@ -63,12 +63,23 @@ class DashboardService(ReadOnlyDashboardService):
         return _snapshot_service
     
     def _should_publish_snapshot(self) -> bool:
-        """Check if dashboard snapshot publishing is enabled via feature flag."""
+        """Whether the legacy back-end is the active snapshot producer."""
         return feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
-    
+
+    def _snapshot_producer_active(self) -> bool:
+        """Whether any producer is writing the snapshot the clients read.
+
+        After the Phase 5 cutover the legacy producer is off but Processing
+        publishes, so the public dashboard events must keep flowing. Gating them
+        on the legacy flag alone would silence them at the cutover.
+        """
+        return self._should_publish_snapshot() or feature_flags.is_enabled(
+            FeatureFlag.PROCESSING_PUBLISH_ENABLED
+        )
+
     async def _broadcast_if_enabled(self, event_type: str, data: dict = None):
-        """Broadcast event only if snapshot publishing is enabled."""
-        if self._should_publish_snapshot():
+        """Broadcast a public dashboard event while a snapshot producer exists."""
+        if self._snapshot_producer_active():
             await self.broadcast_public(event_type, data)
 
     async def _refresh_snapshot_if_enabled(self) -> None:
@@ -77,6 +88,17 @@ class DashboardService(ReadOnlyDashboardService):
             snapshot_service = self._get_snapshot_service()
             if snapshot_service:
                 await snapshot_service.refresh_and_publish()
+
+    async def _notify_snapshot_changed(self, reason: str) -> None:
+        """Tell Processing that dashboard data changed.
+
+        After the cutover the legacy producer no longer publishes, so the
+        in-process ``refresh_and_publish()`` above is a no-op and Processing has
+        to be triggered explicitly.
+        """
+        snapshot_service = self._get_snapshot_service()
+        if snapshot_service:
+            await snapshot_service.notify_data_changed(reason)
 
     async def save_config(self, config: SaveDashboardConfigRequest) -> DashboardConfigResponse:
         schedule = config.outages_schedule
@@ -100,6 +122,7 @@ class DashboardService(ReadOnlyDashboardService):
             )
         await self._broadcast_if_enabled("dashboard_config_updated")
         await self._refresh_snapshot_if_enabled()
+        await self._notify_snapshot_changed("config-change")
         return await self.get_config()
 
     async def edit_building(
@@ -124,6 +147,7 @@ class DashboardService(ReadOnlyDashboardService):
             await self._dashboard.edit_building(building)
             await self._broadcast_if_enabled("buildings_updated")
             await self._refresh_snapshot_if_enabled()
+            await self._notify_snapshot_changed("buildings-change")
             return building_id
 
         return None
@@ -146,6 +170,7 @@ class DashboardService(ReadOnlyDashboardService):
         building_id = await self._dashboard.create_building(building)
         await self._broadcast_if_enabled("buildings_updated")
         await self._refresh_snapshot_if_enabled()
+        await self._notify_snapshot_changed("buildings-change")
         return building_id
 
     async def delete_building(self, building_id: PydanticObjectId) -> bool:
@@ -156,5 +181,6 @@ class DashboardService(ReadOnlyDashboardService):
             await self._dashboard.reorder_buildings(remaining_buildings)
             await self._broadcast_if_enabled("buildings_updated")
             await self._refresh_snapshot_if_enabled()
+            await self._notify_snapshot_changed("buildings-change")
             return True
         return False

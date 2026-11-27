@@ -69,3 +69,24 @@ test("the environment validation keeps valid overrides", () => {
   assert.equal(validated.PROCESSING_LOG_LEVEL, "debug");
   assert.equal(validated.FEATURE_PROCESSING_SHADOW_MODE, "true");
 });
+
+test("publishing is off unless the cutover flag is set", () => {
+  assert.equal(
+    validateEnvironment({}).FEATURE_PROCESSING_PUBLISH_ENABLED,
+    undefined,
+  );
+  const validated = validateEnvironment({
+    FEATURE_PROCESSING_SHADOW_MODE: "true",
+    FEATURE_PROCESSING_PUBLISH_ENABLED: "true",
+  });
+  assert.equal(validated.FEATURE_PROCESSING_PUBLISH_ENABLED, "true");
+});
+
+test("publishing without shadow mode is refused", () => {
+  // Publishing without the shadow flow would skip the comparison and lease
+  // behaviour the cutover depends on, so it must fail at startup.
+  assert.throws(
+    () => validateEnvironment({ FEATURE_PROCESSING_PUBLISH_ENABLED: "true" }),
+    /FEATURE_PROCESSING_PUBLISH_ENABLED requires FEATURE_PROCESSING_SHADOW_MODE=true/,
+  );
+});

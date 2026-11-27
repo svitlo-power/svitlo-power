@@ -12,13 +12,22 @@ import {
   changedSections,
 } from "../shared.js";
 import { processingConfig } from "../config/processing.config.js";
-import { PROCESSING_LEASE } from "../tokens.js";
+import { ACTIVE_PUBLISHER, PROCESSING_LEASE } from "../tokens.js";
 import { ProcessingLease } from "../lease/processing-lease.service.js";
 import { MetricsService } from "../metrics/metrics.service.js";
 import { ShadowComparator } from "../shadow/shadow-comparator.service.js";
-import { ShadowPublisher } from "../shadow/shadow-publisher.service.js";
 import { SnapshotBuilder } from "../snapshot/snapshot.builder.js";
 import { SnapshotValidator } from "../snapshot/snapshot.validator.js";
+
+/** The subset of a publisher the processing flow uses, shared by both. */
+export interface SnapshotPublisherLike {
+  initialiseVersionKeys(startTimeMs: number): Promise<number>;
+  nextVersion(): Promise<number>;
+  publish(snapshot: DashboardSnapshot): Promise<{
+    published: boolean;
+    reason: string;
+  }>;
+}
 
 export interface ReconcileResult {
   built: boolean;
@@ -82,7 +91,7 @@ export class ProcessingService
     @Inject(PROCESSING_LEASE) private readonly lease: ProcessingLease,
     private readonly builder: SnapshotBuilder,
     private readonly validator: SnapshotValidator,
-    private readonly publisher: ShadowPublisher,
+    @Inject(ACTIVE_PUBLISHER) private readonly publisher: SnapshotPublisherLike,
     private readonly comparator: ShadowComparator,
     private readonly metrics: MetricsService,
   ) {
@@ -239,7 +248,7 @@ export class ProcessingService
 
   private async runReconcile(reason: string): Promise<ReconcileResult> {
     if (!this.lease.isHolder && !(await this.lease.acquire())) {
-      this.logger.warn("Skipping reconciliation: shadow lease not held");
+      this.logger.warn("Skipping reconciliation: lease not held");
       return {
         built: false,
         published: false,
@@ -254,9 +263,9 @@ export class ProcessingService
     }
 
     if (this.epoch === 0) {
-      this.epoch = await this.publisher.initialiseVersionKeys(this.startedAt);
+      this.epoch = await this.allocateEpoch();
     }
-    const version = await this.publisher.nextVersion();
+    const version = await this.allocateVersion();
 
     const { snapshot, timing } = await this.builder.build({
       epoch: this.epoch,
@@ -284,12 +293,18 @@ export class ProcessingService
     }
 
     const changed = changedSections(this.lastSnapshot, snapshot);
-    const publish = await this.publisher.publish(snapshot);
+    const publish = await this.write(snapshot);
     if (publish.published) {
       this.lastSnapshot = snapshot;
     }
 
-    const comparison = await this.comparator.compareWithProduction(snapshot);
+    // After the cutover Processing owns the production key, so comparing with
+    // it would compare the snapshot with itself: parity is always 1.0 and the
+    // parity/staleness alerts read healthy whatever the build produces. Skip
+    // the comparison and export parity as "not available" instead.
+    const comparison = this.config.publishEnabled
+      ? { compared: false, parity: null, mismatches: 0 }
+      : await this.comparator.compareWithProduction(snapshot);
     const result: ReconcileResult = {
       built: true,
       published: publish.published,
@@ -304,9 +319,40 @@ export class ProcessingService
     this.lastResult = result;
     this.lastBuildAt = Date.now();
     this.logger.log(
-      `Shadow reconciliation (${reason}): version=${snapshot.version} changed=[${changed.join(",")}] parity=${result.parity === null ? "n/a" : result.parity.toFixed(4)}`,
+      `Snapshot reconciliation (${reason}): version=${snapshot.version} changed=[${changed.join(",")}] parity=${result.parity === null ? "n/a" : result.parity.toFixed(4)}`,
     );
     return result;
+  }
+
+  /**
+   * Allocates the epoch from the namespace the instance publishes to.
+   *
+   * After the cutover the production keys are authoritative, so seeding from
+   * the shadow epoch would rewind the version the BFFs already saw. The active
+   * publisher is chosen from the publish flag by the module, so this always
+   * touches the namespace the writes land in.
+   */
+  private allocateEpoch(): Promise<number> {
+    return this.publisher.initialiseVersionKeys(this.startedAt);
+  }
+
+  private allocateVersion(): Promise<number> {
+    return this.publisher.nextVersion();
+  }
+
+  /**
+   * Writes the snapshot to the active namespace.
+   *
+   * Exactly one publisher is ever active: the shadow one while
+   * `FEATURE_PROCESSING_PUBLISH_ENABLED` is off, the production one after the
+   * cutover. Both are fenced by the same lease, so a rollback that re-enables
+   * the legacy producer cannot produce competing writers.
+   */
+  private write(snapshot: DashboardSnapshot): Promise<{
+    published: boolean;
+    reason: string;
+  }> {
+    return this.publisher.publish(snapshot);
   }
 
   /** Health/metrics view of the most recent reconciliation. */
@@ -323,6 +369,12 @@ export class ProcessingService
   details() {
     return {
       shadow_mode: this.config.shadowModeEnabled,
+      // Historical name kept for dashboard compatibility: after the cutover the
+      // instance is the production producer, not a shadow one.
+      shadow_mode_note: this.config.publishEnabled
+        ? "publishing to production keys"
+        : "shadow mode",
+      publish_enabled: this.config.publishEnabled,
       lease_held: this.lease.isHolder,
       epoch: this.epoch,
       version: this.lastSnapshot?.version ?? 0,

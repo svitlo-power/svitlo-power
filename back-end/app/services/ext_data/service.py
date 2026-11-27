@@ -39,6 +39,7 @@ class ExtDataService(BaseService):
         id = await self._ext_data.add_ext_data(user.id, grid_state, date)
         await self.broadcast_public("ext_data_updated")
         await self._snapshot_service.refresh_and_publish()
+        await self._snapshot_service.notify_data_changed("station-change")
         return id
 
 
@@ -93,5 +94,6 @@ class ExtDataService(BaseService):
         if await self._ext_data.delete(ext_data_id):
             await self.broadcast_public("ext_data_updated")
             await self._snapshot_service.refresh_and_publish()
+            await self._snapshot_service.notify_data_changed("station-change")
             return True
         return False

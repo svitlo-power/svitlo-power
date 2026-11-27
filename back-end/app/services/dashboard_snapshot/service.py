@@ -30,6 +30,11 @@ from shared.services.events.service import EventsService
 from shared.services.dashboard import ReadOnlyDashboardService
 from shared.services.outages_schedule import OutagesScheduleService
 from shared.services.settings.service import SettingsService
+from shared.services.dashboard_snapshot.triggers import (
+    REFRESH_REASONS,
+    SNAPSHOT_REFRESH_CHANNEL,
+    build_refresh_notification,
+)
 from app.repositories import (
     IDashboardRepository,
     IStationsRepository,
@@ -145,6 +150,42 @@ class DashboardSnapshotService:
     @property
     def is_publish_enabled(self) -> bool:
         return feature_flags.is_enabled(FeatureFlag.DASHBOARD_SNAPSHOT_PUBLISH)
+
+    @property
+    def is_refresh_trigger_enabled(self) -> bool:
+        """Whether this instance should notify Processing about mutations.
+
+        The trigger is gated on the cutover flag: while the legacy producer is
+        still the publisher there is nothing to notify, and after a rollback the
+        re-enabled publisher must not be fed notifications it no longer needs.
+        """
+        return feature_flags.is_enabled(FeatureFlag.PROCESSING_CUTOVER)
+
+    async def notify_data_changed(
+        self,
+        reason: str,
+        changed_sections: list[str] | None = None,
+    ) -> None:
+        """Publishes a fire-and-forget "data changed" hint to Processing.
+
+        The domain write must never fail because Processing is unreachable, so
+        every error is swallowed and logged. The payload is a hint only:
+        Processing re-reads MongoDB and rebuilds.
+        """
+        if not self.is_refresh_trigger_enabled:
+            return
+        try:
+            await self._redis.publish(
+                SNAPSHOT_REFRESH_CHANNEL,
+                json.dumps(
+                    build_refresh_notification(
+                        reason=reason,
+                        changed_sections=changed_sections,
+                    )
+                ),
+            )
+        except Exception as e:
+            logger.warning("Unable to publish snapshot refresh trigger: %s", e)
 
     async def start(self) -> None:
         """Initialize epoch, acquire lease, and publish initial snapshot."""
@@ -432,8 +473,19 @@ class DashboardSnapshotService:
             DASHBOARD_SNAPSHOT_WRITE_ERRORS.labels(error_type="exception").inc()
             return False
 
-    async def refresh_and_publish(self) -> DashboardSnapshot:
-        """Build and publish a fresh snapshot."""
+    async def refresh_and_publish(self) -> Optional[DashboardSnapshot]:
+        """Build and publish a fresh snapshot.
+
+        After the cutover the legacy producer no longer owns the snapshot, so
+        this is a no-op: the caller publishes a hint to Processing instead. The
+        early return keeps the hot mutation paths from building a snapshot that
+        is immediately thrown away (doubling the Mongo load) and from blocking
+        the hint if the unused build raises. Returns ``None`` when publishing is
+        off (including before the first build), so callers must not dereference
+        the result.
+        """
+        if not self.is_publish_enabled:
+            return self._last_snapshot
         # Allocate version via INCR on the version allocator key
         version = await self._redis.incr(VERSION_NEXT_KEY)
         snapshot = await self.build_snapshot(version=version)
@@ -487,8 +539,19 @@ class DashboardSnapshotService:
     async def handle_refresh_request(
         self, reason: str, requested_by: str
     ) -> dict:
-        """Handle an HTTP refresh request with server-side coalescing."""
+        """Handle an HTTP refresh request with server-side coalescing.
+
+        After the cutover the legacy producer no longer publishes, so a cache
+        miss is forwarded to Processing as a hint instead of building a throwaway
+        snapshot (which would 500 on the ``None`` result and leave the snapshot
+        stale until the 300 s cron).
+        """
         DASHBOARD_REFRESH_REQUESTS.labels(reason=reason).inc()
+
+        if not self.is_publish_enabled:
+            forwarded_reason = reason if reason in REFRESH_REASONS else "cache-miss"
+            await self.notify_data_changed(forwarded_reason)
+            return {"accepted": True, "coalesced": False}
 
         # Try to become the leader for this refresh cycle.
         # The lock is never held while awaiting, avoiding deadlock with
